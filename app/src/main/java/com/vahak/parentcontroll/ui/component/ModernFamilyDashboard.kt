@@ -24,7 +24,10 @@ import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
-fun ModernFamilyDashboard() {
+fun ModernFamilyDashboard(
+    onAddChildClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {}
+) {
     val colors = LocalCustomColors.current
 
     // Use Scaffod for BottomBar, but we need custom positioning for FAB
@@ -57,12 +60,12 @@ fun ModernFamilyDashboard() {
                     DashboardMenuItem(
                         title = "تنظیمات خانواده",
                         icon = AppIcons.Settings,
-                        onClick = {}
+                        onClick = { onSettingsClick() }
                     )
 
                     DashboardMenuItem(
                         title = "گزارش فعالیت‌ها",
-                        icon = AppIcons.ChartBar, // Mapped to fa-chart-bar
+                        icon = AppIcons.ChartBar,
                         onClick = {}
                     )
 
@@ -78,7 +81,7 @@ fun ModernFamilyDashboard() {
             // 3. FAB (Add Child)
             // Positioned absolute relative to the screen, overlapping header and content
             FloatingActionButton(
-                onClick = {},
+                onClick = { onAddChildClick() },
                 containerColor = colors.yellow, // Accent Color
                 contentColor = Color(0xFF333333),
                 shape = CircleShape,

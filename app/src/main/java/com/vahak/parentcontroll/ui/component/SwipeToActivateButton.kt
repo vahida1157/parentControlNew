@@ -92,7 +92,7 @@ fun SwipeToActivateButton(
                     orientation = Orientation.Horizontal,
                     state = rememberDraggableState { delta ->
                         if (!isActivated) {
-                            val newOffset = offsetX + delta
+                            val newOffset = offsetX - delta
                             // Standard RTL Logic: Dragging "Left" (negative x) usually usually implies forward in RTL
                             // But for simplicity in Compose 'offset' is physical.
                             // Let's assume physical right drag for now.
