@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">خانواده مدرن</string>
+    <string name="dashboard_title">تنظیمات نظارتی</string>
+    <string name="dashboard_subtitle">مدیریت کامل دسترسی‌های فرزند در این بخش انجام می‌شود</string>
+
+    <string name="menu_family_settings">تنظیمات خانواده</string>
+    <string name="menu_activity_report">گزارش فعالیت‌ها</string>
+
+    <string name="slider_instruction">برای فعال‌سازی سرویس بکشید</string>
+    <string name="slider_activated">سرویس فعال شد</string>
+
+    <string name="nav_profile">پروفایل</string>
+    <string name="nav_stats">آمار</string>
+    <string name="nav_sub">اشتراک</string>
+    <string name="nav_home">خانه</string>
+
+    <string name="kid_theme_title">پوسته کودکانه</string>
+    <string name="status_active">فعال شده</string>
+    <string name="status_inactive">غیرفعال</string>
+    <string name="section_access">دسترسی و محتوا</string>
+
+    <string name="cat_games">بازی‌ها</string>
+    <string name="cat_movies">فیلم</string>
+    <string name="cat_music">موسیقی</string>
+</resources>
