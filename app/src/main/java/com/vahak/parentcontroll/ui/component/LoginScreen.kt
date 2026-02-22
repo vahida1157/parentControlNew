@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vahak.parentcontroll.presentation.login.LoginEffect
 import com.vahak.parentcontroll.presentation.login.LoginEvent
@@ -51,7 +52,7 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel = viewModel(),
+    viewModel: LoginViewModel = hiltViewModel(),
     onNavigateToOtp: (String) -> Unit
 ) {
     val colors = LocalCustomColors.current

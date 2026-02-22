@@ -14,21 +14,36 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.parentcontroll.presentation.dashboard.DashboardEffect
+import com.vahak.parentcontroll.presentation.dashboard.DashboardEvent
+import com.vahak.parentcontroll.presentation.dashboard.DashboardViewModel
 import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
 fun ModernFamilyDashboard(
+    viewModel: DashboardViewModel = hiltViewModel(),
     onAddChildClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    onLogoutComplete: () -> Unit = {},
 ) {
     val colors = LocalCustomColors.current
+
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is DashboardEffect.NavigateToLogin -> onLogoutComplete()
+            }
+        }
+    }
 
     // Use Scaffod for BottomBar, but we need custom positioning for FAB
     // So we'll use a Box for the main layout to layer the FAB correctly
@@ -48,7 +63,10 @@ fun ModernFamilyDashboard(
                     .verticalScroll(rememberScrollState())
             ) {
                 // 1. Header
-                DashboardHeader(onHelpClick = {}, onUnlockClick = {})
+                DashboardHeader(
+                    onHelpClick = {},
+                    onUnlockClick = { viewModel.onEvent(DashboardEvent.LockClicked) }
+                )
 
                 // 2. Main Content Area
                 Column(

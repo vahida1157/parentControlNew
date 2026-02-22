@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vahak.parentcontroll.presentation.setting.SettingsEffect
@@ -26,6 +27,7 @@ import com.vahak.parentcontroll.presentation.setting.SettingsEvent
 import com.vahak.parentcontroll.presentation.setting.SettingsViewModel
 import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
+import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
 fun ParentalSettingsScreen(
@@ -113,5 +115,19 @@ fun ParentalSettingsScreen(
 
             Spacer(modifier = Modifier.height(40.dp)) // Bottom padding
         }
+    }
+}
+
+@Preview(
+    showBackground = true,
+    name = "5. Full Setting Screen",
+    heightDp = 800,
+    widthDp = 360,
+    locale = "fa"
+)
+@Composable
+fun FullSettingPreview() {
+    ParentControlTheme {
+        ParentalSettingsScreen(onBackClick = {})
     }
 }

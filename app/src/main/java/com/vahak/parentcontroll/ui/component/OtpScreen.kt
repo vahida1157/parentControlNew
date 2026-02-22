@@ -45,7 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.parentcontroll.presentation.login.OtpEffect
 import com.vahak.parentcontroll.presentation.login.OtpEvent
 import com.vahak.parentcontroll.presentation.login.OtpViewModel
@@ -56,7 +56,7 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 @Composable
 fun OtpScreen(
     phoneNumber: String,
-    viewModel: OtpViewModel = viewModel(),
+    viewModel: OtpViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onVerifyClick: () -> Unit
 ) {
@@ -234,7 +234,7 @@ fun OtpScreen(
 
                 val isEnabled = state.otpCode.length == otpLength && !state.isVerifying
                 Button(
-                    onClick = { viewModel.onEvent(OtpEvent.VerifyClicked) },
+                    onClick = { viewModel.onEvent(OtpEvent.VerifyClicked(phoneNumber)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(60.dp),

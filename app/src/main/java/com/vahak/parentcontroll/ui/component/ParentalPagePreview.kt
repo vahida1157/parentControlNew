@@ -28,7 +28,7 @@ fun ParentalPagePreview() {
                 title = "تنظیمات نظارتی",
                 subtitle = "مدیریت کامل دسترسی‌های فرزند",
                 onBackClick = {},
-                onHelpClick = {}
+                onHelpClick = {},
             )
 
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
@@ -41,7 +41,7 @@ fun ParentalPagePreview() {
                         SettingsGridItem(
                             label = "بازی‌ها",
                             icon = AppIcons.Games,
-                            isLocked = true
+                            isLocked = true,
                         ) {}
                     }
                     Box(modifier = Modifier.weight(1f)) {

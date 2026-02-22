@@ -1,8 +1,13 @@
 package com.vahak.parentcontroll.presentation.login
 
+import androidx.lifecycle.viewModelScope
+import com.vahak.parentcontroll.domain.repository.AuthRepository
 import com.vahak.parentcontroll.domain.usecase.ValidationResult
 import com.vahak.parentcontroll.domain.usecase.VerifyOtpUseCase
 import com.vahak.parentcontroll.presentation.BaseViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class OtpState(
     val otpCode: String = "", val errorMessage: String? = null, val isVerifying: Boolean = false
@@ -10,7 +15,7 @@ data class OtpState(
 
 sealed class OtpEvent {
     data class OtpChanged(val code: String) : OtpEvent()
-    object VerifyClicked : OtpEvent()
+    data class VerifyClicked(val phone: String) : OtpEvent()
     object ResendClicked : OtpEvent()
 }
 
@@ -19,8 +24,9 @@ sealed class OtpEffect {
     data class ShowToast(val message: String) : OtpEffect()
 }
 
-class OtpViewModel(
-    private val verifyOtpUseCase: VerifyOtpUseCase = VerifyOtpUseCase()
+@HiltViewModel
+class OtpViewModel @Inject constructor(
+    private val repository: AuthRepository
 ) : BaseViewModel<OtpState, OtpEvent, OtpEffect>(OtpState()) {
 
     override fun onEvent(event: OtpEvent) {
@@ -31,18 +37,21 @@ class OtpViewModel(
                 )
             }
 
-            is OtpEvent.VerifyClicked -> verifyCode()
+            is OtpEvent.VerifyClicked -> verifyCode(event.phone)
             is OtpEvent.ResendClicked -> resendCode()
         }
     }
 
-    private fun verifyCode() {
-        val result = verifyOtpUseCase.execute(state.value.otpCode)
-        when (result) {
-            is ValidationResult.Error -> updateState { copy(errorMessage = result.message) }
-            is ValidationResult.Success -> {
-                // Success! Tell UI to navigate
+    private fun verifyCode(phone: String) {
+        viewModelScope.launch {
+            updateState { copy(isVerifying = true) }
+
+            val result = repository.verifyOtp(phone, state.value.otpCode)
+
+            result.onSuccess {
                 sendEffect(OtpEffect.NavigateToDashboard)
+            }.onFailure { error ->
+                updateState { copy(errorMessage = error.message, isVerifying = false) }
             }
         }
     }

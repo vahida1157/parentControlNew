@@ -18,10 +18,12 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
 fun ParentControlNavGraph(
-    modifier: Modifier = Modifier, navController: NavHostController = rememberNavController()
+    startDestination: String,
+    modifier: Modifier = Modifier,
+    navController: NavHostController = rememberNavController()
 ) {
     NavHost(
-        navController = navController, startDestination = Screen.Login.route, modifier = modifier
+        navController = navController, startDestination = startDestination, modifier = modifier
     ) {
 
         composable(route = Screen.Login.route) {
@@ -54,7 +56,13 @@ fun ParentControlNavGraph(
             ModernFamilyDashboard(
                 onAddChildClick = { navController.navigate(Screen.AddChild.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
-            )
+                onLogoutComplete = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                    }
+                })
         }
         composable(route = Screen.AddChild.route) {
             AddChildScreen(
@@ -74,6 +82,6 @@ fun ParentControlNavGraph(
 fun AppNavigationPreview() {
     ParentControlTheme {
         // Passing a dummy NavController allows the preview to render the NavHost
-        ParentControlNavGraph(navController = rememberNavController())
+        ParentControlNavGraph(startDestination = "login", navController = rememberNavController())
     }
 }

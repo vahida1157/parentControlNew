@@ -3,6 +3,8 @@ package com.vahak.parentcontroll.presentation.login
 import com.vahak.parentcontroll.domain.usecase.ValidatePhoneUseCase
 import com.vahak.parentcontroll.domain.usecase.ValidationResult
 import com.vahak.parentcontroll.presentation.BaseViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 // 1. Contract Definition
 data class LoginState(
@@ -20,9 +22,9 @@ sealed class LoginEffect {
     data class NavigateToOtp(val phone: String) : LoginEffect()
 }
 
-// 2. ViewModel Implementation
-class LoginViewModel(
-    private val validatePhoneUseCase: ValidatePhoneUseCase = ValidatePhoneUseCase()
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val validatePhoneUseCase: ValidatePhoneUseCase
 ) : BaseViewModel<LoginState, LoginEvent, LoginEffect>(LoginState()) {
 
     override fun onEvent(event: LoginEvent) {
