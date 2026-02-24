@@ -2,8 +2,12 @@ package com.vahak.parentcontroll.di
 
 import android.content.Context
 import com.vahak.parentcontroll.core.data.local.SessionManager
+import com.vahak.parentcontroll.core.data.local.dao.ChildDao
+import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
 import com.vahak.parentcontroll.domain.repository.AuthRepository
 import com.vahak.parentcontroll.domain.repository.AuthRepositoryImpl
+import com.vahak.parentcontroll.domain.repository.ChildRepository
+import com.vahak.parentcontroll.domain.repository.ChildRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,5 +29,11 @@ object AppModule {
     @Singleton
     fun provideAuthRepository(sessionManager: SessionManager): AuthRepository {
         return AuthRepositoryImpl(sessionManager)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChildRepository(childDao: ChildDao, settingsDao: SettingsDao): ChildRepository {
+        return ChildRepositoryImpl(childDao, settingsDao)
     }
 }

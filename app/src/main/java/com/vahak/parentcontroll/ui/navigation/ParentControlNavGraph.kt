@@ -10,10 +10,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.vahak.parentcontroll.ui.component.AddChildScreen
-import com.vahak.parentcontroll.ui.component.LoginScreen
-import com.vahak.parentcontroll.ui.component.ModernFamilyDashboard
-import com.vahak.parentcontroll.ui.component.OtpScreen
-import com.vahak.parentcontroll.ui.component.ParentalSettingsScreen
+import com.vahak.parentcontroll.ui.screens.TimeLimitScreen
+import com.vahak.parentcontroll.ui.screens.dashboard.ModernFamilyDashboard
+import com.vahak.parentcontroll.ui.screens.family.FamilyManagementScreen
+import com.vahak.parentcontroll.ui.screens.login.LoginScreen
+import com.vahak.parentcontroll.ui.screens.login.OtpScreen
+import com.vahak.parentcontroll.ui.screens.settings.ChildSettingsScreen
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
@@ -55,23 +57,48 @@ fun ParentControlNavGraph(
         composable(route = Screen.Dashboard.route) {
             ModernFamilyDashboard(
                 onAddChildClick = { navController.navigate(Screen.AddChild.route) },
-                onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                onSettingsClick = { childId ->
+                    navController.navigate("child_settings/$childId")
+                },
+                onManageFamilyClick = { navController.navigate(Screen.FamilyManagement.route) },
                 onLogoutComplete = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) {
                             inclusive = true
                         }
                     }
-                })
+                },
+            )
         }
         composable(route = Screen.AddChild.route) {
             AddChildScreen(
                 onBackClick = { navController.popBackStack() },
             )
         }
-        composable(route = Screen.Settings.route) {
-            ParentalSettingsScreen(
+        composable(route = Screen.FamilyManagement.route) {
+            FamilyManagementScreen(
+                onBackClick = { navController.popBackStack() }, // Go back to Dashboard
+                onAddChildClick = { navController.navigate(Screen.AddChild.route) }, // Open Add Child
+                onChildSettingsClick = { childId ->
+                    // TODO: We will build this next!
+                    // navController.navigate("child_settings/$childId")
+                }
+            )
+        }
+        composable(route = "child_settings/{childId}") { backStackEntry ->
+            // The ViewModel automatically catches the {childId} using SavedStateHandle!
+            ChildSettingsScreen(
                 onBackClick = { navController.popBackStack() },
+                onNavigateToFeature = { featureRoute ->
+                    // e.g. navigates to "time_limit/mock-123"
+                    navController.navigate("$featureRoute/${backStackEntry.arguments?.getString("childId")}")
+                }
+            )
+        }
+
+        composable(route = "time_limit/{childId}") { backStackEntry ->
+            TimeLimitScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

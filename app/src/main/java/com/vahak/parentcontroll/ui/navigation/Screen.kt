@@ -9,4 +9,5 @@ sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object AddChild : Screen("add_child")
     object Settings : Screen("settings")
+    object FamilyManagement : Screen("family_management")
 }

@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,8 +23,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
+import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
 fun GenderOption(
@@ -65,6 +70,41 @@ fun GenderOption(
                 color = contentColor,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Gender Options Grid", locale = "fa")
+@Composable
+fun GenderOptionPreview() {
+    ParentControlTheme {
+        val colors = LocalCustomColors.current
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Selected Girl Option
+            GenderOption(
+                isSelected = true,
+                title = "دختر",
+                icon = AppIcons.Female,
+                activeColor = colors.red,
+                modifier = Modifier.weight(1f),
+                onClick = {}
+            )
+
+            // Unselected Boy Option
+            GenderOption(
+                isSelected = false,
+                title = "پسر",
+                icon = AppIcons.Male,
+                activeColor = colors.blue,
+                modifier = Modifier.weight(1f),
+                onClick = {}
             )
         }
     }

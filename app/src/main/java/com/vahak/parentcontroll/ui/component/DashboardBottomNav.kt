@@ -28,7 +28,6 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 fun DashboardBottomNav() {
     val colors = LocalCustomColors.current
 
-    // Simplified Bottom Nav
     Card(
         shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
         elevation = CardDefaults.cardElevation(10.dp),
@@ -44,7 +43,7 @@ fun DashboardBottomNav() {
             val icons = listOf(AppIcons.Profile, AppIcons.ChartPie, AppIcons.Wallet, AppIcons.Home)
 
             items.forEachIndexed { index, label ->
-                val isSelected = index == 3 // 'Home' is selected in your HTML
+                val isSelected = index == 3
 
                 NavigationBarItem(
                     selected = isSelected,
@@ -80,11 +79,10 @@ fun DashboardBottomNav() {
 @Composable
 fun DashboardBottomNavPreview() {
     ParentControlTheme {
-        // Wrap in a Box to see the shadow and rounded corners clearly
         Box(
             modifier = Modifier
                 .padding(10.dp)
-                .background(Color.Gray) // Gray bg to see the white nav bar
+                .background(Color.Gray)
                 .padding(top = 20.dp)
         ) {
             DashboardBottomNav()

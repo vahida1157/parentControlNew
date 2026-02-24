@@ -1,6 +1,5 @@
 package com.vahak.parentcontroll.ui.component
 
-
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +23,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,25 +35,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.vahak.parentcontroll.presentation.addchild.AddChildEffect
 import com.vahak.parentcontroll.presentation.addchild.AddChildEvent
+import com.vahak.parentcontroll.presentation.addchild.AddChildState
 import com.vahak.parentcontroll.presentation.addchild.AddChildViewModel
 import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
-
 enum class Gender {
     Girl, Boy
 }
 
+// 1. STATEFUL WRAPPER (Used by NavGraph)
 @Composable
 fun AddChildScreen(
-    viewModel: AddChildViewModel = viewModel(),
+    viewModel: AddChildViewModel = hiltViewModel(),
     onBackClick: () -> Unit
 ) {
-    val colors = LocalCustomColors.current
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
@@ -70,6 +70,23 @@ fun AddChildScreen(
             }
         }
     }
+
+    // Pass data down to the Stateless UI
+    AddChildScreenContent(
+        state = state,
+        onEvent = viewModel::onEvent,
+        onBackClick = onBackClick
+    )
+}
+
+// 2. STATELESS UI (Used for rendering and Previews)
+@Composable
+fun AddChildScreenContent(
+    state: AddChildState,
+    onEvent: (AddChildEvent) -> Unit,
+    onBackClick: () -> Unit
+) {
+    val colors = LocalCustomColors.current
 
     Box(
         modifier = Modifier
@@ -113,7 +130,7 @@ fun AddChildScreen(
                         // Error Message Display
                         if (state.errorMessage != null) {
                             Text(
-                                text = state.errorMessage!!,
+                                text = state.errorMessage,
                                 color = colors.red,
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(bottom = 16.dp)
@@ -122,19 +139,27 @@ fun AddChildScreen(
 
                         OutlinedTextField(
                             value = state.name,
-                            onValueChange = { viewModel.onEvent(AddChildEvent.NameChanged(it)) },
+                            onValueChange = { onEvent(AddChildEvent.NameChanged(it)) },
                             placeholder = { Text("نام کودک (مثلا: علی)", color = colors.textHint) },
                             singleLine = true,
                             isError = state.errorMessage?.contains("نام") == true,
                             shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.textPrimary),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = colors.textPrimary,
+                                unfocusedTextColor = colors.textPrimary,
+                                focusedBorderColor = colors.primary,
+                                unfocusedBorderColor = colors.divider,
+                                cursorColor = colors.primary
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))
 
                         OutlinedTextField(
                             value = state.dob,
-                            onValueChange = { viewModel.onEvent(AddChildEvent.DobChanged(it)) },
+                            onValueChange = { onEvent(AddChildEvent.DobChanged(it)) },
                             placeholder = {
                                 Text(
                                     "تاریخ تولد (مثلا: 1395/02/10)",
@@ -144,7 +169,15 @@ fun AddChildScreen(
                             singleLine = true,
                             isError = state.errorMessage?.contains("تاریخ") == true,
                             shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.textPrimary),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = colors.textPrimary,
+                                unfocusedTextColor = colors.textPrimary,
+                                focusedBorderColor = colors.primary,
+                                unfocusedBorderColor = colors.divider,
+                                cursorColor = colors.primary
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))
@@ -159,7 +192,7 @@ fun AddChildScreen(
                                 icon = AppIcons.Female,
                                 activeColor = colors.red,
                                 modifier = Modifier.weight(1f)
-                            ) { viewModel.onEvent(AddChildEvent.GenderSelected(Gender.Girl)) }
+                            ) { onEvent(AddChildEvent.GenderSelected(Gender.Girl)) }
 
                             GenderOption(
                                 isSelected = state.gender == Gender.Boy,
@@ -167,13 +200,13 @@ fun AddChildScreen(
                                 icon = AppIcons.Male,
                                 activeColor = colors.blue,
                                 modifier = Modifier.weight(1f)
-                            ) { viewModel.onEvent(AddChildEvent.GenderSelected(Gender.Boy)) }
+                            ) { onEvent(AddChildEvent.GenderSelected(Gender.Boy)) }
                         }
 
                         Spacer(modifier = Modifier.height(40.dp))
 
                         Button(
-                            onClick = { viewModel.onEvent(AddChildEvent.SaveClicked) },
+                            onClick = { onEvent(AddChildEvent.SaveClicked) },
                             enabled = !state.isSaving,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -211,11 +244,17 @@ fun AddChildScreen(
     }
 }
 
+// 3. SAFE PREVIEWS
 @Preview(showBackground = true, name = "Add Child Light", locale = "fa")
 @Composable
 fun AddChildPreviewLight() {
     ParentControlTheme(darkTheme = false) {
-        AddChildScreen(onBackClick = {})
+        // Use the Stateless Content for Previews!
+        AddChildScreenContent(
+            state = AddChildState(),
+            onEvent = {},
+            onBackClick = {}
+        )
     }
 }
 
@@ -223,6 +262,11 @@ fun AddChildPreviewLight() {
 @Composable
 fun AddChildPreviewDark() {
     ParentControlTheme(darkTheme = true) {
-        AddChildScreen(onBackClick = {})
+        // Use the Stateless Content for Previews!
+        AddChildScreenContent(
+            state = AddChildState(),
+            onEvent = {},
+            onBackClick = {}
+        )
     }
 }

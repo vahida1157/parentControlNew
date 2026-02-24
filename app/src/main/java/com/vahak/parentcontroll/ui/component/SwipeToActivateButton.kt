@@ -1,15 +1,20 @@
 package com.vahak.parentcontroll.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,12 +44,16 @@ import kotlin.math.roundToInt
 
 @Composable
 fun SwipeToActivateButton(
-    onActivate: () -> Unit
+    modifier: Modifier = Modifier,
+    isInitiallyActivated: Boolean = false,
+    onActivate: () -> Unit,
+    onDeactivate: () -> Unit,
 ) {
     val colors = LocalCustomColors.current
-    // State to track drag
+
+    // State to track drag and activation
     var offsetX by remember { mutableFloatStateOf(0f) }
-    var isActivated by remember { mutableStateOf(false) }
+    var isActivated by remember { mutableStateOf(isInitiallyActivated) }
 
     // Constants
     val height = 64.dp
@@ -56,64 +65,79 @@ fun SwipeToActivateButton(
     val maxDragPx = with(density) { 250.dp.toPx() } // Approximate width available minus thumb
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(height)
             .background(Color(0xFFE8ECEF), RoundedCornerShape(32.dp))
             .padding(padding)
     ) {
-        val text = if (isActivated) {
-            stringResource(R.string.slider_activated)
-        } else {
-            stringResource(R.string.slider_instruction)
+        // Background Text (Only needed when not activated, since thumb covers it otherwise)
+        if (!isActivated) {
+            Text(
+                text = stringResource(R.string.slider_instruction),
+                modifier = Modifier.align(Alignment.Center),
+                color = colors.textSecondary,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
 
-        // Background Text
-        Text(
-            text = text,
-            modifier = Modifier.align(Alignment.Center),
-            color = if (isActivated) colors.primary else colors.textSecondary,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.bodyMedium
-        )
-
-        // Draggable Thumb
+        // Draggable / Clickable Thumb
         Box(
             modifier = Modifier
-                .offset { IntOffset(offsetX.roundToInt(), 0) }
-                .size(if (isActivated) 300.dp else thumbSize) // Expand when active
+                // 1. Position: If activated, stay at 0. If not, follow the drag offset.
+                .offset { IntOffset(if (isActivated) 0 else offsetX.roundToInt(), 0) }
+                // 2. Size: If activated, fill the whole bar. If not, stay a circle.
+                .then(if (isActivated) Modifier.fillMaxSize() else Modifier.size(thumbSize))
                 .clip(RoundedCornerShape(32.dp))
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(colors.primary, colors.secondary)
                     )
                 )
-                .draggable(
-                    orientation = Orientation.Horizontal,
-                    state = rememberDraggableState { delta ->
-                        if (!isActivated) {
-                            val newOffset = offsetX - delta
-                            // Standard RTL Logic: Dragging "Left" (negative x) usually usually implies forward in RTL
-                            // But for simplicity in Compose 'offset' is physical.
-                            // Let's assume physical right drag for now.
-                            offsetX = newOffset.coerceIn(0f, maxDragPx)
+                // 3. Behavior: If activated, click to turn off. If not, drag to turn on.
+                .then(
+                    if (isActivated) {
+                        Modifier.clickable {
+                            isActivated = false
+                            offsetX = 0f
+                            onDeactivate()
                         }
-                    },
-                    onDragStopped = {
-                        if (offsetX > maxDragPx * 0.7) {
-                            isActivated = true
-                            offsetX = maxDragPx // Snap to end (simplified)
-                            onActivate()
-                        } else {
-                            offsetX = 0f // Snap back
-                        }
+                    } else {
+                        Modifier.draggable(
+                            orientation = Orientation.Horizontal,
+                            state = rememberDraggableState { delta ->
+                                // Standard RTL Logic: negative drag implies forward.
+                                val newOffset = offsetX - delta
+                                offsetX = newOffset.coerceIn(0f, maxDragPx)
+                            },
+                            onDragStopped = {
+                                if (offsetX > maxDragPx * 0.7) {
+                                    isActivated = true
+                                    offsetX = 0f // Reset offset completely
+                                    onActivate()
+                                } else {
+                                    offsetX = 0f // Snap back if they didn't drag far enough
+                                }
+                            }
+                        )
                     }
                 ),
             contentAlignment = Alignment.Center
         ) {
             if (isActivated) {
-                Icon(AppIcons.Check, contentDescription = null, tint = Color.White)
+                // Activated View (Full width, text inside)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.slider_activated) + " (توقف)", // Added "Stop" to hint it's clickable
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(AppIcons.Check, contentDescription = null, tint = Color.White)
+                }
             } else {
+                // Not Activated View (Just the arrow)
                 Icon(
                     painter = AppIcons.ChevronLeft,
                     contentDescription = null,
@@ -124,17 +148,33 @@ fun SwipeToActivateButton(
     }
 }
 
-@Preview(showBackground = true, name = "3. Swipe Slider", widthDp = 360, locale = "fa")
+// ==========================================
+// PREVIEWS
+// ==========================================
+
+@Preview(showBackground = true, name = "1. Slider - Deactivated", widthDp = 360, locale = "fa")
 @Composable
-fun SwipeSliderPreview() {
+fun SwipeSliderDeactivatedPreview() {
     ParentControlTheme {
-        Box(
-            modifier = Modifier
-                .padding(16.dp)
-                .background(Color.White)
-        ) {
+        Box(modifier = Modifier.padding(16.dp).background(Color.White)) {
             SwipeToActivateButton(
-                onActivate = {}
+                isInitiallyActivated = false,
+                onActivate = {},
+                onDeactivate = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "2. Slider - Activated", widthDp = 360, locale = "fa")
+@Composable
+fun SwipeSliderActivatedPreview() {
+    ParentControlTheme {
+        Box(modifier = Modifier.padding(16.dp).background(Color.White)) {
+            SwipeToActivateButton(
+                isInitiallyActivated = true, // Forces the green UI to show!
+                onActivate = {},
+                onDeactivate = {}
             )
         }
     }

@@ -6,6 +6,7 @@ import androidx.compose.ui.res.painterResource
 import com.vahak.parentcontroll.R
 
 object AppIcons {
+    val YoungChild: Painter @Composable get() = painterResource(R.drawable.ic_young_child)
     val Male: Painter @Composable get() = painterResource(R.drawable.ic_male)
     val Female: Painter @Composable get() = painterResource(R.drawable.ic_female)
     val CameraAlt: Painter @Composable get() = painterResource(R.drawable.ic_camera_alt)

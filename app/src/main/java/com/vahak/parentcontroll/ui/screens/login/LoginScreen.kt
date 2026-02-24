@@ -1,4 +1,4 @@
-package com.vahak.parentcontroll.ui.component
+package com.vahak.parentcontroll.ui.screens.login
 
 
 import androidx.compose.foundation.background
@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vahak.parentcontroll.presentation.login.LoginEffect
 import com.vahak.parentcontroll.presentation.login.LoginEvent
 import com.vahak.parentcontroll.presentation.login.LoginViewModel

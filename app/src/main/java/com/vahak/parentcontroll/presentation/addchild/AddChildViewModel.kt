@@ -1,9 +1,18 @@
 package com.vahak.parentcontroll.presentation.addchild
 
+import androidx.lifecycle.viewModelScope
+import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
+import com.vahak.parentcontroll.domain.repository.ChildRepository
 import com.vahak.parentcontroll.domain.usecase.ValidateAddChildUseCase
 import com.vahak.parentcontroll.domain.usecase.ValidationResult
 import com.vahak.parentcontroll.presentation.BaseViewModel
 import com.vahak.parentcontroll.ui.component.Gender
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.util.UUID
+import javax.inject.Inject
+import com.vahak.parentcontroll.core.data.local.entity.Gender as DbGender
 
 // 1. Contract Definition
 data class AddChildState(
@@ -26,9 +35,10 @@ sealed class AddChildEffect {
     data class ShowToast(val message: String) : AddChildEffect()
 }
 
-// 2. ViewModel Implementation
-class AddChildViewModel(
-    private val validateUseCase: ValidateAddChildUseCase = ValidateAddChildUseCase()
+@HiltViewModel
+class AddChildViewModel @Inject constructor(
+    private val validateUseCase: ValidateAddChildUseCase,
+    private val childRepository: ChildRepository
 ) : BaseViewModel<AddChildState, AddChildEvent, AddChildEffect>(AddChildState()) {
 
     override fun onEvent(event: AddChildEvent) {
@@ -75,12 +85,41 @@ class AddChildViewModel(
             is ValidationResult.Success -> {
                 updateState { copy(isSaving = true, errorMessage = null) }
 
-                // Mocking a successful API call to your Spring backend
-                println("Saving child to Spring Backend: ${currentState.name}")
+                viewModelScope.launch {
+                    try {
+                        // 1. Map UI Enum to DB Enum
+                        val dbGender =
+                            if (currentState.gender == Gender.Boy) DbGender.BOY else DbGender.GIRL
 
-                // Trigger the one-off effect to navigate back to the Dashboard!
-                sendEffect(AddChildEffect.ShowToast("فرزند با موفقیت اضافه شد."))
-                sendEffect(AddChildEffect.NavigateBack)
+                        // 2. Map String to LocalDate (Note: In a real Persian app, use a Jalali-to-Gregorian converter here)
+                        // For now, we will mock a safe date parsing to prevent crashes
+                        val defaultDate = LocalDate.now()
+
+                        // 3. Create the Entity
+                        val newChild = ChildEntity(
+                            id = UUID.randomUUID().toString(),
+                            name = currentState.name,
+                            dob = defaultDate, // We use the safe date
+                            gender = dbGender,
+                            avatarId = 0 // Default avatar for now
+                        )
+
+                        // 4. Save to Room Database
+                        childRepository.createChild(newChild)
+
+                        // 5. Success Effect
+                        sendEffect(AddChildEffect.ShowToast("فرزند با موفقیت اضافه شد."))
+                        sendEffect(AddChildEffect.NavigateBack)
+
+                    } catch (_: Exception) {
+                        updateState {
+                            copy(
+                                isSaving = false,
+                                errorMessage = "خطا در ذخیره اطلاعات."
+                            )
+                        }
+                    }
+                }
             }
         }
     }

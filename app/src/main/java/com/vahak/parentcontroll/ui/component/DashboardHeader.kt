@@ -31,41 +31,36 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 @Composable
 fun DashboardHeader(
     onHelpClick: () -> Unit,
-    onUnlockClick: () -> Unit
+    onUnlockClick: () -> Unit,
 ) {
     val colors = LocalCustomColors.current
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(340.dp) // Height from CSS
+            .height(340.dp)
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(colors.primary, colors.secondary),
                     start = Offset(0f, 0f),
                     end = Offset.Infinite
-                ),
-                shape = RoundedCornerShape(bottomStart = 45.dp, bottomEnd = 45.dp)
+                ), shape = RoundedCornerShape(bottomStart = 45.dp, bottomEnd = 45.dp)
             )
     ) {
-        // Placeholder for the Image (You would use Coil/Glide here)
-        // I'm using a Box to simulate the image filter effect
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.05f)) // Slight filter
+                .background(Color.Black.copy(alpha = 0.05f))
                 .clip(RoundedCornerShape(bottomStart = 45.dp, bottomEnd = 45.dp))
         )
-
-        // Top Icons
         Row(
             modifier = Modifier
-                .padding(top = 40.dp, start = 25.dp, end = 25.dp) // Adjusted for status bar
+                .padding(top = 40.dp, start = 25.dp, end = 25.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            GlassIconButton(icon = AppIcons.Help, onClick = onHelpClick)
             GlassIconButton(icon = AppIcons.LockBadge, onClick = onUnlockClick)
+            GlassIconButton(icon = AppIcons.Help, onClick = onHelpClick)
         }
     }
 }
@@ -76,12 +71,10 @@ fun GlassIconButton(icon: Painter, onClick: () -> Unit) {
         modifier = Modifier
             .size(42.dp)
             .background(
-                color = Color.White.copy(alpha = 0.25f),
-                shape = RoundedCornerShape(12.dp)
+                color = Color.White.copy(alpha = 0.25f), shape = RoundedCornerShape(12.dp)
             )
             .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
+            .clickable { onClick() }, contentAlignment = Alignment.Center
     ) {
         Icon(
             painter = icon,
@@ -96,11 +89,6 @@ fun GlassIconButton(icon: Painter, onClick: () -> Unit) {
 @Composable
 fun DashboardHeaderPreview() {
     ParentControlTheme {
-        // We don't need to wrap in RTL provider here because ParentControlTheme
-        // already handles LocalLayoutDirection.Rtl
-        DashboardHeader(
-            onHelpClick = {},
-            onUnlockClick = {}
-        )
+        DashboardHeader(onHelpClick = {}, onUnlockClick = {})
     }
 }

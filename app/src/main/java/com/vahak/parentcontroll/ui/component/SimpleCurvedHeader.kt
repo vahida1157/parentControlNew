@@ -16,9 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
+import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
 fun SimpleCurvedHeader(
@@ -44,7 +46,6 @@ fun SimpleCurvedHeader(
             modifier = Modifier
                 .size(28.dp)
                 .align(Alignment.TopEnd)
-                .padding(8.dp)
                 .clickable { onBackClick() }
         )
 
@@ -54,6 +55,28 @@ fun SimpleCurvedHeader(
             color = colors.surface,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.TopCenter)
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "1. Curved Header Light", locale = "fa")
+@Composable
+fun SimpleCurvedHeaderPreviewLight() {
+    ParentControlTheme(darkTheme = false) {
+        SimpleCurvedHeader(
+            title = "افزودن فرزند جدید",
+            onBackClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "2. Curved Header Dark", locale = "fa")
+@Composable
+fun SimpleCurvedHeaderPreviewDark() {
+    ParentControlTheme(darkTheme = true) {
+        SimpleCurvedHeader(
+            title = "افزودن فرزند جدید",
+            onBackClick = {}
         )
     }
 }

@@ -1,4 +1,4 @@
-package com.vahak.parentcontroll.ui.component
+package com.vahak.parentcontroll.ui.screens.login
 
 import android.widget.Toast
 import androidx.compose.foundation.background

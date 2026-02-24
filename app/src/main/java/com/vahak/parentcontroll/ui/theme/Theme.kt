@@ -28,6 +28,8 @@ fun LightColors.toCustomColors() = CustomColors(
     redLight = redLight,
     blue = blue,
     yellow = yellow,
+    orange = orange,
+    orangeLight = orangeLight,
     indicatorSelected = indicatorSelected,
     indicatorUnSelected = indicatorUnSelected,
     backgroundCardTeal = backgroundCardTeal,
@@ -56,6 +58,8 @@ fun DarkColors.toCustomColors() = CustomColors(
     redLight = redLight,
     blue = blue,
     yellow = yellow,
+    orange = orange,
+    orangeLight = orangeLight,
     indicatorSelected = indicatorSelected,
     indicatorUnSelected = indicatorUnSelected,
     backgroundCardTeal = backgroundCardTeal,
@@ -77,8 +81,7 @@ val LocalFontScale = staticCompositionLocalOf { mutableFloatStateOf(1f) }
 fun ParentControlTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
+    dynamicColor: Boolean = true, content: @Composable () -> Unit
 ) {
     val colorTheme =
         if (darkTheme) DarkColors().toCustomColors() else LightColors().toCustomColors()
@@ -89,8 +92,7 @@ fun ParentControlTheme(
         LocalFontScale provides fontScale
     ) {
         MaterialTheme(
-            typography = dynamicTypography(fontScale.floatValue),
-            content = content
+            typography = dynamicTypography(fontScale.floatValue), content = content
         )
     }
 }

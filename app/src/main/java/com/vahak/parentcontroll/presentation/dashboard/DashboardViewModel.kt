@@ -1,17 +1,34 @@
 package com.vahak.parentcontroll.presentation.dashboard
 
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import androidx.lifecycle.viewModelScope
+import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
+import com.vahak.parentcontroll.core.service.TimeLimitEnforcerService
 import com.vahak.parentcontroll.domain.repository.AuthRepository
+import com.vahak.parentcontroll.domain.repository.ChildRepository
 import com.vahak.parentcontroll.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// Empty state for now since the dashboard just routes actions
-object DashboardState
+// 1. Contract
+data class DashboardState(
+    val children: List<ChildEntity> = emptyList(),
+    val activeChild: ChildEntity? = null,
+    val isChildSheetOpen: Boolean = false
+)
 
 sealed class DashboardEvent {
-    object LockClicked : DashboardEvent() // Your temporary logout
+    object LockClicked : DashboardEvent()
+    object OpenChildSheet : DashboardEvent()
+    object CloseChildSheet : DashboardEvent()
+    data class SelectChild(val child: ChildEntity) : DashboardEvent()
+    data class ActivateProtection(val childId: String) : DashboardEvent()
+    data class DeactivateProtection(val childId: String) : DashboardEvent()
 }
 
 sealed class DashboardEffect {
@@ -20,13 +37,63 @@ sealed class DashboardEffect {
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val authRepository: AuthRepository
-) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState) {
+    @ApplicationContext private val context: Context,
+    private val authRepository: AuthRepository,
+    private val childRepository: ChildRepository // <-- Inject the repo!
+) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState()) {
+
+    init {
+        // Observe the Room Database reactively
+        viewModelScope.launch {
+            childRepository.getAllChildren().collectLatest { childList ->
+                updateState {
+                    copy(
+                        children = childList,
+                        // Auto-select the first child if none is selected
+                        activeChild = activeChild ?: childList.firstOrNull()
+                    )
+                }
+            }
+        }
+    }
 
     override fun onEvent(event: DashboardEvent) {
         when (event) {
             is DashboardEvent.LockClicked -> performLogout()
+            is DashboardEvent.OpenChildSheet -> updateState { copy(isChildSheetOpen = true) }
+            is DashboardEvent.CloseChildSheet -> updateState { copy(isChildSheetOpen = false) }
+            is DashboardEvent.SelectChild -> {
+                updateState { copy(activeChild = event.child, isChildSheetOpen = false) }
+            }
+
+            is DashboardEvent.ActivateProtection -> {
+                startProtectionService(event.childId)
+            }
+
+            is DashboardEvent.DeactivateProtection -> {
+                stopProtectionService()
+            }
         }
+    }
+
+    private fun startProtectionService(childId: String) {
+        val intent = Intent(context, TimeLimitEnforcerService::class.java).apply {
+            action = TimeLimitEnforcerService.ACTION_START
+            putExtra(TimeLimitEnforcerService.EXTRA_CHILD_ID, childId)
+        }
+
+        context.startForegroundService(intent)
+
+        // Optional: Send a toast effect saying "Protection started for [Child Name]"
+    }
+
+    private fun stopProtectionService() {
+        val intent = Intent(context, TimeLimitEnforcerService::class.java).apply {
+            action = TimeLimitEnforcerService.ACTION_STOP
+        }
+        // Even though it's a foreground service, we send 'startService' with the STOP action.
+        // The service will receive the intent, see ACTION_STOP, and call stopSelf().
+        context.startService(intent)
     }
 
     private fun performLogout() {

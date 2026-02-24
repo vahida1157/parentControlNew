@@ -1,9 +1,10 @@
 package com.vahak.parentcontroll.domain.usecase
 
 import com.vahak.parentcontroll.ui.component.Gender
+import javax.inject.Inject
 
 
-class ValidateAddChildUseCase {
+class ValidateAddChildUseCase @Inject constructor() {
     fun execute(name: String, dob: String, gender: Gender?): ValidationResult {
         if (name.isBlank()) {
             return ValidationResult.Error("لطفا نام کودک را وارد کنید.")
