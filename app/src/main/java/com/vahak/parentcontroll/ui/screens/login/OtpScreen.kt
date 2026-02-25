@@ -48,11 +48,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.parentcontroll.presentation.login.OtpEffect
 import com.vahak.parentcontroll.presentation.login.OtpEvent
+import com.vahak.parentcontroll.presentation.login.OtpState
 import com.vahak.parentcontroll.presentation.login.OtpViewModel
 import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
+// 1. STATEFUL WRAPPER
 @Composable
 fun OtpScreen(
     phoneNumber: String,
@@ -60,10 +62,8 @@ fun OtpScreen(
     onBackClick: () -> Unit,
     onVerifyClick: () -> Unit
 ) {
-    val colors = LocalCustomColors.current
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-    val otpLength = 4
 
     // Handle One-Off Effects from ViewModel
     LaunchedEffect(Unit) {
@@ -78,6 +78,22 @@ fun OtpScreen(
             }
         }
     }
+
+    OtpScreenContent(
+        state = state,
+        phoneNumber = phoneNumber,
+        onEvent = viewModel::onEvent,
+        onBackClick = onBackClick
+    )
+}
+
+// 2. STATELESS CONTENT (Safe for Previews)
+@Composable
+fun OtpScreenContent(
+    state: OtpState, phoneNumber: String, onEvent: (OtpEvent) -> Unit, onBackClick: () -> Unit
+) {
+    val colors = LocalCustomColors.current
+    val otpLength = 4
 
     val primaryGradient = Brush.linearGradient(
         colors = listOf(colors.primary, colors.secondary)
@@ -163,7 +179,7 @@ fun OtpScreen(
                 // Error Message Display
                 if (state.errorMessage != null) {
                     Text(
-                        text = state.errorMessage!!,
+                        text = state.errorMessage,
                         color = colors.red,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(bottom = 15.dp)
@@ -172,11 +188,16 @@ fun OtpScreen(
                     Spacer(modifier = Modifier.height(35.dp))
                 }
 
-                // --- OTP LTR INPUT BOXES ---
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     BasicTextField(
-                        value = state.otpCode,
-                        onValueChange = { viewModel.onEvent(OtpEvent.OtpChanged(it)) },
+                        value = state.otpCode, onValueChange = { newValue ->
+                            if (newValue.length <= otpLength) {
+                                onEvent(OtpEvent.OtpChanged(newValue))
+                                if (newValue.length == otpLength && !state.isVerifying) {
+                                    onEvent(OtpEvent.VerifyClicked(phoneNumber))
+                                }
+                            }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         cursorBrush = SolidColor(colors.primary),
                         decorationBox = {
@@ -227,14 +248,14 @@ fun OtpScreen(
                     style = MaterialTheme.typography.labelLarge,
                     color = colors.primary,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { viewModel.onEvent(OtpEvent.ResendClicked) }
+                    modifier = Modifier.clickable { onEvent(OtpEvent.ResendClicked) }
                 )
 
                 Spacer(modifier = Modifier.height(30.dp))
 
                 val isEnabled = state.otpCode.length == otpLength && !state.isVerifying
                 Button(
-                    onClick = { viewModel.onEvent(OtpEvent.VerifyClicked(phoneNumber)) },
+                    onClick = { onEvent(OtpEvent.VerifyClicked(phoneNumber)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(60.dp),
@@ -273,14 +294,14 @@ fun OtpScreen(
     }
 }
 
+// 3. SAFE PREVIEWS
 @Preview(showBackground = true, name = "1. OTP Light Mode", locale = "fa")
 @Composable
 fun OtpScreenLightPreview() {
     ParentControlTheme(darkTheme = false) {
-        OtpScreen(
-            phoneNumber = "09123456789",
-            onBackClick = {},
-            onVerifyClick = {}
+        OtpScreenContent(
+            state = OtpState(otpCode = "12"),
+            phoneNumber = "09123456789", onEvent = {}, onBackClick = {}
         )
     }
 }
@@ -289,10 +310,9 @@ fun OtpScreenLightPreview() {
 @Composable
 fun OtpScreenDarkPreview() {
     ParentControlTheme(darkTheme = true) {
-        OtpScreen(
-            phoneNumber = "09123456789",
-            onBackClick = {},
-            onVerifyClick = {}
+        OtpScreenContent(
+            state = OtpState(otpCode = "1234"),
+            phoneNumber = "09123456789", onEvent = {}, onBackClick = {}
         )
     }
 }

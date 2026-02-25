@@ -2,7 +2,8 @@ package com.vahak.parentcontroll.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,12 +32,15 @@ fun DashboardBottomNav() {
     Card(
         shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
         elevation = CardDefaults.cardElevation(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        // Ensures the Card itself doesn't restrict the bottom layout
+        modifier = Modifier.fillMaxWidth()
     ) {
         NavigationBar(
-            containerColor = Color.White,
+            containerColor = Color.Transparent,
             tonalElevation = 0.dp,
-            modifier = Modifier.height(80.dp)
+            windowInsets = WindowInsets(0.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
             // Helper to create items
             val items = listOf("پروفایل", "آمار", "اشتراک", "خانه")

@@ -2,6 +2,7 @@ package com.vahak.parentcontroll.ui.component
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.parentcontroll.presentation.addchild.AddChildEffect
 import com.vahak.parentcontroll.presentation.addchild.AddChildEvent
 import com.vahak.parentcontroll.presentation.addchild.AddChildState
@@ -156,29 +157,28 @@ fun AddChildScreenContent(
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))
-
-                        OutlinedTextField(
-                            value = state.dob,
-                            onValueChange = { onEvent(AddChildEvent.DobChanged(it)) },
-                            placeholder = {
-                                Text(
-                                    "تاریخ تولد (مثلا: 1395/02/10)",
-                                    color = colors.textHint
-                                )
-                            },
-                            singleLine = true,
-                            isError = state.errorMessage?.contains("تاریخ") == true,
-                            shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.textPrimary),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = colors.textPrimary,
-                                unfocusedTextColor = colors.textPrimary,
-                                focusedBorderColor = colors.primary,
-                                unfocusedBorderColor = colors.divider,
-                                cursorColor = colors.primary
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onEvent(AddChildEvent.OpenDobSheet) }
+                        ) {
+                            OutlinedTextField(
+                                value = state.dob,
+                                onValueChange = { },
+                                enabled = false,
+                                readOnly = true,
+                                placeholder = {
+                                    Text("تاریخ تولد", color = colors.textHint)
+                                },
+                                // Keep the colors looking "active" even though it's technically disabled
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = colors.textPrimary,
+                                    disabledBorderColor = if (state.errorMessage?.contains("تاریخ") == true) colors.red else colors.divider,
+                                ),
+                                shape = RoundedCornerShape(18.dp),
+                                modifier = Modifier.fillMaxWidth()
                             )
-                        )
+                        }
 
                         Spacer(modifier = Modifier.height(20.dp))
 
@@ -239,6 +239,29 @@ fun AddChildScreenContent(
                 Box(modifier = Modifier.align(Alignment.TopCenter)) {
                     AvatarPickerBadge(onClick = { /* Open Image Picker */ })
                 }
+            }
+
+            if (state.isDobSheetOpen) {
+                // Safely parse the current DOB string back into numbers
+                val dobParts = state.dob.split("/")
+                val currentYear = dobParts.getOrNull(0)?.toIntOrNull() ?: 1395
+                val currentMonth = dobParts.getOrNull(1)?.toIntOrNull() ?: 1
+                val currentDay = dobParts.getOrNull(2)?.toIntOrNull() ?: 1
+
+                DynamicDatePicker(
+                    title = "تاریخ تولد فرزند",
+                    mode = PickerPresentationMode.DIALOG,
+                    yearRange = 1380..1403,
+                    monthRange = 1..12,
+                    dayRange = 1..31,
+                    initialYear = currentYear,
+                    initialMonth = currentMonth,
+                    initialDay = currentDay,
+                    onDismiss = { onEvent(AddChildEvent.CloseDobSheet) },
+                    onConfirm = { y, m, d ->
+                        onEvent(AddChildEvent.DobSelected(y, m, d))
+                    }
+                )
             }
         }
     }

@@ -20,12 +20,15 @@ data class AddChildState(
     val dob: String = "",
     val gender: Gender? = null,
     val errorMessage: String? = null,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val isDobSheetOpen: Boolean = false,
 )
 
 sealed class AddChildEvent {
     data class NameChanged(val name: String) : AddChildEvent()
-    data class DobChanged(val dob: String) : AddChildEvent()
+    object OpenDobSheet : AddChildEvent()
+    object CloseDobSheet : AddChildEvent()
+    data class DobSelected(val year: Int, val month: Int, val day: Int) : AddChildEvent()
     data class GenderSelected(val gender: Gender) : AddChildEvent()
     object SaveClicked : AddChildEvent()
 }
@@ -50,11 +53,21 @@ class AddChildViewModel @Inject constructor(
                 )
             }
 
-            is AddChildEvent.DobChanged -> updateState {
-                copy(
-                    dob = event.dob,
-                    errorMessage = null
-                )
+            is AddChildEvent.OpenDobSheet -> updateState { copy(isDobSheetOpen = true) }
+            is AddChildEvent.CloseDobSheet -> updateState { copy(isDobSheetOpen = false) }
+            is AddChildEvent.DobSelected -> {
+                // Format nicely: e.g., 1395/02/05
+                val formattedMonth = event.month.toString().padStart(2, '0')
+                val formattedDay = event.day.toString().padStart(2, '0')
+                val formattedDob = "${event.year}/$formattedMonth/$formattedDay"
+
+                updateState {
+                    copy(
+                        dob = formattedDob,
+                        isDobSheetOpen = false,
+                        errorMessage = null // Clear error if they select a date
+                    )
+                }
             }
 
             is AddChildEvent.GenderSelected -> updateState {
