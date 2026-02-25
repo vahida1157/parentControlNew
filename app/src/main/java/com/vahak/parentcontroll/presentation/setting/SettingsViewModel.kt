@@ -1,9 +1,12 @@
 package com.vahak.parentcontroll.presentation.setting
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
 import com.vahak.parentcontroll.core.data.local.entity.GlobalSettingsEntity
+import com.vahak.parentcontroll.core.util.PermissionChecker
+import com.vahak.parentcontroll.core.util.PermissionType
 import com.vahak.parentcontroll.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -19,7 +22,7 @@ data class SettingsState(
 
 sealed class SettingsEvent {
     data class ToggleChildTheme(val isActive: Boolean) : SettingsEvent()
-    data class GridItemClicked(val route: String) : SettingsEvent()
+    data class GridItemClicked(val route: String, val context: Context) : SettingsEvent()
     object BackClicked : SettingsEvent()
     object HelpClicked : SettingsEvent()
 }
@@ -28,6 +31,8 @@ sealed class SettingsEffect {
     object NavigateBack : SettingsEffect()
     data class NavigateToFeature(val route: String) : SettingsEffect()
     data class ShowToast(val message: String) : SettingsEffect()
+    data class NavigateToPermissionSlider(val route: String, val missingPermissions: List<String>) :
+        SettingsEffect()
 }
 
 // 2. ViewModel
@@ -51,6 +56,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private val featurePermissionsMap = mapOf(
+        "time_limit" to listOf(PermissionType.USAGE_STATS, PermissionType.OVERLAY),
+        "app_lock" to listOf(PermissionType.USAGE_STATS, PermissionType.OVERLAY),
+        "location" to listOf(PermissionType.LOCATION)
+    )
+
     override fun onEvent(event: SettingsEvent) {
         when (event) {
             is SettingsEvent.ToggleChildTheme -> {
@@ -60,9 +71,26 @@ class SettingsViewModel @Inject constructor(
                     settingsDao.upsertGlobalSettings(currentSettings.copy(isChildThemeActive = event.isActive))
                 }
             }
-            is SettingsEvent.GridItemClicked -> sendEffect(SettingsEffect.NavigateToFeature(event.route))
             is SettingsEvent.BackClicked -> sendEffect(SettingsEffect.NavigateBack)
             is SettingsEvent.HelpClicked -> sendEffect(SettingsEffect.ShowToast("بخش راهنما در حال توسعه است."))
+            is SettingsEvent.GridItemClicked -> {
+                val requiredPermissions = featurePermissionsMap[event.route] ?: emptyList()
+
+                // Filter down to only the permissions the user HASN'T granted yet
+                val missingPermissions = requiredPermissions.filter { permission ->
+                    !PermissionChecker.hasPermission(event.context, permission)
+                }
+
+                if (missingPermissions.isEmpty()) {
+                    // All good! Go straight to the feature.
+                    sendEffect(SettingsEffect.NavigateToFeature(event.route))
+                } else {
+                    // Intercept! Go to the slider screen first.
+                    // We pass the names of the enums so the slider knows what to show.
+                    val missingNames = missingPermissions.map { it.name }
+                    sendEffect(SettingsEffect.NavigateToPermissionSlider(event.route, missingNames))
+                }
+            }
         }
     }
 }

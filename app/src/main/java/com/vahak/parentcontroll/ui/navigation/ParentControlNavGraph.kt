@@ -15,6 +15,7 @@ import com.vahak.parentcontroll.ui.screens.dashboard.ModernFamilyDashboard
 import com.vahak.parentcontroll.ui.screens.family.FamilyManagementScreen
 import com.vahak.parentcontroll.ui.screens.login.LoginScreen
 import com.vahak.parentcontroll.ui.screens.login.OtpScreen
+import com.vahak.parentcontroll.ui.screens.permissions.PermissionSliderScreen
 import com.vahak.parentcontroll.ui.screens.settings.ChildSettingsScreen
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
@@ -86,12 +87,19 @@ fun ParentControlNavGraph(
             )
         }
         composable(route = "child_settings/{childId}") { backStackEntry ->
-            // The ViewModel automatically catches the {childId} using SavedStateHandle!
+            // Extract the childId safely
+            val currentChildId = backStackEntry.arguments?.getString("childId") ?: ""
+
             ChildSettingsScreen(
                 onBackClick = { navController.popBackStack() },
                 onNavigateToFeature = { featureRoute ->
-                    // e.g. navigates to "time_limit/mock-123"
-                    navController.navigate("$featureRoute/${backStackEntry.arguments?.getString("childId")}")
+                    // Standard navigation: Glue the route and ID together
+                    navController.navigate("$featureRoute/$currentChildId")
+                },
+                onInterceptForPermissions = { route, missing ->
+                    val missingString = missing.joinToString(",")
+                    // Intercept navigation: Pass the childId safely as its own variable!
+                    navController.navigate("permission_slider/$route/$currentChildId/$missingString")
                 }
             )
         }
@@ -99,6 +107,31 @@ fun ParentControlNavGraph(
         composable(route = "time_limit/{childId}") { backStackEntry ->
             TimeLimitScreen(
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // PRO FIX: Added {childId} as a dedicated argument to avoid the Slash Trap!
+        composable(
+            route = "permission_slider/{featureRoute}/{childId}/{missingPermissions}",
+            arguments = listOf(
+                navArgument("featureRoute") { type = NavType.StringType },
+                navArgument("childId") { type = NavType.StringType }, // NEW ARGUMENT
+                navArgument("missingPermissions") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val childId = backStackEntry.arguments?.getString("childId") ?: ""
+            val featureRoute = backStackEntry.arguments?.getString("featureRoute") ?: ""
+
+            PermissionSliderScreen(
+                onNavigateToFeature = { targetRoute ->
+                    // Once finished, we glue the base route (e.g., "time_limit") and the childId together!
+                    navController.navigate("$targetRoute/$childId") {
+                        // Pop the slider so they don't see it if they hit the back button
+                        popUpTo("permission_slider/{featureRoute}/{childId}/{missingPermissions}") {
+                            inclusive = true
+                        }
+                    }
+                }
             )
         }
     }

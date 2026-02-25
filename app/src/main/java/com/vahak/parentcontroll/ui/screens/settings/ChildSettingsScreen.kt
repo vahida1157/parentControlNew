@@ -21,7 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+
 import com.vahak.parentcontroll.core.data.local.entity.GlobalSettingsEntity
 import com.vahak.parentcontroll.presentation.setting.SettingsEffect
 import com.vahak.parentcontroll.presentation.setting.SettingsEvent
@@ -40,7 +41,8 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 fun ChildSettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
-    onNavigateToFeature: (String) -> Unit // E.g., navigates to Time Limit screen
+    onNavigateToFeature: (String) -> Unit,
+    onInterceptForPermissions: (String, List<String>) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -51,28 +53,29 @@ fun ChildSettingsScreen(
                 is SettingsEffect.NavigateBack -> onBackClick()
                 is SettingsEffect.NavigateToFeature -> onNavigateToFeature(effect.route)
                 is SettingsEffect.ShowToast -> Toast.makeText(
-                    context,
-                    effect.message,
-                    Toast.LENGTH_SHORT
+                    context, effect.message, Toast.LENGTH_SHORT
                 ).show()
+
+                is SettingsEffect.NavigateToPermissionSlider -> {
+                    onInterceptForPermissions(effect.route, effect.missingPermissions)
+                }
             }
         }
     }
 
     ChildSettingsContent(
-        state = state,
-        onEvent = viewModel::onEvent
+        state = state, onEvent = viewModel::onEvent
     )
 }
 
 // 2. STATELESS CONTENT (Matches the HTML Grid perfectly)
 @Composable
 fun ChildSettingsContent(
-    state: SettingsState,
-    onEvent: (SettingsEvent) -> Unit
+    state: SettingsState, onEvent: (SettingsEvent) -> Unit
 ) {
     val colors = LocalCustomColors.current
     val isThemeActive = state.settings?.isChildThemeActive ?: true
+    val localContext = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -84,22 +87,21 @@ fun ChildSettingsContent(
             title = "تنظیمات نظارتی",
             subtitle = "مدیریت کامل دسترسی‌های فرزند",
             onBackClick = { onEvent(SettingsEvent.BackClicked) },
-            onHelpClick = { onEvent(SettingsEvent.HelpClicked) }
-        )
+            onHelpClick = { onEvent(SettingsEvent.HelpClicked) })
 
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 10.dp)
+        ) {
 
             ThemeToggleCard(
                 isActive = isThemeActive,
-                onToggle = { isActive -> onEvent(SettingsEvent.ToggleChildTheme(isActive)) }
-            )
+                onToggle = { isActive -> onEvent(SettingsEvent.ToggleChildTheme(isActive)) })
 
             // --- SECTION 1: Time Management ---
             SettingsSectionTitle(
-                label = "مدیریت زمان",
-                icon = AppIcons.ChartPie
+                label = "مدیریت زمان", icon = AppIcons.ChartPie
             ) // Use Clock icon if you have it
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -108,22 +110,31 @@ fun ChildSettingsContent(
                 Box(modifier = Modifier.weight(1f)) {
                     SettingsGridItem(
                         label = "قفل زمان", icon = AppIcons.ChartPie, // Use Hourglass
-                        onClick = { onEvent(SettingsEvent.GridItemClicked("time_limit")) }
-                    )
+                        onClick = {
+                            onEvent(
+                                SettingsEvent.GridItemClicked(
+                                    "time_limit", localContext
+                                )
+                            )
+                        })
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     SettingsGridItem(
                         label = "زمان خواب", icon = AppIcons.ChartPie, // Use Bed
-                        onClick = { onEvent(SettingsEvent.GridItemClicked("sleep_time")) }
-                    )
+                        onClick = {
+                            onEvent(
+                                SettingsEvent.GridItemClicked(
+                                    "sleep_time", localContext
+                                )
+                            )
+                        })
                 }
                 Spacer(modifier = Modifier.weight(1f)) // Empty box to keep grid alignment
             }
 
             // --- SECTION 2: Internet & Apps ---
             SettingsSectionTitle(
-                label = "مدیریت اینترنت و برنامه‌ها",
-                icon = AppIcons.LockBadge
+                label = "مدیریت اینترنت و برنامه‌ها", icon = AppIcons.LockBadge
             ) // Use Shield if you have it
             Row(
                 modifier = Modifier
@@ -134,20 +145,35 @@ fun ChildSettingsContent(
                 Box(modifier = Modifier.weight(1f)) {
                     SettingsGridItem(
                         label = "قفل برنامه‌ها", icon = AppIcons.Games, // Use Apps icon
-                        onClick = { onEvent(SettingsEvent.GridItemClicked("app_lock")) }
-                    )
+                        onClick = {
+                            onEvent(
+                                SettingsEvent.GridItemClicked(
+                                    "app_lock", localContext
+                                )
+                            )
+                        })
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     SettingsGridItem(
                         label = "مدیریت سایت‌ها", icon = AppIcons.ContentLayer, // Use Globe
-                        onClick = { onEvent(SettingsEvent.GridItemClicked("site_management")) }
-                    )
+                        onClick = {
+                            onEvent(
+                                SettingsEvent.GridItemClicked(
+                                    "site_management", localContext
+                                )
+                            )
+                        })
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     SettingsGridItem(
                         label = "جستجوی ایمن", icon = AppIcons.Help, // Use Search
-                        onClick = { onEvent(SettingsEvent.GridItemClicked("safe_search")) }
-                    )
+                        onClick = {
+                            onEvent(
+                                SettingsEvent.GridItemClicked(
+                                    "safe_search", localContext
+                                )
+                            )
+                        })
                 }
             }
             Row(
@@ -157,12 +183,18 @@ fun ChildSettingsContent(
                 Box(modifier = Modifier.weight(1f)) {
                     SettingsGridItem(
                         label = "جلوگیری از حذف", icon = AppIcons.LockBadge, // Use Trash Slash
-                        onClick = { onEvent(SettingsEvent.GridItemClicked("prevent_delete")) }
-                    )
+                        onClick = {
+                            onEvent(
+                                SettingsEvent.GridItemClicked(
+                                    "prevent_delete", localContext
+                                )
+                            )
+                        })
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     SettingsGridItem(
-                        label = "جلوگیری از تبلیغ", icon = AppIcons.LockBadge, // Use Ban
+                        label = "جلوگیری از تبلیغ",
+                        icon = AppIcons.LockBadge, // Use Ban
                         onClick = { onEvent(SettingsEvent.HelpClicked) } // Not implemented yet
                     )
                 }
@@ -180,20 +212,34 @@ fun ChildSettingsContent(
                 Box(modifier = Modifier.weight(1f)) {
                     SettingsGridItem(
                         label = "موقعیت مکانی", icon = AppIcons.ChartBar, // Use Location
-                        onClick = { onEvent(SettingsEvent.GridItemClicked("location")) }
-                    )
+                        onClick = {
+                            onEvent(
+                                SettingsEvent.GridItemClicked(
+                                    "location", localContext
+                                )
+                            )
+                        })
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     SettingsGridItem(
                         label = "محافظ چشم", icon = AppIcons.Profile, // Use Eye
-                        onClick = { onEvent(SettingsEvent.GridItemClicked("eye_protect")) }
-                    )
+                        onClick = {
+                            onEvent(
+                                SettingsEvent.GridItemClicked(
+                                    "eye_protect", localContext
+                                )
+                            )
+                        })
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     SettingsGridItem(
-                        label = "فیلم و انیمیشن", icon = AppIcons.Movies,
-                        onClick = { onEvent(SettingsEvent.GridItemClicked("content_movies")) }
-                    )
+                        label = "فیلم و انیمیشن", icon = AppIcons.Movies, onClick = {
+                            onEvent(
+                                SettingsEvent.GridItemClicked(
+                                    "content_movies", localContext
+                                )
+                            )
+                        })
                 }
             }
 
@@ -212,8 +258,6 @@ fun SettingsPreview() {
                 childId = "mock-123",
                 settings = GlobalSettingsEntity(childId = "mock-123", isChildThemeActive = true),
                 isLoading = false
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }
