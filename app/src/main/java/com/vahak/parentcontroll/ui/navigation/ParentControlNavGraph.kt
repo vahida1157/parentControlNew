@@ -13,6 +13,7 @@ import com.vahak.parentcontroll.ui.component.AddChildScreen
 import com.vahak.parentcontroll.ui.screens.TimeLimitScreen
 import com.vahak.parentcontroll.ui.screens.dashboard.ModernFamilyDashboard
 import com.vahak.parentcontroll.ui.screens.family.FamilyManagementScreen
+import com.vahak.parentcontroll.ui.screens.launcher.ChildLauncherScreen
 import com.vahak.parentcontroll.ui.screens.login.LoginScreen
 import com.vahak.parentcontroll.ui.screens.login.OtpScreen
 import com.vahak.parentcontroll.ui.screens.permissions.PermissionSliderScreen
@@ -23,7 +24,8 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 fun ParentControlNavGraph(
     startDestination: String,
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    onDisableLauncherRequested: () -> Unit,
 ) {
     NavHost(
         navController = navController, startDestination = startDestination, modifier = modifier
@@ -134,6 +136,21 @@ fun ParentControlNavGraph(
                 }
             )
         }
+
+        composable(route = "child_launcher") {
+            ChildLauncherScreen(
+                onExitLauncherClick = {
+                    // When the parent clicks the Lock button to escape,
+                    // we tell MainActivity to turn off the alias!
+                    onDisableLauncherRequested()
+
+                    // Navigate back to the Dashboard
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo("child_launcher") { inclusive = true }
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -142,6 +159,10 @@ fun ParentControlNavGraph(
 fun AppNavigationPreview() {
     ParentControlTheme {
         // Passing a dummy NavController allows the preview to render the NavHost
-        ParentControlNavGraph(startDestination = "login", navController = rememberNavController())
+        ParentControlNavGraph(
+            startDestination = "login",
+            navController = rememberNavController(),
+            onDisableLauncherRequested = {},
+        )
     }
 }

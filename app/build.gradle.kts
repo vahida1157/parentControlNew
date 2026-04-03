@@ -9,6 +9,12 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xannotation-default-target=param-property")
+    }
+}
+
 android {
     namespace = "com.vahak.parentcontroll"
     compileSdk {

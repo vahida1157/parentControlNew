@@ -7,6 +7,7 @@ import com.vahak.parentcontroll.R
 
 object AppIcons {
     val Gallery: Painter @Composable get() = painterResource(R.drawable.ic_gallery)
+    val Close: Painter @Composable get() = painterResource(R.drawable.ic_close)
     val Apps: Painter @Composable get() = painterResource(R.drawable.ic_apps)
     val YoungChild: Painter @Composable get() = painterResource(R.drawable.ic_young_child)
     val Male: Painter @Composable get() = painterResource(R.drawable.ic_male)

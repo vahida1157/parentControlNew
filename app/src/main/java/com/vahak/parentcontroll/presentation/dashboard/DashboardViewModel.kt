@@ -2,10 +2,10 @@ package com.vahak.parentcontroll.presentation.dashboard
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.lifecycle.viewModelScope
 import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
 import com.vahak.parentcontroll.core.service.TimeLimitEnforcerService
+import com.vahak.parentcontroll.core.util.LauncherManager
 import com.vahak.parentcontroll.domain.repository.AuthRepository
 import com.vahak.parentcontroll.domain.repository.ChildRepository
 import com.vahak.parentcontroll.presentation.BaseViewModel
@@ -84,16 +84,17 @@ class DashboardViewModel @Inject constructor(
 
         context.startForegroundService(intent)
 
-        // Optional: Send a toast effect saying "Protection started for [Child Name]"
+        LauncherManager.enableLauncherMode(context)
     }
 
     private fun stopProtectionService() {
         val intent = Intent(context, TimeLimitEnforcerService::class.java).apply {
             action = TimeLimitEnforcerService.ACTION_STOP
         }
-        // Even though it's a foreground service, we send 'startService' with the STOP action.
-        // The service will receive the intent, see ACTION_STOP, and call stopSelf().
+
         context.startService(intent)
+
+        LauncherManager.disableLauncherMode(context)
     }
 
     private fun performLogout() {
