@@ -1,5 +1,6 @@
 package com.vahak.parentcontroll
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,8 +13,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.rememberNavController // ADDED IMPORT
+import com.vahak.parentcontroll.core.service.TimeLimitEnforcerService
 import com.vahak.parentcontroll.core.util.LauncherManager
 import com.vahak.parentcontroll.ui.navigation.ParentControlNavGraph
+import com.vahak.parentcontroll.ui.navigation.Screen
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -27,6 +31,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val startDestination by mainViewModel.startDestination.collectAsState()
+
+            // 1. CREATE THE NAV CONTROLLER HERE
+            val navController = rememberNavController()
 
             ParentControlTheme {
                 if (startDestination == null) {
@@ -42,16 +49,21 @@ class MainActivity : ComponentActivity() {
                     ParentControlNavGraph(
                         startDestination = startDestination!!,
                         modifier = Modifier.fillMaxSize(),
+                        navController = navController, // NOW THIS WORKS
                         onDisableLauncherRequested = {
-                            // 1. Kill the Launcher Alias
                             LauncherManager.disableLauncherMode(this)
 
-                            // 2. Tell ViewModel to update the startDestination state
+                            val stopIntent =
+                                Intent(this, TimeLimitEnforcerService::class.java).apply {
+                                    action = TimeLimitEnforcerService.ACTION_STOP
+                                }
+                            startService(stopIntent)
+
                             mainViewModel.refreshDestination()
 
-                            // 3. Optional: If you want to drop them on the phone's
-                            // real home screen instead of the app dashboard:
-                            // finish()
+                            navController.navigate(Screen.Dashboard.route) {
+                                popUpTo(navController.graph.id) { inclusive = true }
+                            }
                         }
                     )
                 }

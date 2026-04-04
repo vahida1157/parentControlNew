@@ -3,8 +3,10 @@ package com.vahak.parentcontroll.di
 import android.content.Context
 import androidx.room.Room
 import com.vahak.parentcontroll.core.data.local.ParentControlDatabase
+import com.vahak.parentcontroll.core.data.local.dao.AppRuleDao
 import com.vahak.parentcontroll.core.data.local.dao.ChildDao
 import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
+import com.vahak.parentcontroll.core.data.local.dao.UsageDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -20,10 +22,8 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ParentControlDatabase {
         return Room.databaseBuilder(
-            context,
-            ParentControlDatabase::class.java,
-            "parent_control_db"
-        ).build()
+            context, ParentControlDatabase::class.java, "parent_control_db"
+        ).fallbackToDestructiveMigration(true).build()
     }
 
     @Provides
@@ -35,4 +35,12 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideChildDao(db: ParentControlDatabase): ChildDao = db.childDao
+
+    @Provides
+    @Singleton
+    fun provideUsageDao(db: ParentControlDatabase): UsageDao = db.usageDao
+
+    @Provides
+    @Singleton
+    fun provideAppRuleDao(db: ParentControlDatabase): AppRuleDao = db.appRuleDao
 }

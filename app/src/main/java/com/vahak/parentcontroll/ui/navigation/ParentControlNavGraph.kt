@@ -28,7 +28,9 @@ fun ParentControlNavGraph(
     onDisableLauncherRequested: () -> Unit,
 ) {
     NavHost(
-        navController = navController, startDestination = startDestination, modifier = modifier
+        navController = navController,
+        startDestination = startDestination,
+        modifier = modifier
     ) {
 
         composable(route = Screen.Login.route) {
@@ -56,7 +58,6 @@ fun ParentControlNavGraph(
                 })
         }
 
-        // Connect your new dashboard here!
         composable(route = Screen.Dashboard.route) {
             ModernFamilyDashboard(
                 onAddChildClick = { navController.navigate(Screen.AddChild.route) },
@@ -66,41 +67,40 @@ fun ParentControlNavGraph(
                 onManageFamilyClick = { navController.navigate(Screen.FamilyManagement.route) },
                 onLogoutComplete = {
                     navController.navigate(Screen.Login.route) {
-                        popUpTo(0) {
+                        popUpTo(navController.graph.id) {
                             inclusive = true
                         }
                     }
                 },
             )
         }
+
         composable(route = Screen.AddChild.route) {
             AddChildScreen(
                 onBackClick = { navController.popBackStack() },
             )
         }
+
         composable(route = Screen.FamilyManagement.route) {
             FamilyManagementScreen(
-                onBackClick = { navController.popBackStack() }, // Go back to Dashboard
-                onAddChildClick = { navController.navigate(Screen.AddChild.route) }, // Open Add Child
+                onBackClick = { navController.popBackStack() },
+                onAddChildClick = { navController.navigate(Screen.AddChild.route) },
                 onChildSettingsClick = { childId ->
-                    // TODO: We will build this next!
-                    // navController.navigate("child_settings/$childId")
+                    navController.navigate("child_settings/$childId")
                 }
             )
         }
+
         composable(route = "child_settings/{childId}") { backStackEntry ->
-            // Extract the childId safely
             val currentChildId = backStackEntry.arguments?.getString("childId") ?: ""
 
             ChildSettingsScreen(
                 onBackClick = { navController.popBackStack() },
                 onNavigateToFeature = { featureRoute ->
-                    // Standard navigation: Glue the route and ID together
                     navController.navigate("$featureRoute/$currentChildId")
                 },
                 onInterceptForPermissions = { route, missing ->
                     val missingString = missing.joinToString(",")
-                    // Intercept navigation: Pass the childId safely as its own variable!
                     navController.navigate("permission_slider/$route/$currentChildId/$missingString")
                 }
             )
@@ -112,12 +112,15 @@ fun ParentControlNavGraph(
             )
         }
 
-        // PRO FIX: Added {childId} as a dedicated argument to avoid the Slash Trap!
+        // We store the route pattern in a variable to avoid typos in the popUpTo later
+        val permissionRoutePattern =
+            "permission_slider/{featureRoute}/{childId}/{missingPermissions}"
+
         composable(
-            route = "permission_slider/{featureRoute}/{childId}/{missingPermissions}",
+            route = permissionRoutePattern,
             arguments = listOf(
                 navArgument("featureRoute") { type = NavType.StringType },
-                navArgument("childId") { type = NavType.StringType }, // NEW ARGUMENT
+                navArgument("childId") { type = NavType.StringType },
                 navArgument("missingPermissions") { type = NavType.StringType }
             )
         ) { backStackEntry ->
@@ -126,10 +129,9 @@ fun ParentControlNavGraph(
 
             PermissionSliderScreen(
                 onNavigateToFeature = { targetRoute ->
-                    // Once finished, we glue the base route (e.g., "time_limit") and the childId together!
                     navController.navigate("$targetRoute/$childId") {
-                        // Pop the slider so they don't see it if they hit the back button
-                        popUpTo("permission_slider/{featureRoute}/{childId}/{missingPermissions}") {
+                        // PRO FIX: Using the variable guarantees it matches exactly
+                        popUpTo(permissionRoutePattern) {
                             inclusive = true
                         }
                     }
@@ -140,14 +142,8 @@ fun ParentControlNavGraph(
         composable(route = "child_launcher") {
             ChildLauncherScreen(
                 onExitLauncherClick = {
-                    // When the parent clicks the Lock button to escape,
-                    // we tell MainActivity to turn off the alias!
+                    // Trigger the OS disable request in MainActivity
                     onDisableLauncherRequested()
-
-                    // Navigate back to the Dashboard
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo("child_launcher") { inclusive = true }
-                    }
                 }
             )
         }
@@ -158,10 +154,8 @@ fun ParentControlNavGraph(
 @Composable
 fun AppNavigationPreview() {
     ParentControlTheme {
-        // Passing a dummy NavController allows the preview to render the NavHost
         ParentControlNavGraph(
             startDestination = "login",
-            navController = rememberNavController(),
             onDisableLauncherRequested = {},
         )
     }
