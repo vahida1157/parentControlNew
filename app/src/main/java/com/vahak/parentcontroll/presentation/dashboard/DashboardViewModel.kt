@@ -3,6 +3,7 @@ package com.vahak.parentcontroll.presentation.dashboard
 import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.viewModelScope
+import com.vahak.parentcontroll.core.data.local.SessionManager
 import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
 import com.vahak.parentcontroll.core.service.TimeLimitEnforcerService
 import com.vahak.parentcontroll.core.util.LauncherManager
@@ -39,7 +40,8 @@ sealed class DashboardEffect {
 class DashboardViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository,
-    private val childRepository: ChildRepository // <-- Inject the repo!
+    private val childRepository: ChildRepository, // <-- Inject the repo!
+    private val sessionManager: SessionManager,
 ) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState()) {
 
     init {
@@ -77,24 +79,30 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun startProtectionService(childId: String) {
-        val intent = Intent(context, TimeLimitEnforcerService::class.java).apply {
-            action = TimeLimitEnforcerService.ACTION_START
-            putExtra(TimeLimitEnforcerService.EXTRA_CHILD_ID, childId)
+        viewModelScope.launch {
+            sessionManager.setActiveChildId(childId)
+
+            val intent = Intent(context, TimeLimitEnforcerService::class.java).apply {
+                action = TimeLimitEnforcerService.ACTION_START
+                putExtra(TimeLimitEnforcerService.EXTRA_CHILD_ID, childId)
+            }
+            context.startForegroundService(intent)
+
+            LauncherManager.enableLauncherMode(context)
         }
-
-        context.startForegroundService(intent)
-
-        LauncherManager.enableLauncherMode(context)
     }
 
     private fun stopProtectionService() {
-        val intent = Intent(context, TimeLimitEnforcerService::class.java).apply {
-            action = TimeLimitEnforcerService.ACTION_STOP
+        viewModelScope.launch {
+            sessionManager.clearActiveChildId()
+
+            val intent = Intent(context, TimeLimitEnforcerService::class.java).apply {
+                action = TimeLimitEnforcerService.ACTION_STOP
+            }
+            context.startService(intent)
+
+            LauncherManager.disableLauncherMode(context)
         }
-
-        context.startService(intent)
-
-        LauncherManager.disableLauncherMode(context)
     }
 
     private fun performLogout() {

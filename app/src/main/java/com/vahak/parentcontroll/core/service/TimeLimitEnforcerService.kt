@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+import com.vahak.parentcontroll.core.data.local.dao.AppRuleDao
 import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
 import com.vahak.parentcontroll.core.data.local.dao.UsageDao
 import com.vahak.parentcontroll.core.data.local.entity.AppUsageRecordEntity
@@ -21,6 +22,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -37,13 +39,16 @@ class TimeLimitEnforcerService : LifecycleService() {
     @Inject
     lateinit var usageDao: UsageDao
 
+    @Inject
+    lateinit var appRuleDao: AppRuleDao // 1. INJECT APP RULES DAO
+
     private lateinit var timeLockOverlay: TimeLockOverlay
+    private lateinit var appLockOverlay: TimeLockOverlay
     private var monitoringJob: Job? = null
     private var currentChildId: String? = null
     private var lastKnownPackage: String = ""
 
-    // 1. HOIST THE TRACKING VARIABLES
-    // Moving these here so they survive even when the monitoring loop is cancelled
+    // --- HOISTED TRACKING VARIABLES ---
     private var currentDateTracker: LocalDate = LocalDate.now()
     private var usedSecondsTodayTracker: Int = 0
     private val appUsageMapTracker = mutableMapOf<String, Int>()
@@ -60,7 +65,8 @@ class TimeLimitEnforcerService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service Created")
-        timeLockOverlay = TimeLockOverlay(this)
+        timeLockOverlay = TimeLockOverlay(this, "زمان استفاده شما به پایان رسید!")
+        appLockOverlay = TimeLockOverlay(this, "استفاده از این نرم افزار مجاز نیست!")
         createNotificationChannel()
     }
 
@@ -82,7 +88,7 @@ class TimeLimitEnforcerService : LifecycleService() {
             }
 
             ACTION_STOP -> {
-                Log.w(TAG, "Action Stop received")
+                Log.w(TAG, "Action Stop received from UI")
                 stopMonitoring()
                 stopSelf()
             }
@@ -122,34 +128,50 @@ class TimeLimitEnforcerService : LifecycleService() {
         monitoringJob = lifecycleScope.launch {
             Log.i(TAG, "🚀 Monitoring Started for Child: $childId")
 
-            // 2. USE THE HOISTED VARIABLES
+            // Initialize/Sync trackers with database
             currentDateTracker = LocalDate.now()
-            usedSecondsTodayTracker = usageDao.getDailyUsage(childId, currentDateTracker)?.usedSeconds ?: 0
+            usedSecondsTodayTracker =
+                usageDao.getDailyUsage(childId, currentDateTracker)?.usedSeconds ?: 0
+
             appUsageMapTracker.clear()
-
-            Log.d(TAG, "💾 Loaded initial time from DB: $usedSecondsTodayTracker seconds")
-
-            val existingAppUsages = usageDao.observeAppUsageForDay(childId, currentDateTracker).first()
+            val existingAppUsages =
+                usageDao.observeAppUsageForDay(childId, currentDateTracker).first()
             existingAppUsages.forEach { record ->
                 appUsageMapTracker[record.packageName] = record.usedSeconds
             }
 
+            Log.d(TAG, "💾 Data Restored: $usedSecondsTodayTracker seconds used today.")
+
             var loopCounter = 0
 
-            settingsDao.getGlobalSettings(childId).collectLatest { settings ->
+            // 2. COMBINE SETTINGS AND ALLOWED APPS FLOWS
+            combine(
+                settingsDao.getGlobalSettings(childId),
+                appRuleDao.observeAllowedApps(childId)
+            ) { settings, allowedApps ->
+                Pair(settings, allowedApps.map { it.packageName }.toSet())
+            }.collectLatest { (settings, allowedPackages) ->
+
                 if (settings == null || !settings.isTimeLimitActive) {
                     Log.w(TAG, "🛑 Settings changed: Time limit is INACTIVE. Shutting down service.")
                     timeLockOverlay.hide()
+                    appLockOverlay.hide()
                     stopSelf()
                     return@collectLatest
                 }
 
                 val limitInSeconds = settings.dailyTimeLimitMins * 60
+                Log.i(TAG, "🎯 Active Limit: $limitInSeconds sec | Allowed Apps: ${allowedPackages.size}")
+
+                // Safety net: System components that shouldn't trigger the restrict overlay
+                val criticalSystemPackages = setOf("com.android.systemui", "android")
 
                 while (isActive) {
                     val now = LocalDate.now()
+
+                    // Midnight Rollover Check
                     if (now != currentDateTracker) {
-                        Log.i(TAG, "🌙 Midnight Rollover! Saving data and resetting clock.")
+                        Log.i(TAG, "🌙 Midnight Rollover! Resetting trackers.")
                         saveDataToRoom(childId, currentDateTracker, usedSecondsTodayTracker, appUsageMapTracker)
                         currentDateTracker = now
                         usedSecondsTodayTracker = 0
@@ -160,30 +182,54 @@ class TimeLimitEnforcerService : LifecycleService() {
                     val currentApp = getForegroundPackage()
                     val isOurLauncher = currentApp == packageName
 
-                    if (currentApp == "com.android.settings") {
-                        timeLockOverlay.show()
-                    } else if (isScreenOn) {
-                        if (currentApp.isNotEmpty() && !isOurLauncher) {
-                            usedSecondsTodayTracker += 1
-                            appUsageMapTracker[currentApp] = (appUsageMapTracker[currentApp] ?: 0) + 1
-                        }
+                    // --- VERBOSE HEARTBEAT LOG ---
+                    Log.d(TAG, "⏱️ TICK | Screen: ${if (isScreenOn) "ON" else "OFF"} | App: $currentApp | Total: $usedSecondsTodayTracker/$limitInSeconds")
 
-                        if (usedSecondsTodayTracker >= limitInSeconds) {
-                            if (!isOurLauncher) {
-                                timeLockOverlay.show()
+                    if (currentApp == "com.android.settings") {
+                        Log.w(TAG, "🚨 Security: Blocking access to Android Settings")
+                        timeLockOverlay.hide()
+                        appLockOverlay.show()
+                    } else if (isScreenOn) {
+
+                        if (currentApp.isNotEmpty() && !isOurLauncher) {
+
+                            val isCriticalSystem = criticalSystemPackages.contains(currentApp)
+                            val isAppAllowed = allowedPackages.contains(currentApp)
+
+                            // 3. LAYER TWO DEFENSE: APP RESTRICTION CHECK
+                            if (!isAppAllowed && !isCriticalSystem) {
+                                timeLockOverlay.hide() // Ensure time lock isn't showing
+                                appLockOverlay.show()  // Show restricted app lock
                             } else {
-                                timeLockOverlay.hide()
+                                appLockOverlay.hide()  // App is allowed, hide restrict overlay
+
+                                // Increment time if it's a real app (not system UI dropdown)
+                                if (!isCriticalSystem) {
+                                    usedSecondsTodayTracker += 1
+                                    appUsageMapTracker[currentApp] = (appUsageMapTracker[currentApp] ?: 0) + 1
+                                }
+
+                                // 4. LAYER ONE DEFENSE: TIME LIMIT CHECK
+                                if (usedSecondsTodayTracker >= limitInSeconds) {
+                                    timeLockOverlay.show()
+                                } else {
+                                    timeLockOverlay.hide()
+                                }
                             }
                         } else {
+                            // Safe Zone (Our Launcher)
+                            appLockOverlay.hide()
                             timeLockOverlay.hide()
                         }
                     } else {
+                        // Screen is off
+                        appLockOverlay.hide()
                         timeLockOverlay.hide()
                     }
 
+                    // Periodic Database Save (Every 60 seconds)
                     loopCounter++
                     if (loopCounter >= 60) {
-                        Log.i(TAG, "💾 Periodic Save: Total=$usedSecondsTodayTracker")
                         saveDataToRoom(childId, currentDateTracker, usedSecondsTodayTracker, appUsageMapTracker)
                         loopCounter = 0
                     }
@@ -203,21 +249,16 @@ class TimeLimitEnforcerService : LifecycleService() {
                 AppUsageRecordEntity(childId, date, pkg, seconds)
             }
             if (appRecords.isNotEmpty()) usageDao.insertOrUpdateAppUsages(appRecords)
-            Log.v(TAG, "Database successfully updated for $date")
         } catch (e: Exception) {
             Log.e(TAG, "Database update failed: ${e.message}")
         }
     }
 
-    // 3. CREATE THE FINAL SAVE FUNCTION
     private fun performFinalSave() {
         val childId = currentChildId ?: return
         if (usedSecondsTodayTracker == 0 && appUsageMapTracker.isEmpty()) return
 
-        Log.i(TAG, "💾 Triggering Final Save before shutdown! Catching those lost seconds.")
-
-        // When a service is destroyed, its lifecycleScope is cancelled immediately.
-        // We MUST use NonCancellable inside a fresh IO coroutine to ensure Room has enough time to write the data.
+        Log.i(TAG, "💾 [FINAL SAVE] Shutdown detected. Saving final $usedSecondsTodayTracker seconds...")
         CoroutineScope(Dispatchers.IO).launch {
             withContext(NonCancellable) {
                 saveDataToRoom(childId, currentDateTracker, usedSecondsTodayTracker, appUsageMapTracker)
@@ -226,14 +267,14 @@ class TimeLimitEnforcerService : LifecycleService() {
     }
 
     private fun stopMonitoring() {
-        Log.i(TAG, "Stop Monitoring called")
+        Log.i(TAG, "stopMonitoring() called")
         monitoringJob?.cancel()
         timeLockOverlay.hide()
+        appLockOverlay.hide()
     }
 
     override fun onDestroy() {
         Log.d(TAG, "Service Destroyed")
-        // 4. CALL THE FINAL SAVE RIGHT BEFORE DEATH
         performFinalSave()
         stopMonitoring()
         super.onDestroy()
@@ -243,12 +284,13 @@ class TimeLimitEnforcerService : LifecycleService() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("محافظت خانواده فعال است")
             .setContentText("در حال نظارت بر استفاده از دستگاه...")
-            .setSmallIcon(android.R.drawable.ic_secure).setOngoing(true).build()
+            .setSmallIcon(android.R.drawable.ic_secure)
+            .setOngoing(true)
+            .build()
     }
 
     private fun createNotificationChannel() {
-        val channel =
-            NotificationChannel(CHANNEL_ID, "نظارت خانواده", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(CHANNEL_ID, "نظارت خانواده", NotificationManager.IMPORTANCE_LOW)
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(channel)
     }

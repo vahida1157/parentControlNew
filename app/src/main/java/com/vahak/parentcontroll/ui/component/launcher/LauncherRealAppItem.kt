@@ -18,13 +18,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.drawable.toDrawable
 import com.vahak.parentcontroll.core.util.AppInfo
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
+import com.vahak.parentcontroll.ui.theme.ParentControlTheme
+import android.graphics.Color as AndroidColor
 
 @Composable
 fun LauncherRealAppItem(
@@ -33,11 +39,15 @@ fun LauncherRealAppItem(
     onClick: (String) -> Unit
 ) {
     val colors = LocalCustomColors.current
+    val context = LocalContext.current
+    val density = LocalDensity.current
 
-    // Safely convert the Android Drawable to a Jetpack Compose ImageBitmap
-    // We use 'remember' so it only does this heavy conversion once per icon
+    // Pro Tip: Convert 72dp to pixels based on the device screen
+    val iconSizePx = with(density) { 72.dp.roundToPx() }
+
     val imageBitmap = remember(appInfo.icon) {
-        appInfo.icon.toBitmap().asImageBitmap()
+        // Use the calculated px size for the bitmap
+        appInfo.icon.toBitmap(width = iconSizePx, height = iconSizePx).asImageBitmap()
     }
 
     Column(
@@ -50,7 +60,10 @@ fun LauncherRealAppItem(
         Box(
             modifier = Modifier
                 .size(70.dp)
-                .background(Color.White, RoundedCornerShape(20.dp)), // White background makes real icons pop
+                .background(
+                    Color.White,
+                    RoundedCornerShape(20.dp)
+                ), // White background makes real icons pop
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -69,6 +82,23 @@ fun LauncherRealAppItem(
             color = colors.textPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis // Adds "..." if an app name is extremely long
+        )
+    }
+}
+
+@Preview(showBackground = true, locale = "fa")
+@Composable
+fun LauncherRealAppItemPreview() {
+    ParentControlTheme {
+        val dummyDrawable = AndroidColor.RED.toDrawable()
+
+        LauncherRealAppItem(
+            appInfo = AppInfo(
+                name = "یوتیوب",
+                packageName = "com.youtube",
+                icon = dummyDrawable
+            ),
+            onClick = {}
         )
     }
 }

@@ -24,11 +24,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.drawable.toDrawable
 import com.vahak.parentcontroll.core.util.AppInfo
 import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
+import com.vahak.parentcontroll.ui.theme.ParentControlTheme
+import android.graphics.Color as AndroidColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +50,7 @@ fun AppDrawerBottomSheet(
         sheetState = sheetState,
         containerColor = colors.background,
         // Match the HTML prototype's top rounded corners
-        shape = RoundedCornerShape(topStart = 35.dp, topEnd = 35.dp) 
+        shape = RoundedCornerShape(topStart = 35.dp, topEnd = 35.dp)
     ) {
         Column(
             modifier = Modifier
@@ -74,7 +78,7 @@ fun AppDrawerBottomSheet(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(20.dp))
 
             // --- CONTENT ---
@@ -107,5 +111,26 @@ fun AppDrawerBottomSheet(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true, locale = "fa")
+@Composable
+fun AppDrawerBottomSheetPreview() {
+    ParentControlTheme {
+        val dummyDrawable = AndroidColor.BLUE.toDrawable()
+        val dummyApps = listOf(
+            AppInfo("بازی ماشین", "com.game1", dummyDrawable),
+            AppInfo("نقاشی", "com.game2", dummyDrawable),
+            AppInfo("شاد", "com.edu", dummyDrawable)
+        )
+
+        // Previews with BottomSheets can sometimes overlap, so we preview the content state
+        AppDrawerBottomSheet(
+            apps = dummyApps,
+            isLoading = false,
+            onDismiss = {},
+            onAppClick = {}
+        )
     }
 }

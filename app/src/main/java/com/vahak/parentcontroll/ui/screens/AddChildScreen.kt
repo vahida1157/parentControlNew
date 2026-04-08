@@ -1,4 +1,4 @@
-package com.vahak.parentcontroll.ui.component
+package com.vahak.parentcontroll.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -96,7 +96,10 @@ fun AddChildScreenContent(
     ) {
 
         // 1. Reusable Header
-        SimpleCurvedHeader(title = "افزودن فرزند جدید", onBackClick = onBackClick)
+        _root_ide_package_.com.vahak.parentcontroll.ui.component.SimpleCurvedHeader(
+            title = "افزودن فرزند جدید",
+            onBackClick = onBackClick
+        )
 
         // 2. Scrollable Content
         Column(
@@ -186,7 +189,7 @@ fun AddChildScreenContent(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(15.dp)
                         ) {
-                            GenderOption(
+                            _root_ide_package_.com.vahak.parentcontroll.ui.component.GenderOption(
                                 isSelected = state.gender == Gender.Girl,
                                 title = "دختر",
                                 icon = AppIcons.Female,
@@ -194,7 +197,7 @@ fun AddChildScreenContent(
                                 modifier = Modifier.weight(1f)
                             ) { onEvent(AddChildEvent.GenderSelected(Gender.Girl)) }
 
-                            GenderOption(
+                            _root_ide_package_.com.vahak.parentcontroll.ui.component.GenderOption(
                                 isSelected = state.gender == Gender.Boy,
                                 title = "پسر",
                                 icon = AppIcons.Male,
@@ -237,7 +240,8 @@ fun AddChildScreenContent(
 
                 // 3. Reusable Profile Uploader
                 Box(modifier = Modifier.align(Alignment.TopCenter)) {
-                    AvatarPickerBadge(onClick = { /* Open Image Picker */ })
+                    _root_ide_package_.com.vahak.parentcontroll.ui.component.AvatarPickerBadge(
+                        onClick = { /* Open Image Picker */ })
                 }
             }
 
@@ -248,9 +252,9 @@ fun AddChildScreenContent(
                 val currentMonth = dobParts.getOrNull(1)?.toIntOrNull() ?: 1
                 val currentDay = dobParts.getOrNull(2)?.toIntOrNull() ?: 1
 
-                DynamicDatePicker(
+                _root_ide_package_.com.vahak.parentcontroll.ui.component.DynamicDatePicker(
                     title = "تاریخ تولد فرزند",
-                    mode = PickerPresentationMode.DIALOG,
+                    mode = _root_ide_package_.com.vahak.parentcontroll.ui.component.PickerPresentationMode.DIALOG,
                     yearRange = 1380..1403,
                     monthRange = 1..12,
                     dayRange = 1..31,

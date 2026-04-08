@@ -6,7 +6,7 @@ import com.vahak.parentcontroll.domain.repository.ChildRepository
 import com.vahak.parentcontroll.domain.usecase.ValidateAddChildUseCase
 import com.vahak.parentcontroll.domain.usecase.ValidationResult
 import com.vahak.parentcontroll.presentation.BaseViewModel
-import com.vahak.parentcontroll.ui.component.Gender
+import com.vahak.parentcontroll.ui.screens.Gender
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate

@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.parentcontroll.core.util.AppInfo
 import com.vahak.parentcontroll.presentation.launcher.LauncherViewModel
 import com.vahak.parentcontroll.ui.component.launcher.AppDrawerBottomSheet
 import com.vahak.parentcontroll.ui.component.launcher.LauncherBottomDock
@@ -32,20 +33,36 @@ import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
+// --- 1. STATEFUL WRAPPER (Used by NavGraph) ---
 @Composable
 fun ChildLauncherScreen(
     childName: String = "محمدمهدی",
-    viewModel: LauncherViewModel = hiltViewModel(), // Inject the Engine!
+    viewModel: LauncherViewModel = hiltViewModel(), // Hilt stays safe out here!
     onExitLauncherClick: () -> Unit
 ) {
-    val colors = LocalCustomColors.current
-
-    // UI States
-    var isDrawerOpen by remember { mutableStateOf(false) }
-
-    // ViewModel States
     val installedApps by viewModel.installedApps.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    ChildLauncherContent(
+        childName = childName,
+        installedApps = installedApps,
+        isLoading = isLoading,
+        onExitLauncherClick = onExitLauncherClick,
+        onLaunchApp = { packageName -> viewModel.launchApp(packageName) }
+    )
+}
+
+// --- 2. STATELESS CONTENT (Used by Preview) ---
+@Composable
+fun ChildLauncherContent(
+    childName: String,
+    installedApps: List<AppInfo>,
+    isLoading: Boolean,
+    onExitLauncherClick: () -> Unit,
+    onLaunchApp: (String) -> Unit
+) {
+    val colors = LocalCustomColors.current
+    var isDrawerOpen by remember { mutableStateOf(false) }
 
     val backgroundBrush = Brush.radialGradient(
         colors = listOf(Color(0xFFE8F5E9), colors.background), radius = 1500f
@@ -56,8 +73,7 @@ fun ChildLauncherScreen(
             .fillMaxSize()
             .background(backgroundBrush)
     ) {
-
-        // --- 1. THE EXIT DOOR ---
+        // --- THE EXIT DOOR ---
         Card(
             shape = RoundedCornerShape(15.dp),
             colors = CardDefaults.cardColors(containerColor = colors.surface),
@@ -66,7 +82,8 @@ fun ChildLauncherScreen(
                 .padding(20.dp)
                 .size(45.dp)
                 .align(Alignment.TopStart)
-                .clickable { onExitLauncherClick() }) {
+                .clickable { onExitLauncherClick() }
+        ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Icon(
                     painter = AppIcons.LockBadge,
@@ -76,22 +93,23 @@ fun ChildLauncherScreen(
             }
         }
 
-        // --- 2. HEADER ---
+        // --- HEADER ---
         Column(
-            modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             LauncherHeader(
-                childName = childName, modifier = Modifier.padding(top = 80.dp)
+                childName = childName,
+                modifier = Modifier.padding(top = 80.dp)
             )
-            // (Quick Apps Grid will go here in the future)
         }
 
-        // --- 3. BOTTOM DOCK ---
+        // --- BOTTOM DOCK ---
         LauncherBottomDock(
             modifier = Modifier.align(Alignment.BottomCenter),
             onLeftIconClick = { /* Handle Gallery */ },
             onRightIconClick = { /* Handle Phone */ },
-            onCenterDrawerClick = { isDrawerOpen = true } // Open the sheet!
+            onCenterDrawerClick = { isDrawerOpen = true }
         )
     }
 
@@ -102,17 +120,24 @@ fun ChildLauncherScreen(
             isLoading = isLoading,
             onDismiss = { isDrawerOpen = false },
             onAppClick = { packageName ->
-                // Launch the real app, then immediately close the drawer
-                viewModel.launchApp(packageName)
+                onLaunchApp(packageName)
                 isDrawerOpen = false
-            })
+            }
+        )
     }
 }
 
+// --- 3. PREVIEW (Crash-Free!) ---
 @Preview(showBackground = true, locale = "fa")
 @Composable
 fun ChildLauncherScreenPreview() {
     ParentControlTheme {
-        ChildLauncherScreen(onExitLauncherClick = {})
+        ChildLauncherContent(
+            childName = "محمدمهدی",
+            installedApps = emptyList(), // Passing empty list for preview
+            isLoading = false,
+            onExitLauncherClick = {},
+            onLaunchApp = {}
+        )
     }
 }

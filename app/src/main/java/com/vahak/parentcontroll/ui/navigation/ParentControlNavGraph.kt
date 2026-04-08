@@ -9,7 +9,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.vahak.parentcontroll.ui.component.AddChildScreen
+import com.vahak.parentcontroll.ui.screens.AddChildScreen
+import com.vahak.parentcontroll.ui.screens.AppSelectionScreen
 import com.vahak.parentcontroll.ui.screens.TimeLimitScreen
 import com.vahak.parentcontroll.ui.screens.dashboard.ModernFamilyDashboard
 import com.vahak.parentcontroll.ui.screens.family.FamilyManagementScreen
@@ -145,6 +146,12 @@ fun ParentControlNavGraph(
                     // Trigger the OS disable request in MainActivity
                     onDisableLauncherRequested()
                 }
+            )
+        }
+
+        composable(route = "app_lock/{childId}") {
+            AppSelectionScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

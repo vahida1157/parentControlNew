@@ -14,12 +14,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    sessionManager: SessionManager
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     // A trigger to force a refresh when the Launcher Alias is toggled
@@ -42,6 +43,12 @@ class MainViewModel @Inject constructor(
 
     fun refreshDestination() {
         refreshTrigger.value += 1
+    }
+
+    fun clearActiveLauncherSession() {
+        viewModelScope.launch {
+            sessionManager.clearActiveChildId()
+        }
     }
 
     private fun isLauncherAliasEnabled(): Boolean {

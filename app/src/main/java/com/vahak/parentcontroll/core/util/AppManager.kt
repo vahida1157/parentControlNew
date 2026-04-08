@@ -20,14 +20,14 @@ object AppManager {
      */
     suspend fun getInstalledApps(context: Context): List<AppInfo> = withContext(Dispatchers.IO) {
         val packageManager = context.packageManager
-        
+
         // We only want apps that can actually be opened (Launchers)
         val intent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
 
         val resolveInfoList = packageManager.queryIntentActivities(intent, 0)
-        
+
         resolveInfoList.mapNotNull { resolveInfo ->
             try {
                 AppInfo(
@@ -41,6 +41,30 @@ object AppManager {
         }
         .filter { it.packageName != context.packageName } // Don't show our own app in the kid's drawer!
         .sortedBy { it.name }
+    }
+
+    suspend fun getSpecificApps(context: Context, allowedPackages: Set<String>): List<AppInfo> = withContext(Dispatchers.IO) {
+        val pm = context.packageManager
+        val intent = Intent(Intent.ACTION_MAIN, null).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+
+        // 1. Get the list of all launchable activities (Fast: just strings/meta)
+        val resolveInfoList = pm.queryIntentActivities(intent, 0)
+
+        // 2. Filter and ONLY load data for allowed apps
+        resolveInfoList.mapNotNull { resolveInfo ->
+            val pkg = resolveInfo.activityInfo.packageName
+            if (allowedPackages.contains(pkg)) {
+                try {
+                    AppInfo(
+                        name = resolveInfo.loadLabel(pm).toString(),
+                        packageName = pkg,
+                        icon = resolveInfo.loadIcon(pm) // Only loads icons we actually need!
+                    )
+                } catch (e: Exception) { null }
+            } else null
+        }.sortedBy { it.name }
     }
 
     /**

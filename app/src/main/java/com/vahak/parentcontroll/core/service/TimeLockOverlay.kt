@@ -12,7 +12,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.graphics.toColorInt
 
-class TimeLockOverlay(private val context: Context) {
+class TimeLockOverlay(private val context: Context, private val message: String) {
 
     private var windowManager: WindowManager? = null
     private var lockView: ViewGroup? = null
@@ -35,7 +35,7 @@ class TimeLockOverlay(private val context: Context) {
 
             // The Title
             val text = TextView(context).apply {
-                this.text = "زمان استفاده شما به پایان رسید!"
+                this.text = message
                 this.textSize = 24f
                 this.setTextColor(Color.WHITE)
                 this.gravity = Gravity.CENTER

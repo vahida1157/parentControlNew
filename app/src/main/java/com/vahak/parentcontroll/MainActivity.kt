@@ -51,6 +51,8 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         navController = navController, // NOW THIS WORKS
                         onDisableLauncherRequested = {
+                            mainViewModel.clearActiveLauncherSession()
+
                             LauncherManager.disableLauncherMode(this)
 
                             val stopIntent =

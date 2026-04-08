@@ -1,6 +1,6 @@
 package com.vahak.parentcontroll.domain.usecase
 
-import com.vahak.parentcontroll.ui.component.Gender
+import com.vahak.parentcontroll.ui.screens.Gender
 import javax.inject.Inject
 
 
