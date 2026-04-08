@@ -38,8 +38,7 @@ sealed class SettingsEffect {
 // 2. ViewModel
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
-    private val settingsDao: SettingsDao
+    savedStateHandle: SavedStateHandle, private val settingsDao: SettingsDao
 ) : BaseViewModel<SettingsState, SettingsEvent, SettingsEffect>(SettingsState()) {
 
     // Automatically extracts the ID from the NavGraph route: "child_settings/{childId}"
@@ -71,9 +70,25 @@ class SettingsViewModel @Inject constructor(
                     settingsDao.upsertGlobalSettings(currentSettings.copy(isChildThemeActive = event.isActive))
                 }
             }
+
             is SettingsEvent.BackClicked -> sendEffect(SettingsEffect.NavigateBack)
             is SettingsEvent.HelpClicked -> sendEffect(SettingsEffect.ShowToast("بخش راهنما در حال توسعه است."))
             is SettingsEvent.GridItemClicked -> {
+
+                if (event.route in listOf(
+                        "location",
+                        "sleep_time",
+                        "site_management",
+                        "safe_search",
+                        "prevent_delete",
+                        "eye_protect",
+                        "content_movies"
+                    )
+                ) {
+                    sendEffect(SettingsEffect.ShowToast("این قابلیت به زودی اضافه خواهد شد!"))
+                    return // Stop executing the rest of the block
+                }
+
                 val requiredPermissions = featurePermissionsMap[event.route] ?: emptyList()
 
                 // Filter down to only the permissions the user HASN'T granted yet

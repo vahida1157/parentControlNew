@@ -163,8 +163,17 @@ class TimeLimitEnforcerService : LifecycleService() {
                 val limitInSeconds = settings.dailyTimeLimitMins * 60
                 Log.i(TAG, "🎯 Active Limit: $limitInSeconds sec | Allowed Apps: ${allowedPackages.size}")
 
-                // Safety net: System components that shouldn't trigger the restrict overlay
-                val criticalSystemPackages = setOf("com.android.systemui", "android")
+                // --- DYNAMIC SYSTEM WHITELIST ---
+                // Fetch all Home/Launcher packages dynamically so Recents work on Xiaomi, Samsung, Pixel, etc.
+                val homeIntent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
+                val launcherPackages = packageManager.queryIntentActivities(homeIntent, 0)
+                    .map { it.activityInfo.packageName }
+                    .toSet()
+
+                // Combine SystemUI, Android Core, and all device Launchers
+                val criticalSystemPackages = setOf("com.android.systemui", "android") + launcherPackages
+
+                Log.i(TAG, "Critical System Packages allowed: $criticalSystemPackages")
 
                 while (isActive) {
                     val now = LocalDate.now()

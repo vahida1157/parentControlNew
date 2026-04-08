@@ -22,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,15 +44,14 @@ import kotlin.math.roundToInt
 @Composable
 fun SwipeToActivateButton(
     modifier: Modifier = Modifier,
-    isInitiallyActivated: Boolean = false,
+    isActive: Boolean = false,
     onActivate: () -> Unit,
     onDeactivate: () -> Unit,
 ) {
     val colors = LocalCustomColors.current
 
-    // State to track drag and activation
+    // State to track drag ONLY. Activation is handled by the parent!
     var offsetX by remember { mutableFloatStateOf(0f) }
-    var isActivated by remember { mutableStateOf(isInitiallyActivated) }
 
     // Constants
     val height = 64.dp
@@ -62,7 +60,7 @@ fun SwipeToActivateButton(
 
     // Convert dp to px for logic
     val density = LocalDensity.current
-    val maxDragPx = with(density) { 250.dp.toPx() } // Approximate width available minus thumb
+    val maxDragPx = with(density) { 250.dp.toPx() }
 
     Box(
         modifier = modifier
@@ -71,8 +69,8 @@ fun SwipeToActivateButton(
             .background(Color(0xFFE8ECEF), RoundedCornerShape(32.dp))
             .padding(padding)
     ) {
-        // Background Text (Only needed when not activated, since thumb covers it otherwise)
-        if (!isActivated) {
+        // Background Text
+        if (!isActive) {
             Text(
                 text = stringResource(R.string.slider_instruction),
                 modifier = Modifier.align(Alignment.Center),
@@ -85,21 +83,17 @@ fun SwipeToActivateButton(
         // Draggable / Clickable Thumb
         Box(
             modifier = Modifier
-                // 1. Position: If activated, stay at 0. If not, follow the drag offset.
-                .offset { IntOffset(if (isActivated) 0 else offsetX.roundToInt(), 0) }
-                // 2. Size: If activated, fill the whole bar. If not, stay a circle.
-                .then(if (isActivated) Modifier.fillMaxSize() else Modifier.size(thumbSize))
+                .offset { IntOffset(if (isActive) 0 else offsetX.roundToInt(), 0) }
+                .then(if (isActive) Modifier.fillMaxSize() else Modifier.size(thumbSize))
                 .clip(RoundedCornerShape(32.dp))
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(colors.primary, colors.secondary)
                     )
                 )
-                // 3. Behavior: If activated, click to turn off. If not, drag to turn on.
                 .then(
-                    if (isActivated) {
+                    if (isActive) {
                         Modifier.clickable {
-                            isActivated = false
                             offsetX = 0f
                             onDeactivate()
                         }
@@ -107,17 +101,15 @@ fun SwipeToActivateButton(
                         Modifier.draggable(
                             orientation = Orientation.Horizontal,
                             state = rememberDraggableState { delta ->
-                                // Standard RTL Logic: negative drag implies forward.
                                 val newOffset = offsetX - delta
                                 offsetX = newOffset.coerceIn(0f, maxDragPx)
                             },
                             onDragStopped = {
                                 if (offsetX > maxDragPx * 0.7) {
-                                    isActivated = true
-                                    offsetX = 0f // Reset offset completely
-                                    onActivate()
+                                    offsetX = 0f
+                                    onActivate() // Fire to parent!
                                 } else {
-                                    offsetX = 0f // Snap back if they didn't drag far enough
+                                    offsetX = 0f
                                 }
                             }
                         )
@@ -125,11 +117,11 @@ fun SwipeToActivateButton(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            if (isActivated) {
-                // Activated View (Full width, text inside)
+            if (isActive) {
+                // Activated View
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = stringResource(R.string.slider_activated) + " (توقف)", // Added "Stop" to hint it's clickable
+                        text = stringResource(R.string.slider_activated) + " (توقف)",
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
@@ -137,7 +129,7 @@ fun SwipeToActivateButton(
                     Icon(AppIcons.Check, contentDescription = null, tint = Color.White)
                 }
             } else {
-                // Not Activated View (Just the arrow)
+                // Not Activated View
                 Icon(
                     painter = AppIcons.ChevronLeft,
                     contentDescription = null,
@@ -158,7 +150,7 @@ fun SwipeSliderDeactivatedPreview() {
     ParentControlTheme {
         Box(modifier = Modifier.padding(16.dp).background(Color.White)) {
             SwipeToActivateButton(
-                isInitiallyActivated = false,
+                isActive = false,
                 onActivate = {},
                 onDeactivate = {}
             )
@@ -172,7 +164,7 @@ fun SwipeSliderActivatedPreview() {
     ParentControlTheme {
         Box(modifier = Modifier.padding(16.dp).background(Color.White)) {
             SwipeToActivateButton(
-                isInitiallyActivated = true, // Forces the green UI to show!
+                isActive = true,
                 onActivate = {},
                 onDeactivate = {}
             )

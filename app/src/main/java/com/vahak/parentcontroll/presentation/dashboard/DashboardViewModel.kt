@@ -20,7 +20,8 @@ import javax.inject.Inject
 data class DashboardState(
     val children: List<ChildEntity> = emptyList(),
     val activeChild: ChildEntity? = null,
-    val isChildSheetOpen: Boolean = false
+    val isChildSheetOpen: Boolean = false,
+    val isProtectionActive: Boolean = false,
 )
 
 sealed class DashboardEvent {
@@ -51,10 +52,16 @@ class DashboardViewModel @Inject constructor(
                 updateState {
                     copy(
                         children = childList,
-                        // Auto-select the first child if none is selected
                         activeChild = activeChild ?: childList.firstOrNull()
                     )
                 }
+            }
+        }
+
+        // NEW: Observe the Session! If it becomes null (launcher exited), update the UI state.
+        viewModelScope.launch {
+            sessionManager.activeChildIdFlow.collectLatest { activeId ->
+                updateState { copy(isProtectionActive = activeId != null) }
             }
         }
     }
