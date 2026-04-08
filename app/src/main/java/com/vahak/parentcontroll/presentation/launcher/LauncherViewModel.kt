@@ -1,35 +1,47 @@
 package com.vahak.parentcontroll.presentation.launcher
 
 import android.content.Context
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vahak.parentcontroll.core.data.local.SessionManager
 import com.vahak.parentcontroll.core.data.local.dao.AppRuleDao
 import com.vahak.parentcontroll.core.util.AppInfo
 import com.vahak.parentcontroll.core.util.AppManager
+import com.vahak.parentcontroll.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+// --- 1. Contract ---
+data class LauncherState(
+    val installedApps: List<AppInfo> = emptyList(),
+    val isLoading: Boolean = true,
+    val showExitDialog: Boolean = false,
+    val exitErrorMessage: String? = null
+)
+
+sealed class LauncherEvent {
+    data class AppClicked(val packageName: String) : LauncherEvent()
+    object ExitLauncherClicked : LauncherEvent()
+    object DismissExitDialog : LauncherEvent()
+    data class SubmitExitPin(val pin: String) : LauncherEvent()
+}
+
+sealed class LauncherEffect {
+    object RequestExit : LauncherEffect()
+}
+
+// --- 2. ViewModel ---
 @HiltViewModel
 class LauncherViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val appRuleDao: AppRuleDao,
     private val sessionManager: SessionManager,
-) : ViewModel() {
-
-    private val _installedApps = MutableStateFlow<List<AppInfo>>(emptyList())
-    val installedApps: StateFlow<List<AppInfo>> = _installedApps.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+) : BaseViewModel<LauncherState, LauncherEvent, LauncherEffect>(LauncherState()) {
 
     init {
         observeActiveSession()
@@ -37,35 +49,50 @@ class LauncherViewModel @Inject constructor(
 
     private fun observeActiveSession() {
         viewModelScope.launch(Dispatchers.IO) {
-            // Watch the SessionManager. If the child ID changes, reload the apps!
             sessionManager.activeChildIdFlow.distinctUntilChanged().collectLatest { childId ->
                 if (childId != null) {
                     loadAppsForChild(childId)
                 } else {
-                    // Safety fallback if no child is active
-                    _installedApps.value = emptyList()
-                    _isLoading.value = false
+                    updateState { copy(installedApps = emptyList(), isLoading = false) }
                 }
             }
         }
     }
 
     private suspend fun loadAppsForChild(childId: String) {
-        _isLoading.value = true
+        updateState { copy(isLoading = true) }
 
-        // Listen to the database for this specific child
         appRuleDao.observeAllowedApps(childId).distinctUntilChanged().collectLatest { rules ->
             val allowedPackages = rules.map { it.packageName }.toSet()
-
-            // Only load the specific icons the parent allowed
             val specificApps = AppManager.getSpecificApps(context, allowedPackages)
 
-            _installedApps.value = specificApps
-            _isLoading.value = false
+            updateState { copy(installedApps = specificApps, isLoading = false) }
         }
     }
 
-    fun launchApp(packageName: String) {
-        AppManager.launchApp(context, packageName)
+    override fun onEvent(event: LauncherEvent) {
+        when (event) {
+            is LauncherEvent.AppClicked -> {
+                AppManager.launchApp(context, event.packageName)
+            }
+            is LauncherEvent.ExitLauncherClicked -> {
+                updateState { copy(showExitDialog = true, exitErrorMessage = null) }
+            }
+            is LauncherEvent.DismissExitDialog -> {
+                updateState { copy(showExitDialog = false, exitErrorMessage = null) }
+            }
+            is LauncherEvent.SubmitExitPin -> {
+                viewModelScope.launch {
+                    val savedPin = sessionManager.parentPinFlow.first()
+                    // If no pin is set (edge case), or the pin matches, let them out!
+                    if (savedPin.isNullOrEmpty() || event.pin == savedPin) {
+                        updateState { copy(showExitDialog = false) }
+                        sendEffect(LauncherEffect.RequestExit)
+                    } else {
+                        updateState { copy(exitErrorMessage = "رمز عبور اشتباه است") }
+                    }
+                }
+            }
+        }
     }
 }

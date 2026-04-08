@@ -11,13 +11,15 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.vahak.parentcontroll.ui.screens.AddChildScreen
 import com.vahak.parentcontroll.ui.screens.AppSelectionScreen
+import com.vahak.parentcontroll.ui.screens.MainParentScreen
 import com.vahak.parentcontroll.ui.screens.TimeLimitScreen
-import com.vahak.parentcontroll.ui.screens.dashboard.ModernFamilyDashboard
 import com.vahak.parentcontroll.ui.screens.family.FamilyManagementScreen
 import com.vahak.parentcontroll.ui.screens.launcher.ChildLauncherScreen
 import com.vahak.parentcontroll.ui.screens.login.LoginScreen
 import com.vahak.parentcontroll.ui.screens.login.OtpScreen
+import com.vahak.parentcontroll.ui.screens.password.PasswordManagementScreen
 import com.vahak.parentcontroll.ui.screens.permissions.PermissionSliderScreen
+import com.vahak.parentcontroll.ui.screens.report.UsageReportScreen
 import com.vahak.parentcontroll.ui.screens.settings.ChildSettingsScreen
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
@@ -60,19 +62,14 @@ fun ParentControlNavGraph(
         }
 
         composable(route = Screen.Dashboard.route) {
-            ModernFamilyDashboard(
-                onAddChildClick = { navController.navigate(Screen.AddChild.route) },
-                onSettingsClick = { childId ->
-                    navController.navigate("child_settings/$childId")
-                },
-                onManageFamilyClick = { navController.navigate(Screen.FamilyManagement.route) },
+            MainParentScreen(
+                rootNavController = navController,
                 onLogoutComplete = {
+                    // Your logout navigation logic
                     navController.navigate(Screen.Login.route) {
-                        popUpTo(navController.graph.id) {
-                            inclusive = true
-                        }
+                        popUpTo(navController.graph.id) { inclusive = true }
                     }
-                },
+                }
             )
         }
 
@@ -151,6 +148,16 @@ fun ParentControlNavGraph(
 
         composable(route = "app_lock/{childId}") {
             AppSelectionScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = "password_management") {
+            PasswordManagementScreen(onBackClick = { navController.popBackStack() })
+        }
+
+        composable("usage_report/{childId}") {
+            UsageReportScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }

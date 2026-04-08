@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -25,7 +24,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,7 +42,6 @@ import com.vahak.parentcontroll.presentation.dashboard.DashboardEvent
 import com.vahak.parentcontroll.presentation.dashboard.DashboardState
 import com.vahak.parentcontroll.presentation.dashboard.DashboardViewModel
 import com.vahak.parentcontroll.ui.component.ChildSelectorCard
-import com.vahak.parentcontroll.ui.component.DashboardBottomNav
 import com.vahak.parentcontroll.ui.component.DashboardHeader
 import com.vahak.parentcontroll.ui.component.DashboardMenuItem
 import com.vahak.parentcontroll.ui.component.SwipeToActivateButton
@@ -59,6 +56,7 @@ fun ModernFamilyDashboard(
     viewModel: DashboardViewModel = hiltViewModel(),
     onAddChildClick: () -> Unit = {},
     onSettingsClick: (String) -> Unit = {},
+    onReportClick: (String) -> Unit = {},
     onManageFamilyClick: () -> Unit = {},
     onLogoutComplete: () -> Unit = {},
 ) {
@@ -68,6 +66,10 @@ fun ModernFamilyDashboard(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is DashboardEffect.NavigateToLogin -> onLogoutComplete()
+                is DashboardEffect.NavigateToPasswordSetup -> {
+                    // You might want to show a toast here too: "ابتدا رمز عبور را تنظیم کنید"
+                    onSettingsClick("password_management")
+                }
             }
         }
     }
@@ -78,6 +80,7 @@ fun ModernFamilyDashboard(
         onAddChildClick = onAddChildClick,
         onManageFamilyClick = onManageFamilyClick,
         onSettingsClick = onSettingsClick,
+        onReportClick = onReportClick,
     )
 }
 
@@ -92,189 +95,191 @@ fun ModernFamilyDashboardContent(
     onAddChildClick: () -> Unit,
     onManageFamilyClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
+    onReportClick: (String) -> Unit = {},
 ) {
     val colors = LocalCustomColors.current
 
-    Scaffold(
-        bottomBar = { DashboardBottomNav() }, containerColor = colors.background
-    ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.background)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        ) {
+            // 1. Header (Untouched)
+            DashboardHeader(
+                onHelpClick = {},
+                onUnlockClick = { onEvent(DashboardEvent.LockClicked) })
 
+            // 2. Main Content Area
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
+                modifier = Modifier.padding(horizontal = 25.dp)
             ) {
-                // 1. Header (Untouched)
-                DashboardHeader(
-                    onHelpClick = {},
-                    onUnlockClick = { onEvent(DashboardEvent.LockClicked) })
+                Spacer(modifier = Modifier.height(20.dp))
 
-                // 2. Main Content Area
-                Column(
-                    modifier = Modifier.padding(horizontal = 25.dp)
-                ) {
-                    Spacer(modifier = Modifier.height(20.dp))
+                // --- NEW CHILD SELECTOR CARD (Replaces FAB) ---
+                ChildSelectorCard(
+                    activeChild = state.activeChild,
+                    otherChildren = state.children.filter { it.id != state.activeChild?.id },
+                    onAddClick = onAddChildClick,
+                    onClick = { onEvent(DashboardEvent.OpenChildSheet) })
 
-                    // --- NEW CHILD SELECTOR CARD (Replaces FAB) ---
-                    ChildSelectorCard(
-                        activeChild = state.activeChild,
-                        otherChildren = state.children.filter { it.id != state.activeChild?.id },
-                        onAddClick = onAddChildClick,
-                        onClick = { onEvent(DashboardEvent.OpenChildSheet) })
+                // Menu Items (Untouched)
+                DashboardMenuItem(
+                    title = "تنظیمات خانواده", icon = AppIcons.Settings, onClick = {
+                        if (state.activeChild != null) {
+                            onSettingsClick(state.activeChild.id)
+                        } else {
+                            onEvent(DashboardEvent.OpenChildSheet)
+                        }
+                    })
 
-                    // Menu Items (Untouched)
-                    DashboardMenuItem(
-                        title = "تنظیمات خانواده", icon = AppIcons.Settings, onClick = {
-                            if (state.activeChild != null) {
-                                onSettingsClick(state.activeChild.id)
-                            } else {
-                                onEvent(DashboardEvent.OpenChildSheet)
-                            }
-                        })
+                DashboardMenuItem(
+                    title = "گزارش فعالیت‌ها",
+                    icon = AppIcons.ChartBar,
+                    onClick = {
+                        if (state.activeChild != null) {
+                            onReportClick(state.activeChild.id)
+                        } else {
+                            onEvent(DashboardEvent.OpenChildSheet)
+                        }
+                    })
 
-                    DashboardMenuItem(
-                        title = "گزارش فعالیت‌ها", icon = AppIcons.ChartBar, onClick = {})
+                Spacer(modifier = Modifier.height(20.dp))
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                // Slider (Untouched)
+                SwipeToActivateButton(isActive = state.isProtectionActive, onActivate = {
+                    if (state.activeChild != null) {
+                        onEvent(DashboardEvent.ActivateProtection(state.activeChild.id))
+                    } else {
+                        // Fallback if they somehow swipe without a child
+                        onEvent(DashboardEvent.OpenChildSheet)
+                    }
+                }, onDeactivate = {
+                    if (state.activeChild != null) {
+                        onEvent(DashboardEvent.DeactivateProtection(state.activeChild.id))
+                    }
+                })
 
-                    // Slider (Untouched)
-                    SwipeToActivateButton(
-                        isActive = state.isProtectionActive,
-                        onActivate = {
-                            if (state.activeChild != null) {
-                                onEvent(DashboardEvent.ActivateProtection(state.activeChild.id))
-                            } else {
-                                // Fallback if they somehow swipe without a child
-                                onEvent(DashboardEvent.OpenChildSheet)
-                            }
-                        },
-                        onDeactivate = {
-                            if (state.activeChild != null) {
-                                onEvent(DashboardEvent.DeactivateProtection(state.activeChild.id))
-                            }
-                        })
-
-                    Spacer(modifier = Modifier.height(100.dp))
-                }
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
+    }
 
-        // --- BOTTOM SHEET FOR CHILD SELECTION ---
-        if (state.isChildSheetOpen) {
-            ModalBottomSheet(
-                onDismissRequest = { onEvent(DashboardEvent.CloseChildSheet) },
-                containerColor = colors.surface
-            ) {
-                Column(modifier = Modifier.padding(25.dp)) {
+    // --- BOTTOM SHEET FOR CHILD SELECTION ---
+    if (state.isChildSheetOpen) {
+        ModalBottomSheet(
+            onDismissRequest = { onEvent(DashboardEvent.CloseChildSheet) },
+            containerColor = colors.surface
+        ) {
+            Column(modifier = Modifier.padding(25.dp)) {
+                Text(
+                    "انتخاب فرزند",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textSecondary
+                )
+                Spacer(modifier = Modifier.height(15.dp))
+
+                if (state.children.isEmpty()) {
                     Text(
-                        "انتخاب فرزند",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textSecondary
+                        "هنوز فرزندی ثبت نشده است.",
+                        color = colors.textHint,
+                        modifier = Modifier.padding(15.dp)
                     )
-                    Spacer(modifier = Modifier.height(15.dp))
-
-                    if (state.children.isEmpty()) {
-                        Text(
-                            "هنوز فرزندی ثبت نشده است.",
-                            color = colors.textHint,
-                            modifier = Modifier.padding(15.dp)
-                        )
-                    } else {
-                        state.children.forEach { child ->
-                            val isSelected = child.id == state.activeChild?.id
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onEvent(DashboardEvent.SelectChild(child)) }
-                                    .padding(vertical = 15.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(50.dp)
-                                            .background(
-                                                if (isSelected) colors.yellow.copy(alpha = 0.2f) else colors.blue.copy(
-                                                    alpha = 0.2f
-                                                ), CircleShape
-                                            ), contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            AppIcons.YoungChild,
-                                            contentDescription = null,
-                                            tint = if (isSelected) colors.yellow else colors.blue
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(15.dp))
-                                    Text(
-                                        text = child.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textPrimary
-                                    )
-                                }
-                                if (isSelected) {
-                                    Icon(
-                                        AppIcons.Check,
-                                        contentDescription = null,
-                                        tint = colors.primary
-                                    )
-                                }
-                            }
-                            HorizontalDivider(color = colors.divider, thickness = 0.5.dp)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-                    val hasChildren = state.children.isNotEmpty()
-
-                    Button(
-                        onClick = {
-                            // 1. Always close the sheet first
-                            onEvent(DashboardEvent.CloseChildSheet)
-
-                            // 2. Conditionally Route
-                            if (hasChildren) {
-                                onManageFamilyClick()
-                            } else {
-                                onAddChildClick()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(55.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-                        shape = RoundedCornerShape(15.dp)
-                    ) {
+                } else {
+                    state.children.forEach { child ->
+                        val isSelected = child.id == state.activeChild?.id
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            // Add an icon if they are going to Family Management (matching the HTML)
-                            if (hasChildren) {
-                                // Assuming you have AppIcons.Users, otherwise use AppIcons.Profile/Settings temporarily
-                                Icon(
-                                    painter = AppIcons.Profile, // Swap with AppIcons.Users if you have it
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onEvent(DashboardEvent.SelectChild(child)) }
+                                .padding(vertical = 15.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(50.dp)
+                                        .background(
+                                            if (isSelected) colors.yellow.copy(alpha = 0.2f) else colors.blue.copy(
+                                                alpha = 0.2f
+                                            ), CircleShape
+                                        ), contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        AppIcons.YoungChild,
+                                        contentDescription = null,
+                                        tint = if (isSelected) colors.yellow else colors.blue
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(15.dp))
+                                Text(
+                                    text = child.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textPrimary
                                 )
-                                Spacer(modifier = Modifier.width(10.dp))
                             }
-
-                            Text(
-                                text = if (hasChildren) "مدیریت فرزندان" else "افزودن فرزند جدید",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleMedium
-                            )
+                            if (isSelected) {
+                                Icon(
+                                    AppIcons.Check, contentDescription = null, tint = colors.primary
+                                )
+                            }
                         }
+                        HorizontalDivider(color = colors.divider, thickness = 0.5.dp)
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
                 }
+
+                Spacer(modifier = Modifier.height(20.dp))
+                val hasChildren = state.children.isNotEmpty()
+
+                Button(
+                    onClick = {
+                        // 1. Always close the sheet first
+                        onEvent(DashboardEvent.CloseChildSheet)
+
+                        // 2. Conditionally Route
+                        if (hasChildren) {
+                            onManageFamilyClick()
+                        } else {
+                            onAddChildClick()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(55.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                    shape = RoundedCornerShape(15.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        // Add an icon if they are going to Family Management (matching the HTML)
+                        if (hasChildren) {
+                            // Assuming you have AppIcons.Users, otherwise use AppIcons.Profile/Settings temporarily
+                            Icon(
+                                painter = AppIcons.Profile, // Swap with AppIcons.Users if you have it
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                        }
+
+                        Text(
+                            text = if (hasChildren) "مدیریت فرزندان" else "افزودن فرزند جدید",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }

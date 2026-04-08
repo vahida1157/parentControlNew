@@ -9,6 +9,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ChildDao {
+    // 1. Reactive: Best for UI (Automatically updates if name changes)
+    @Query("SELECT * FROM children WHERE id = :childId")
+    fun observeChildById(childId: String): Flow<ChildEntity?>
+
+    // 2. One-Shot: Best for background tasks or simple checks
+    @Query("SELECT * FROM children WHERE id = :childId")
+    suspend fun getChildById(childId: String): ChildEntity?
+
     @Query("SELECT * FROM children")
     fun getAllChildren(): Flow<List<ChildEntity>>
 

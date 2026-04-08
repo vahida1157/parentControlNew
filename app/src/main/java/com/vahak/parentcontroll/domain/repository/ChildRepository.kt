@@ -10,6 +10,8 @@ import javax.inject.Inject
 interface ChildRepository {
     suspend fun createChild(child: ChildEntity)
     fun getAllChildren(): Flow<List<ChildEntity>>
+    fun observeChildById(childId: String): Flow<ChildEntity?>
+    suspend fun getChildById(childId: String): ChildEntity?
 }
 
 class ChildRepositoryImpl @Inject constructor(
@@ -29,4 +31,6 @@ class ChildRepositoryImpl @Inject constructor(
     }
 
     override fun getAllChildren(): Flow<List<ChildEntity>> = childDao.getAllChildren()
+    override fun observeChildById(childId: String) = childDao.observeChildById(childId)
+    override suspend fun getChildById(childId: String) = childDao.getChildById(childId)
 }

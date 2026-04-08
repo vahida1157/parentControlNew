@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,9 +25,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.vahak.parentcontroll.core.util.AppInfo
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.vahak.parentcontroll.presentation.launcher.LauncherEffect
+import com.vahak.parentcontroll.presentation.launcher.LauncherEvent
+import com.vahak.parentcontroll.presentation.launcher.LauncherState
 import com.vahak.parentcontroll.presentation.launcher.LauncherViewModel
+import com.vahak.parentcontroll.ui.component.PinEntryDialog
 import com.vahak.parentcontroll.ui.component.launcher.AppDrawerBottomSheet
 import com.vahak.parentcontroll.ui.component.launcher.LauncherBottomDock
 import com.vahak.parentcontroll.ui.component.launcher.LauncherHeader
@@ -34,33 +38,37 @@ import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
-// --- 1. STATEFUL WRAPPER (Used by NavGraph) ---
+// --- 1. STATEFUL WRAPPER ---
 @Composable
 fun ChildLauncherScreen(
     childName: String = "محمدمهدی",
-    viewModel: LauncherViewModel = hiltViewModel(), // Hilt stays safe out here!
+    viewModel: LauncherViewModel = hiltViewModel(),
     onExitLauncherClick: () -> Unit
 ) {
-    val installedApps by viewModel.installedApps.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val state by viewModel.state.collectAsState()
+
+    // Listen for the "Let me out" effect
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            if (effect is LauncherEffect.RequestExit) {
+                onExitLauncherClick()
+            }
+        }
+    }
 
     ChildLauncherContent(
         childName = childName,
-        installedApps = installedApps,
-        isLoading = isLoading,
-        onExitLauncherClick = onExitLauncherClick,
-        onLaunchApp = { packageName -> viewModel.launchApp(packageName) }
+        state = state,
+        onEvent = viewModel::onEvent
     )
 }
 
-// --- 2. STATELESS CONTENT (Used by Preview) ---
+// --- 2. STATELESS CONTENT ---
 @Composable
 fun ChildLauncherContent(
     childName: String,
-    installedApps: List<AppInfo>,
-    isLoading: Boolean,
-    onExitLauncherClick: () -> Unit,
-    onLaunchApp: (String) -> Unit
+    state: LauncherState,
+    onEvent: (LauncherEvent) -> Unit
 ) {
     val colors = LocalCustomColors.current
     var isDrawerOpen by remember { mutableStateOf(false) }
@@ -84,7 +92,8 @@ fun ChildLauncherContent(
                 .padding(20.dp)
                 .size(45.dp)
                 .align(Alignment.TopStart)
-                .clickable { onExitLauncherClick() }
+                // PRO FIX: Fire the event instead of exiting directly
+                .clickable { onEvent(LauncherEvent.ExitLauncherClicked) }
         ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Icon(
@@ -115,31 +124,38 @@ fun ChildLauncherContent(
         )
     }
 
-    // --- MODALS ---
+    // --- APP DRAWER MODAL ---
     if (isDrawerOpen) {
         AppDrawerBottomSheet(
-            apps = installedApps,
-            isLoading = isLoading,
+            apps = state.installedApps,
+            isLoading = state.isLoading,
             onDismiss = { isDrawerOpen = false },
             onAppClick = { packageName ->
-                onLaunchApp(packageName)
+                onEvent(LauncherEvent.AppClicked(packageName))
                 isDrawerOpen = false
             }
         )
     }
+
+    // --- EXIT PIN DIALOG ---
+    if (state.showExitDialog) {
+        PinEntryDialog(
+            errorMessage = state.exitErrorMessage,
+            onDismiss = { onEvent(LauncherEvent.DismissExitDialog) },
+            onSubmit = { pin -> onEvent(LauncherEvent.SubmitExitPin(pin)) }
+        )
+    }
 }
 
-// --- 3. PREVIEW (Crash-Free!) ---
+// --- 3. PREVIEW ---
 @Preview(showBackground = true, locale = "fa")
 @Composable
 fun ChildLauncherScreenPreview() {
     ParentControlTheme {
         ChildLauncherContent(
             childName = "محمدمهدی",
-            installedApps = emptyList(), // Passing empty list for preview
-            isLoading = false,
-            onExitLauncherClick = {},
-            onLaunchApp = {}
+            state = LauncherState(installedApps = emptyList(), isLoading = false),
+            onEvent = {}
         )
     }
 }

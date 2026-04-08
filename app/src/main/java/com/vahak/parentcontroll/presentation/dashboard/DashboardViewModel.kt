@@ -13,6 +13,7 @@ import com.vahak.parentcontroll.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,6 +36,7 @@ sealed class DashboardEvent {
 
 sealed class DashboardEffect {
     object NavigateToLogin : DashboardEffect()
+    object NavigateToPasswordSetup : DashboardEffect()
 }
 
 @HiltViewModel
@@ -87,6 +89,13 @@ class DashboardViewModel @Inject constructor(
 
     private fun startProtectionService(childId: String) {
         viewModelScope.launch {
+
+            val savedPin = sessionManager.parentPinFlow.first()
+            if (savedPin.isNullOrEmpty()) {
+                sendEffect(DashboardEffect.NavigateToPasswordSetup)
+                return@launch
+            }
+
             sessionManager.setActiveChildId(childId)
 
             val intent = Intent(context, TimeLimitEnforcerService::class.java).apply {
