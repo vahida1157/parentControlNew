@@ -65,8 +65,11 @@ class TimeLimitEnforcerService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service Created")
-        timeLockOverlay = TimeLockOverlay(this, "زمان استفاده شما به پایان رسید!")
-        appLockOverlay = TimeLockOverlay(this, "استفاده از این نرم افزار مجاز نیست!")
+
+        timeLockOverlay = TimeLockOverlay(this, this)
+        appLockOverlay = TimeLockOverlay(this, this)
+//        timeLockOverlay = TimeLockOverlay(this, "زمان استفاده شما به پایان رسید!")
+//        appLockOverlay = TimeLockOverlay(this, "استفاده از این نرم افزار مجاز نیست!")
         createNotificationChannel()
     }
 

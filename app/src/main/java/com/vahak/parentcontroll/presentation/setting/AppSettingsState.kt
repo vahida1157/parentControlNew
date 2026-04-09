@@ -29,7 +29,7 @@ class ApplicationSettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            sessionManager.userPhone.collectLatest { phone ->
+            sessionManager.userPhoneFlow.collectLatest { phone ->
                 updateState { copy(parentPhoneNumber = phone ?: "شماره نامشخص") }
             }
         }

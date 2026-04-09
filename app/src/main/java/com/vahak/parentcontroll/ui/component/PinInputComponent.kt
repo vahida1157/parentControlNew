@@ -30,7 +30,7 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
 fun PinInputComponent(
-    modifier: Modifier = Modifier, pinLength: Int = 4, pin: String, onPinChange: (String) -> Unit
+    modifier: Modifier = Modifier, pinLength: Int = 5, pin: String, onPinChange: (String) -> Unit
 ) {
     val colors = LocalCustomColors.current
     val focusRequester = remember { FocusRequester() }
@@ -69,7 +69,7 @@ fun PinInputComponent(
 
             Box(
                 modifier = Modifier
-                    .size(60.dp)
+                    .size((250 / pinLength).dp)
                     .background(colors.surface, RoundedCornerShape(15.dp))
                     .border(
                         width = if (isFocused) 2.dp else 1.dp,
@@ -81,7 +81,7 @@ fun PinInputComponent(
                     text = char,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = colors.textPrimary
+                    color = colors.textPrimary,
                 )
             }
         }

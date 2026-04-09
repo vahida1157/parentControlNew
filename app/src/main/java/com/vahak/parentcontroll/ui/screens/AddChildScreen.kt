@@ -256,7 +256,7 @@ fun AddChildScreenContent(
 
                 _root_ide_package_.com.vahak.parentcontroll.ui.component.DynamicDatePicker(
                     title = "تاریخ تولد فرزند",
-                    mode = _root_ide_package_.com.vahak.parentcontroll.ui.component.PickerPresentationMode.DIALOG,
+                    mode = com.vahak.parentcontroll.ui.component.PickerPresentationMode.DIALOG,
                     yearRange = 1380..1403,
                     monthRange = 1..12,
                     dayRange = 1..31,

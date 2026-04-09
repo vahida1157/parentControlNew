@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.vahak.parentcontroll.ui.component.DashboardBottomNav
+import com.vahak.parentcontroll.ui.navigation.Screen
 import com.vahak.parentcontroll.ui.screens.dashboard.ModernFamilyDashboard
 import com.vahak.parentcontroll.ui.screens.settings.ApplicationSettingsScreen
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
@@ -18,7 +19,7 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 @Composable
 fun MainParentScreen(
     rootNavController: NavHostController, // The global nav controller (for login, launcher, etc)
-    onLogoutComplete: () -> Unit
+    onLogoutComplete: () -> Unit,
 ) {
     // This is the NESTED nav controller just for the bottom tabs
     val bottomNavController = rememberNavController()
@@ -36,10 +37,10 @@ fun MainParentScreen(
                     // Tab 1: Home (Dashboard)
                     composable("home") {
                         ModernFamilyDashboard(
-                            onAddChildClick = { /* ... */ },
+                            onAddChildClick = { rootNavController.navigate(Screen.AddChild.route) },
+                            onManageFamilyClick = { rootNavController.navigate(Screen.FamilyManagement.route) },
                             onSettingsClick = { childId -> rootNavController.navigate("child_settings/$childId") },
                             onReportClick = { childId -> rootNavController.navigate("usage_report/$childId") },
-                            onManageFamilyClick = { /* ... */ },
                             onLogoutComplete = onLogoutComplete
                         )
                     }

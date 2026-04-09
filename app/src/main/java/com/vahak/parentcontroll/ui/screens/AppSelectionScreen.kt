@@ -88,10 +88,11 @@ fun AppSelectionContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(15.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = colors.surface,
-                    unfocusedContainerColor = colors.surface,
+                    focusedTextColor = colors.textPrimary,
+                    unfocusedTextColor = colors.textPrimary,
                     focusedBorderColor = colors.primary,
-                    unfocusedBorderColor = colors.divider
+                    unfocusedBorderColor = colors.divider,
+                    cursorColor = colors.primary
                 ),
                 singleLine = true
             )
