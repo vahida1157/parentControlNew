@@ -41,6 +41,7 @@ fun MainParentScreen(
                             onManageFamilyClick = { rootNavController.navigate(Screen.FamilyManagement.route) },
                             onSettingsClick = { childId -> rootNavController.navigate("child_settings/$childId") },
                             onReportClick = { childId -> rootNavController.navigate("usage_report/$childId") },
+                            onNavigateToPasswordSetup = { rootNavController.navigate("password_management") },
                             onLogoutComplete = onLogoutComplete
                         )
                     }

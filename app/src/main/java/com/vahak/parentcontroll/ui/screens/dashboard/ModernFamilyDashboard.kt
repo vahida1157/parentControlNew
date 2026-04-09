@@ -19,12 +19,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,8 +36,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
 import com.vahak.parentcontroll.presentation.dashboard.DashboardEffect
@@ -58,6 +63,7 @@ fun ModernFamilyDashboard(
     onSettingsClick: (String) -> Unit = {},
     onReportClick: (String) -> Unit = {},
     onManageFamilyClick: () -> Unit = {},
+    onNavigateToPasswordSetup: () -> Unit = {},
     onLogoutComplete: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
@@ -67,8 +73,7 @@ fun ModernFamilyDashboard(
             when (effect) {
                 is DashboardEffect.NavigateToLogin -> onLogoutComplete()
                 is DashboardEffect.NavigateToPasswordSetup -> {
-                    // You might want to show a toast here too: "ابتدا رمز عبور را تنظیم کنید"
-                    onSettingsClick("password_management")
+                    onNavigateToPasswordSetup()
                 }
             }
         }
@@ -84,9 +89,6 @@ fun ModernFamilyDashboard(
     )
 }
 
-// ============================================================================
-// 2. STATELESS CONTENT (Pure UI, used for Previews)
-// ============================================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernFamilyDashboardContent(
@@ -109,25 +111,21 @@ fun ModernFamilyDashboardContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // 1. Header (Untouched)
             DashboardHeader(
                 onHelpClick = {},
                 onUnlockClick = { onEvent(DashboardEvent.LockClicked) })
 
-            // 2. Main Content Area
             Column(
                 modifier = Modifier.padding(horizontal = 25.dp)
             ) {
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // --- NEW CHILD SELECTOR CARD (Replaces FAB) ---
                 ChildSelectorCard(
                     activeChild = state.activeChild,
                     otherChildren = state.children.filter { it.id != state.activeChild?.id },
                     onAddClick = onAddChildClick,
                     onClick = { onEvent(DashboardEvent.OpenChildSheet) })
 
-                // Menu Items (Untouched)
                 DashboardMenuItem(
                     title = "تنظیمات خانواده", icon = AppIcons.Settings, onClick = {
                         if (state.activeChild != null) {
@@ -138,9 +136,7 @@ fun ModernFamilyDashboardContent(
                     })
 
                 DashboardMenuItem(
-                    title = "گزارش فعالیت‌ها",
-                    icon = AppIcons.ChartBar,
-                    onClick = {
+                    title = "گزارش فعالیت‌ها", icon = AppIcons.ChartBar, onClick = {
                         if (state.activeChild != null) {
                             onReportClick(state.activeChild.id)
                         } else {
@@ -150,12 +146,10 @@ fun ModernFamilyDashboardContent(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Slider (Untouched)
                 SwipeToActivateButton(isActive = state.isProtectionActive, onActivate = {
                     if (state.activeChild != null) {
                         onEvent(DashboardEvent.ActivateProtection(state.activeChild.id))
                     } else {
-                        // Fallback if they somehow swipe without a child
                         onEvent(DashboardEvent.OpenChildSheet)
                     }
                 }, onDeactivate = {
@@ -169,7 +163,7 @@ fun ModernFamilyDashboardContent(
         }
     }
 
-    // --- BOTTOM SHEET FOR CHILD SELECTION ---
+    // --- BOTTOM SHEET ---
     if (state.isChildSheetOpen) {
         ModalBottomSheet(
             onDismissRequest = { onEvent(DashboardEvent.CloseChildSheet) },
@@ -239,10 +233,7 @@ fun ModernFamilyDashboardContent(
 
                 Button(
                     onClick = {
-                        // 1. Always close the sheet first
                         onEvent(DashboardEvent.CloseChildSheet)
-
-                        // 2. Conditionally Route
                         if (hasChildren) {
                             onManageFamilyClick()
                         } else {
@@ -259,11 +250,9 @@ fun ModernFamilyDashboardContent(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        // Add an icon if they are going to Family Management (matching the HTML)
                         if (hasChildren) {
-                            // Assuming you have AppIcons.Users, otherwise use AppIcons.Profile/Settings temporarily
                             Icon(
-                                painter = AppIcons.Profile, // Swap with AppIcons.Users if you have it
+                                painter = AppIcons.Profile,
                                 contentDescription = null,
                                 tint = Color.White,
                                 modifier = Modifier.size(20.dp)
@@ -283,8 +272,82 @@ fun ModernFamilyDashboardContent(
             }
         }
     }
+
+    // --- NEW: PIN REQUIRED DIALOG ---
+    if (state.showPinRequiredDialog) {
+        Dialog(onDismissRequest = { onEvent(DashboardEvent.ClosePinRequiredDialog) }) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                elevation = CardDefaults.cardElevation(10.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(25.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .background(colors.primary.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            AppIcons.LockBadge,
+                            contentDescription = null,
+                            tint = colors.primary,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Text(
+                        text = "تنظیم رمز عبور الزامی است",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "برای فعال‌سازی حالت محافظت و قفل کردن محیط کودک، ابتدا باید رمز عبور والدین را تنظیم کنید.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textSecondary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(25.dp))
+
+                    Button(
+                        onClick = { onEvent(DashboardEvent.GoToPasswordSetupClicked) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("تنظیم رمز عبور", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    TextButton(
+                        onClick = { onEvent(DashboardEvent.ClosePinRequiredDialog) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("انصراف", color = colors.textHint, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
 }
 
+// ============================================================================
+// PREVIEWS
+// ============================================================================
 private val mockChild1 =
     ChildEntity(id = "1", name = "محمد", dob = LocalDate.of(2015, 5, 20), gender = DbGender.BOY)
 private val mockChild2 =
@@ -301,13 +364,26 @@ fun DashboardPreviewEmpty() {
     }
 }
 
-@Preview(showBackground = true, name = "2. Dashboard (Two Children)", locale = "fa", heightDp = 800)
+@Preview(showBackground = true, name = "2. Dashboard (Populated)", locale = "fa", heightDp = 800)
 @Composable
 fun DashboardPreviewPopulated() {
     ParentControlTheme {
         ModernFamilyDashboardContent(
             state = DashboardState(
                 children = listOf(mockChild1, mockChild2), activeChild = mockChild2
+            ), onEvent = {}, onAddChildClick = {}, onManageFamilyClick = {}, onSettingsClick = {})
+    }
+}
+
+@Preview(showBackground = true, name = "3. Dashboard (Dialog Open)", locale = "fa", heightDp = 800)
+@Composable
+fun DashboardPreviewDialog() {
+    ParentControlTheme {
+        ModernFamilyDashboardContent(
+            state = DashboardState(
+                children = listOf(mockChild1),
+                activeChild = mockChild1,
+                showPinRequiredDialog = true
             ), onEvent = {}, onAddChildClick = {}, onManageFamilyClick = {}, onSettingsClick = {})
     }
 }

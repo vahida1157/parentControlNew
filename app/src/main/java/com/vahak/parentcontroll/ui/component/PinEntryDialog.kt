@@ -61,7 +61,7 @@ fun PinEntryDialog(
                 onPinChange = { newPin ->
                     currentPin = newPin
                     // Auto-submit when 4 digits are entered!
-                    if (newPin.length == 4) {
+                    if (newPin.length == 5) {
                         onSubmit(newPin)
                         currentPin = "" // Clear for next time
                     }

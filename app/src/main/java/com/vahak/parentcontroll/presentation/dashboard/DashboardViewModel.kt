@@ -23,6 +23,7 @@ data class DashboardState(
     val activeChild: ChildEntity? = null,
     val isChildSheetOpen: Boolean = false,
     val isProtectionActive: Boolean = false,
+    val showPinRequiredDialog: Boolean = false // NEW: Dialog state
 )
 
 sealed class DashboardEvent {
@@ -32,6 +33,10 @@ sealed class DashboardEvent {
     data class SelectChild(val child: ChildEntity) : DashboardEvent()
     data class ActivateProtection(val childId: String) : DashboardEvent()
     data class DeactivateProtection(val childId: String) : DashboardEvent()
+
+    // NEW: Dialog Events
+    object ClosePinRequiredDialog : DashboardEvent()
+    object GoToPasswordSetupClicked : DashboardEvent()
 }
 
 sealed class DashboardEffect {
@@ -43,12 +48,21 @@ sealed class DashboardEffect {
 class DashboardViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository,
-    private val childRepository: ChildRepository, // <-- Inject the repo!
+    private val childRepository: ChildRepository,
     private val sessionManager: SessionManager,
 ) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState()) {
 
     init {
-        // Observe the Room Database reactively
+        // --- 1. PRO FIX: IMMEDIATE PIN CHECK ON LOAD ---
+        viewModelScope.launch {
+            val savedPin = sessionManager.parentPinFlow.first()
+            if (savedPin.isNullOrEmpty()) {
+                // If it's their first time logging in, send them straight to password setup!
+                sendEffect(DashboardEffect.NavigateToPasswordSetup)
+            }
+        }
+
+        // --- 2. Observe Data ---
         viewModelScope.launch {
             childRepository.getAllChildren().collectLatest { childList ->
                 updateState {
@@ -60,7 +74,6 @@ class DashboardViewModel @Inject constructor(
             }
         }
 
-        // NEW: Observe the Session! If it becomes null (launcher exited), update the UI state.
         viewModelScope.launch {
             sessionManager.activeChildIdFlow.collectLatest { activeId ->
                 updateState { copy(isProtectionActive = activeId != null) }
@@ -76,23 +89,25 @@ class DashboardViewModel @Inject constructor(
             is DashboardEvent.SelectChild -> {
                 updateState { copy(activeChild = event.child, isChildSheetOpen = false) }
             }
+            is DashboardEvent.ActivateProtection -> startProtectionService(event.childId)
+            is DashboardEvent.DeactivateProtection -> stopProtectionService()
 
-            is DashboardEvent.ActivateProtection -> {
-                startProtectionService(event.childId)
-            }
-
-            is DashboardEvent.DeactivateProtection -> {
-                stopProtectionService()
+            // Handle Dialog
+            is DashboardEvent.ClosePinRequiredDialog -> updateState { copy(showPinRequiredDialog = false) }
+            is DashboardEvent.GoToPasswordSetupClicked -> {
+                updateState { copy(showPinRequiredDialog = false) }
+                sendEffect(DashboardEffect.NavigateToPasswordSetup)
             }
         }
     }
 
     private fun startProtectionService(childId: String) {
         viewModelScope.launch {
-
+            // --- 3. HARD GATE: Check PIN before activating launcher ---
             val savedPin = sessionManager.parentPinFlow.first()
             if (savedPin.isNullOrEmpty()) {
-                sendEffect(DashboardEffect.NavigateToPasswordSetup)
+                // Show dialog instead of locking the phone without a key!
+                updateState { copy(showPinRequiredDialog = true) }
                 return@launch
             }
 
