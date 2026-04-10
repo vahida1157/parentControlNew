@@ -6,6 +6,8 @@ import androidx.compose.ui.res.painterResource
 import com.vahak.parentcontroll.R
 
 object AppIcons {
+    val Moon: Painter @Composable get() = painterResource(R.drawable.ic_moon)
+    val Sun: Painter @Composable get() = painterResource(R.drawable.ic_sun)
     val Gallery: Painter @Composable get() = painterResource(R.drawable.ic_gallery)
     val Close: Painter @Composable get() = painterResource(R.drawable.ic_close)
     val Apps: Painter @Composable get() = painterResource(R.drawable.ic_apps)

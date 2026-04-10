@@ -13,8 +13,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController // ADDED IMPORT
-import com.vahak.parentcontroll.core.service.TimeLimitEnforcerService
+import androidx.navigation.compose.rememberNavController
+import com.vahak.parentcontroll.core.service.RestrictionEnforcerService
 import com.vahak.parentcontroll.core.util.LauncherManager
 import com.vahak.parentcontroll.ui.navigation.ParentControlNavGraph
 import com.vahak.parentcontroll.ui.navigation.Screen
@@ -56,8 +56,8 @@ class MainActivity : ComponentActivity() {
                             LauncherManager.disableLauncherMode(this)
 
                             val stopIntent =
-                                Intent(this, TimeLimitEnforcerService::class.java).apply {
-                                    action = TimeLimitEnforcerService.ACTION_STOP
+                                Intent(this, RestrictionEnforcerService::class.java).apply {
+                                    action = RestrictionEnforcerService.ACTION_STOP
                                 }
                             startService(stopIntent)
 

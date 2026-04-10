@@ -57,7 +57,7 @@
         </activity-alias>
 
         <service
-            android:name=".core.service.TimeLimitEnforcerService"
+            android:name=".core.service.RestrictionEnforcerService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property

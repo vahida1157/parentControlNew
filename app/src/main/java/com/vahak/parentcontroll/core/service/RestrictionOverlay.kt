@@ -15,19 +15,28 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.vahak.parentcontroll.ui.screens.overlay.BedtimeOverlayScreen
 import com.vahak.parentcontroll.ui.screens.overlay.DizzyPhoneScreen
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
-class TimeLockOverlay(
+// 1. PRO FIX: Define the specific reasons an overlay might appear
+enum class OverlayType {
+    TIME_LIMIT,
+    BEDTIME,
+    APP_BLOCK
+}
+
+class RestrictionOverlay(
     private val context: Context,
-    private val lifecycleOwner: LifecycleOwner
+    private val lifecycleOwner: LifecycleOwner,
+    private val type: OverlayType // 2. Accept the type in the constructor
 ) : SavedStateRegistryOwner, ViewModelStoreOwner {
 
     private var windowManager: WindowManager? = null
     private var composeView: ComposeView? = null
     private var isShowing = false
 
-    // 1. THE MISSING PIECE: Provide the lifecycle!
+    // --- Lifecycle Implementation ---
     override val lifecycle: Lifecycle
         get() = lifecycleOwner.lifecycle
 
@@ -40,7 +49,6 @@ class TimeLockOverlay(
     override val viewModelStore = ViewModelStore()
 
     init {
-        // Now this will work perfectly because it has a lifecycle to attach to!
         savedStateRegistryController.performRestore(null)
     }
 
@@ -50,23 +58,26 @@ class TimeLockOverlay(
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
         composeView = ComposeView(context).apply {
-
-            setViewTreeLifecycleOwner(this@TimeLockOverlay) // Changed to this class!
-            setViewTreeViewModelStoreOwner(this@TimeLockOverlay)
-            setViewTreeSavedStateRegistryOwner(this@TimeLockOverlay)
+            setViewTreeLifecycleOwner(this@RestrictionOverlay)
+            setViewTreeViewModelStoreOwner(this@RestrictionOverlay)
+            setViewTreeSavedStateRegistryOwner(this@RestrictionOverlay)
 
             setContent {
                 ParentControlTheme {
-                    DizzyPhoneScreen(
-                        onBackClick = {
-                            val intent = Intent(Intent.ACTION_MAIN).apply {
-                                addCategory(Intent.CATEGORY_HOME)
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            }
-                            context.startActivity(intent)
-                            hide()
+                    // 3. PRO FIX: Dynamically route to the correct UI!
+                    when (type) {
+                        OverlayType.TIME_LIMIT -> {
+                            DizzyPhoneScreen(onBackClick = { navigateHome() })
                         }
-                    )
+                        OverlayType.BEDTIME -> {
+                            BedtimeOverlayScreen(onBackClick = { navigateHome() })
+                        }
+                        OverlayType.APP_BLOCK -> {
+                            // Reusing Dizzy Phone for blocked apps for now,
+                            // but you can easily plug in an "AppBlockOverlayScreen" here later!
+                            DizzyPhoneScreen(onBackClick = { navigateHome() })
+                        }
+                    }
                 }
             }
         }
@@ -96,5 +107,15 @@ class TimeLockOverlay(
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    // 4. PRO FIX: Extracted for clean reuse across all screens
+    private fun navigateHome() {
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(intent)
+        hide()
     }
 }

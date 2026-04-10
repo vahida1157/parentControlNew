@@ -5,7 +5,7 @@ import android.content.Intent
 import androidx.lifecycle.viewModelScope
 import com.vahak.parentcontroll.core.data.local.SessionManager
 import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
-import com.vahak.parentcontroll.core.service.TimeLimitEnforcerService
+import com.vahak.parentcontroll.core.service.RestrictionEnforcerService
 import com.vahak.parentcontroll.core.util.LauncherManager
 import com.vahak.parentcontroll.domain.repository.AuthRepository
 import com.vahak.parentcontroll.domain.repository.ChildRepository
@@ -89,6 +89,7 @@ class DashboardViewModel @Inject constructor(
             is DashboardEvent.SelectChild -> {
                 updateState { copy(activeChild = event.child, isChildSheetOpen = false) }
             }
+
             is DashboardEvent.ActivateProtection -> startProtectionService(event.childId)
             is DashboardEvent.DeactivateProtection -> stopProtectionService()
 
@@ -113,9 +114,9 @@ class DashboardViewModel @Inject constructor(
 
             sessionManager.setActiveChildId(childId)
 
-            val intent = Intent(context, TimeLimitEnforcerService::class.java).apply {
-                action = TimeLimitEnforcerService.ACTION_START
-                putExtra(TimeLimitEnforcerService.EXTRA_CHILD_ID, childId)
+            val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
+                action = RestrictionEnforcerService.ACTION_START
+                putExtra(RestrictionEnforcerService.EXTRA_CHILD_ID, childId)
             }
             context.startForegroundService(intent)
 
@@ -127,8 +128,8 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             sessionManager.clearActiveChildId()
 
-            val intent = Intent(context, TimeLimitEnforcerService::class.java).apply {
-                action = TimeLimitEnforcerService.ACTION_STOP
+            val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
+                action = RestrictionEnforcerService.ACTION_STOP
             }
             context.startService(intent)
 

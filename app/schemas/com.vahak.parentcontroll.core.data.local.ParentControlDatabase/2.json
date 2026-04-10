@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "5256c5e7a426547ba4e858b7f704d857",
+    "identityHash": "f6344bc15a821eda3f699cdd25a8e86f",
     "entities": [
       {
         "tableName": "children",
@@ -60,7 +60,7 @@
       },
       {
         "tableName": "global_settings",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`child_id` TEXT NOT NULL, `is_child_theme_active` INTEGER NOT NULL, `is_time_limit_active` INTEGER NOT NULL, `daily_time_limit_mins` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`child_id`), FOREIGN KEY(`child_id`) REFERENCES `children`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`child_id` TEXT NOT NULL, `is_child_theme_active` INTEGER NOT NULL, `is_time_limit_active` INTEGER NOT NULL, `daily_time_limit_mins` INTEGER NOT NULL, `is_bedtime_active` INTEGER NOT NULL, `bedtime_start` TEXT NOT NULL, `bedtime_end` TEXT NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`child_id`), FOREIGN KEY(`child_id`) REFERENCES `children`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "childId",
@@ -84,6 +84,24 @@
             "fieldPath": "dailyTimeLimitMins",
             "columnName": "daily_time_limit_mins",
             "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isBedtimeActive",
+            "columnName": "is_bedtime_active",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bedtimeStart",
+            "columnName": "bedtime_start",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bedtimeEnd",
+            "columnName": "bedtime_end",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -311,7 +329,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5256c5e7a426547ba4e858b7f704d857')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f6344bc15a821eda3f699cdd25a8e86f')"
     ]
   }
 }

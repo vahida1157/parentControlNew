@@ -2,6 +2,7 @@ package com.vahak.parentcontroll.domain.repository
 
 import com.vahak.parentcontroll.core.data.local.SessionManager
 import com.vahak.parentcontroll.domain.usecase.ValidationResult
+import javax.inject.Inject
 
 interface AuthRepository {
     suspend fun requestOtp(phone: String): ValidationResult
@@ -9,7 +10,8 @@ interface AuthRepository {
     suspend fun logout()
 }
 
-class AuthRepositoryImpl(private val sessionManager: SessionManager) : AuthRepository {
+class AuthRepositoryImpl @Inject constructor(private val sessionManager: SessionManager) :
+    AuthRepository {
 
     override suspend fun requestOtp(phone: String): ValidationResult {
         // --- TODO: FUTURE SPRING BACKEND CALL ---
