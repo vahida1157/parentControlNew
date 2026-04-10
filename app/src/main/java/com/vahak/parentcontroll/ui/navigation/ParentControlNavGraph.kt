@@ -13,6 +13,7 @@ import com.vahak.parentcontroll.ui.screens.AddChildScreen
 import com.vahak.parentcontroll.ui.screens.AppSelectionScreen
 import com.vahak.parentcontroll.ui.screens.MainParentScreen
 import com.vahak.parentcontroll.ui.screens.TimeLimitScreen
+import com.vahak.parentcontroll.ui.screens.bedtime.BedtimeScreen
 import com.vahak.parentcontroll.ui.screens.family.FamilyManagementScreen
 import com.vahak.parentcontroll.ui.screens.launcher.ChildLauncherScreen
 import com.vahak.parentcontroll.ui.screens.login.LoginScreen
@@ -158,6 +159,12 @@ fun ParentControlNavGraph(
 
         composable("usage_report/{childId}") {
             UsageReportScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = "sleep_time/{childId}") {
+            BedtimeScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }

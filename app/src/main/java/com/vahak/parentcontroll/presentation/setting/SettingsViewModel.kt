@@ -77,7 +77,6 @@ class SettingsViewModel @Inject constructor(
 
                 if (event.route in listOf(
                         "location",
-                        "sleep_time",
                         "site_management",
                         "safe_search",
                         "prevent_delete",

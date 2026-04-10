@@ -22,7 +22,7 @@ import com.vahak.parentcontroll.core.data.local.entity.GlobalSettingsEntity
         AppRuleEntity::class,
         AppUsageRecordEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)

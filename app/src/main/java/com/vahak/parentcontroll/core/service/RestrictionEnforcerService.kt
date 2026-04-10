@@ -198,7 +198,7 @@ class RestrictionEnforcerService : LifecycleService() {
 
                     if (currentApp == "com.android.settings") {
                         // Priority 0: Always block system settings
-                        hideAllOverlays()
+                        hideAllOverlaysExcept(appLockOverlay)
                         appLockOverlay.show()
                     } else if (isScreenOn && currentApp.isNotEmpty() && !isOurLauncher) {
 
@@ -219,8 +219,6 @@ class RestrictionEnforcerService : LifecycleService() {
                         }
                         // Priority 3: Daily Time Limits & Usage Tracking
                         else {
-                            hideAllOverlays()
-
                             if (!isCriticalSystem) {
                                 usedSecondsTodayTracker += 1
                                 appUsageMapTracker[currentApp] =
@@ -228,7 +226,10 @@ class RestrictionEnforcerService : LifecycleService() {
                             }
 
                             if (isTimeLimitEnabled && usedSecondsTodayTracker >= limitInSeconds) {
+                                hideAllOverlaysExcept(timeLockOverlay) // PRO FIX 2: Only hide the others!
                                 timeLockOverlay.show()
+                            } else {
+                                hideAllOverlays() // Safe to use the phone, drop all shields!
                             }
                         }
                     } else {
