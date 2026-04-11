@@ -36,6 +36,8 @@ class RestrictionOverlay(
     private var composeView: ComposeView? = null
     private var isShowing = false
 
+    fun isShowing(): Boolean = isShowing
+
     // --- Lifecycle Implementation ---
     override val lifecycle: Lifecycle
         get() = lifecycleOwner.lifecycle
@@ -69,9 +71,11 @@ class RestrictionOverlay(
                         OverlayType.TIME_LIMIT -> {
                             DizzyPhoneScreen(onBackClick = { navigateHome() })
                         }
+
                         OverlayType.BEDTIME -> {
                             BedtimeOverlayScreen(onBackClick = { navigateHome() })
                         }
+
                         OverlayType.APP_BLOCK -> {
                             // Reusing Dizzy Phone for blocked apps for now,
                             // but you can easily plug in an "AppBlockOverlayScreen" here later!

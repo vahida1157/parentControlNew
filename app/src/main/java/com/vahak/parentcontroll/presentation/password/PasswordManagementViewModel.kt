@@ -4,9 +4,11 @@ import androidx.lifecycle.viewModelScope
 import com.vahak.parentcontroll.core.data.local.SessionManager
 import com.vahak.parentcontroll.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 enum class PasswordStep {
@@ -49,6 +51,7 @@ sealed class PasswordEvent {
 
 sealed class PasswordEffect {
     object NavigateBack : PasswordEffect()
+    object NavigateToDashboard : PasswordEffect()
     data class ShowToast(val message: String) : PasswordEffect()
 }
 
@@ -167,9 +170,12 @@ class PasswordManagementViewModel @Inject constructor(
 
             when (state.value.step) {
                 PasswordStep.SETUP_PIN -> {
-                    sessionManager.setParentPin(pin)
+                    withContext(Dispatchers.IO) {
+                        sessionManager.setParentPin(pin)
+                    }
+                    sessionManager.parentPinFlow.first { emittedPin -> emittedPin == pin }
                     sendEffect(PasswordEffect.ShowToast("رمز عبور با موفقیت ذخیره شد!"))
-                    sendEffect(PasswordEffect.NavigateBack)
+                    sendEffect(PasswordEffect.NavigateToDashboard)
                 }
 
                 PasswordStep.ENTER_CURRENT -> {
@@ -179,13 +185,14 @@ class PasswordManagementViewModel @Inject constructor(
                         triggerErrorState("رمز فعلی اشتباه است!")
                     }
                 }
-
                 PasswordStep.ENTER_NEW -> {
-                    sessionManager.setParentPin(pin)
+                    withContext(Dispatchers.IO) {
+                        sessionManager.setParentPin(pin)
+                    }
+                    sessionManager.parentPinFlow.first { emittedPin -> emittedPin == pin }
                     sendEffect(PasswordEffect.ShowToast("رمز عبور تغییر یافت!"))
                     sendEffect(PasswordEffect.NavigateBack)
                 }
-
                 else -> {}
             }
         }

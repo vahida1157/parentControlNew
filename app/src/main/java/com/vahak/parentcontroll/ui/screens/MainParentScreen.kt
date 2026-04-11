@@ -18,17 +18,15 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
 fun MainParentScreen(
-    rootNavController: NavHostController, // The global nav controller (for login, launcher, etc)
+    rootNavController: NavHostController,
     onLogoutComplete: () -> Unit,
 ) {
-    // This is the NESTED nav controller just for the bottom tabs
     val bottomNavController = rememberNavController()
     ParentControlTheme {
         Scaffold(
             bottomBar = { DashboardBottomNav(navController = bottomNavController) }) { paddingValues ->
             Box(modifier = Modifier.padding(paddingValues)) {
 
-                // This NavHost acts exactly like a FragmentContainer in XML!
                 NavHost(
                     navController = bottomNavController,
                     startDestination = "home",
@@ -39,28 +37,28 @@ fun MainParentScreen(
                         ModernFamilyDashboard(
                             onAddChildClick = { rootNavController.navigate(Screen.AddChild.route) },
                             onManageFamilyClick = { rootNavController.navigate(Screen.FamilyManagement.route) },
-                            onSettingsClick = { childId -> rootNavController.navigate("child_settings/$childId") },
-                            onReportClick = { childId -> rootNavController.navigate("usage_report/$childId") },
-                            onNavigateToPasswordSetup = { rootNavController.navigate("password_management") },
+                            onSettingsClick = { childId -> rootNavController.navigate(Screen.ChildSettings.createRoute(childId)) },
+                            onReportClick = { childId -> rootNavController.navigate(Screen.UsageReport.createRoute(childId)) },
+                            onNavigateToPasswordSetup = { rootNavController.navigate(Screen.PasswordManagement.route) },
                             onLogoutComplete = onLogoutComplete
                         )
                     }
 
                     // Tab 2: Subscription (Placeholder for now)
                     composable("subscription") {
-                        Box(modifier = Modifier.fillMaxSize()) // Empty for now
+                        Box(modifier = Modifier.fillMaxSize())
                     }
 
                     // Tab 3: Stats (Placeholder for now)
                     composable("stats") {
-                        Box(modifier = Modifier.fillMaxSize()) // Empty for now
+                        Box(modifier = Modifier.fillMaxSize())
                     }
 
                     // Tab 4: Parent Settings
                     composable("application_settings") {
                         ApplicationSettingsScreen(
                             onNavigateToPasswordManagement = {
-                                rootNavController.navigate("password_management")
+                                rootNavController.navigate(Screen.PasswordManagement.route)
                             }, onLogoutComplete = onLogoutComplete
                         )
                     }

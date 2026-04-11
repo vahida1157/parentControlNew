@@ -52,7 +52,8 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 @Composable
 fun PasswordManagementScreen(
     viewModel: PasswordManagementViewModel = hiltViewModel(),
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onNavigateToDashboard: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -61,6 +62,7 @@ fun PasswordManagementScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is PasswordEffect.NavigateBack -> onBackClick()
+                is PasswordEffect.NavigateToDashboard -> onNavigateToDashboard()
                 is PasswordEffect.ShowToast -> Toast.makeText(
                     context,
                     effect.message,

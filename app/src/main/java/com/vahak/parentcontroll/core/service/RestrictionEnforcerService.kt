@@ -43,7 +43,6 @@ class RestrictionEnforcerService : LifecycleService() {
     @Inject
     lateinit var appRuleDao: AppRuleDao
 
-    // We keep 3 instances of the overlay so we can manage their states cleanly
     private lateinit var timeLockOverlay: RestrictionOverlay
     private lateinit var appLockOverlay: RestrictionOverlay
     private lateinit var bedtimeLockOverlay: RestrictionOverlay
@@ -68,9 +67,8 @@ class RestrictionEnforcerService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "Service Created")
+        Log.d(TAG, "⚙️ Service Created. Initializing Overlays...")
 
-        // Initialize Overlays (You can pass custom strings here later if you update TimeLockOverlay)
         timeLockOverlay = RestrictionOverlay(this, this, OverlayType.TIME_LIMIT)
         appLockOverlay = RestrictionOverlay(this, this, OverlayType.APP_BLOCK)
         bedtimeLockOverlay = RestrictionOverlay(this, this, OverlayType.BEDTIME)
@@ -80,6 +78,8 @@ class RestrictionEnforcerService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        Log.d(TAG, "🚀 onStartCommand triggered with Action = ${intent?.action}")
+
         when (intent?.action) {
             ACTION_START -> {
                 val childId = intent.getStringExtra(EXTRA_CHILD_ID)
@@ -88,11 +88,13 @@ class RestrictionEnforcerService : LifecycleService() {
                     startForeground(NOTIFICATION_ID, createNotification())
                     startMonitoring(childId)
                 } else {
+                    Log.e(TAG, "❌ Start failed: Child ID is null. Shutting down.")
                     stopSelf()
                 }
             }
 
             ACTION_STOP -> {
+                Log.w(TAG, "🛑 Action Stop received. Halting monitoring.")
                 stopMonitoring()
                 stopSelf()
             }
@@ -119,14 +121,11 @@ class RestrictionEnforcerService : LifecycleService() {
         return lastKnownPackage
     }
 
-    // --- NEW: Time Math for Bedtimes crossing Midnight ---
     private fun isBedtimeActiveNow(start: LocalTime, end: LocalTime): Boolean {
         val now = LocalTime.now()
         return if (start.isBefore(end)) {
-            // E.g., Nap time: 13:00 to 15:00
             !now.isBefore(start) && now.isBefore(end)
         } else {
-            // E.g., Night sleep: 22:00 to 07:00 (Crosses midnight)
             !now.isBefore(start) || now.isBefore(end)
         }
     }
@@ -136,7 +135,7 @@ class RestrictionEnforcerService : LifecycleService() {
         val powerManager = getSystemService(POWER_SERVICE) as PowerManager
 
         monitoringJob = lifecycleScope.launch {
-            Log.i(TAG, "🚀 Monitoring Started for Child: $childId")
+            Log.i(TAG, "👀 startMonitoring() initiated for Child ID: $childId")
 
             currentDateTracker = LocalDate.now()
             usedSecondsTodayTracker =
@@ -147,6 +146,11 @@ class RestrictionEnforcerService : LifecycleService() {
                 usageDao.observeAppUsageForDay(childId, currentDateTracker).first()
             existingAppUsages.forEach { appUsageMapTracker[it.packageName] = it.usedSeconds }
 
+            Log.d(
+                TAG,
+                "🔄 Local State Restored. Starting at: $usedSecondsTodayTracker seconds for today."
+            )
+
             var loopCounter = 0
 
             combine(
@@ -155,17 +159,21 @@ class RestrictionEnforcerService : LifecycleService() {
                 Pair(settings, allowedApps.map { it.packageName }.toSet())
             }.collectLatest { (settings, allowedPackages) ->
 
-                if (settings == null) return@collectLatest // Await settings
-
-                // PRO FIX: We do NOT shut down the service if limits are off.
-                // We must keep monitoring to generate the Usage Reports!
+                if (settings == null) {
+                    Log.w(TAG, "⚠️ Settings are null. Waiting for DB initialization...")
+                    return@collectLatest
+                }
 
                 val isTimeLimitEnabled = settings.isTimeLimitActive
                 val limitInSeconds = settings.dailyTimeLimitMins * 60
-
                 val isBedtimeEnabled = settings.isBedtimeActive
                 val bedtimeStart = settings.bedtimeStart
                 val bedtimeEnd = settings.bedtimeEnd
+
+                Log.i(
+                    TAG,
+                    "📊 Settings Loaded | TimeLimit Active: $isTimeLimitEnabled ($limitInSeconds sec) | Bedtime Active: $isBedtimeEnabled ($bedtimeStart - $bedtimeEnd) | Allowed Apps Count: ${allowedPackages.size}"
+                )
 
                 val homeIntent =
                     Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
@@ -174,12 +182,14 @@ class RestrictionEnforcerService : LifecycleService() {
 
                 val criticalSystemPackages =
                     setOf("com.android.systemui", "android") + launcherPackages
+                Log.d(TAG, "🛡️ System Whitelist active for: $criticalSystemPackages")
 
                 while (isActive) {
                     val now = LocalDate.now()
 
-                    // Midnight Rollover Tracker Reset
+                    // Midnight Rollover
                     if (now != currentDateTracker) {
+                        Log.i(TAG, "🌙 Midnight Rollover detected! Resetting daily trackers.")
                         saveDataToRoom(
                             childId, currentDateTracker, usedSecondsTodayTracker, appUsageMapTracker
                         )
@@ -191,13 +201,19 @@ class RestrictionEnforcerService : LifecycleService() {
                     val isScreenOn = powerManager.isInteractive
                     val currentApp = getForegroundPackage()
                     val isOurLauncher = currentApp == packageName
-
-                    // Calculate real-time bedtime status
                     val isBedtimeNow =
                         isBedtimeEnabled && isBedtimeActiveNow(bedtimeStart, bedtimeEnd)
 
+                    // --- THE HEARTBEAT LOG ---
+                    Log.d(
+                        TAG,
+                        "⏱️ TICK | Screen: ${if (isScreenOn) "ON" else "OFF"} | App: $currentApp | Time: $usedSecondsTodayTracker/$limitInSeconds sec | BedtimeNow: $isBedtimeNow"
+                    )
+
                     if (currentApp == "com.android.settings") {
-                        // Priority 0: Always block system settings
+                        Log.w(
+                            TAG, "🚨 BLOCKING PRIORITY 0: Child attempted to open Android Settings."
+                        )
                         hideAllOverlaysExcept(appLockOverlay)
                         appLockOverlay.show()
                     } else if (isScreenOn && currentApp.isNotEmpty() && !isOurLauncher) {
@@ -205,41 +221,48 @@ class RestrictionEnforcerService : LifecycleService() {
                         val isCriticalSystem = criticalSystemPackages.contains(currentApp)
                         val isAppAllowed = allowedPackages.contains(currentApp)
 
-                        // --- THE HIERARCHY OF RESTRICTIONS ---
-
-                        // Priority 1: Bedtime (Blocks everything)
                         if (isBedtimeNow && !isCriticalSystem) {
+                            Log.w(
+                                TAG,
+                                "💤 BLOCKING PRIORITY 1: Bedtime is active. Blocking $currentApp"
+                            )
                             hideAllOverlaysExcept(bedtimeLockOverlay)
                             bedtimeLockOverlay.show()
-                        }
-                        // Priority 2: App Level Restrictions
-                        else if (!isAppAllowed && !isCriticalSystem) {
+                        } else if (!isAppAllowed && !isCriticalSystem) {
+                            Log.w(
+                                TAG,
+                                "🚫 BLOCKING PRIORITY 2: App is not on the allowed list -> $currentApp"
+                            )
                             hideAllOverlaysExcept(appLockOverlay)
                             appLockOverlay.show()
-                        }
-                        // Priority 3: Daily Time Limits & Usage Tracking
-                        else {
+                        } else {
                             if (!isCriticalSystem) {
                                 usedSecondsTodayTracker += 1
                                 appUsageMapTracker[currentApp] =
                                     (appUsageMapTracker[currentApp] ?: 0) + 1
+                                Log.v(TAG, "✅ App Allowed: $currentApp | Tracking incremented.")
                             }
 
                             if (isTimeLimitEnabled && usedSecondsTodayTracker >= limitInSeconds) {
-                                hideAllOverlaysExcept(timeLockOverlay) // PRO FIX 2: Only hide the others!
+                                Log.w(
+                                    TAG,
+                                    "⏳ BLOCKING PRIORITY 3: Daily Time Limit reached ($usedSecondsTodayTracker sec). Blocking $currentApp"
+                                )
+                                hideAllOverlaysExcept(timeLockOverlay)
                                 timeLockOverlay.show()
                             } else {
-                                hideAllOverlays() // Safe to use the phone, drop all shields!
+                                hideAllOverlays()
                             }
                         }
                     } else {
-                        // Safe Zone (Our Launcher or Screen Off)
+                        // Safe Zone
                         hideAllOverlays()
                     }
 
                     // DB Save every 60 seconds
                     loopCounter++
                     if (loopCounter >= 60) {
+                        Log.d(TAG, "⏲️ 60-second mark reached. Triggering DB save.")
                         saveDataToRoom(
                             childId, currentDateTracker, usedSecondsTodayTracker, appUsageMapTracker
                         )
@@ -252,6 +275,9 @@ class RestrictionEnforcerService : LifecycleService() {
     }
 
     private fun hideAllOverlays() {
+        if (timeLockOverlay.isShowing() || appLockOverlay.isShowing() || bedtimeLockOverlay.isShowing()) {
+            Log.v(TAG, "🧹 Hiding all overlays.")
+        }
         timeLockOverlay.hide()
         appLockOverlay.hide()
         bedtimeLockOverlay.hide()
@@ -267,19 +293,21 @@ class RestrictionEnforcerService : LifecycleService() {
         childId: String, date: LocalDate, totalSeconds: Int, appMap: Map<String, Int>
     ) {
         try {
+            Log.i(TAG, "💾 Saving to Room DB... Total: $totalSeconds sec | Apps: ${appMap.size}")
             usageDao.insertOrUpdateDailyUsage(DailyUsageEntity(childId, date, totalSeconds))
             val appRecords = appMap.map { (pkg, seconds) ->
                 AppUsageRecordEntity(childId, date, pkg, seconds)
             }
             if (appRecords.isNotEmpty()) usageDao.insertOrUpdateAppUsages(appRecords)
         } catch (e: Exception) {
-            Log.e(TAG, "Database update failed: ${e.message}")
+            Log.e(TAG, "❌ Database update failed: ${e.message}")
         }
     }
 
     private fun performFinalSave() {
         val childId = currentChildId ?: return
         if (usedSecondsTodayTracker == 0 && appUsageMapTracker.isEmpty()) return
+        Log.i(TAG, "💾 [FINAL SAVE] Service shutting down. Saving final state...")
         CoroutineScope(Dispatchers.IO).launch {
             withContext(NonCancellable) {
                 saveDataToRoom(
@@ -290,11 +318,13 @@ class RestrictionEnforcerService : LifecycleService() {
     }
 
     private fun stopMonitoring() {
+        Log.i(TAG, "🛑 stopMonitoring() called. Canceling job and hiding overlays.")
         monitoringJob?.cancel()
         hideAllOverlays()
     }
 
     override fun onDestroy() {
+        Log.d(TAG, "💥 Service Destroyed")
         performFinalSave()
         stopMonitoring()
         super.onDestroy()

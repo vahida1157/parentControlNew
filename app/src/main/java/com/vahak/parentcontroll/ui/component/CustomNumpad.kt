@@ -6,19 +6,29 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vahak.parentcontroll.ui.theme.AppIcons
@@ -33,35 +43,39 @@ fun AnimatedPinDots(
 ) {
     val colors = LocalCustomColors.current
 
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(15.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 20.dp)
-    ) {
-        for (i in 0 until pinLength) {
-            val isFilled = i < currentInputLength
-            
-            // Animations
-            val dotColor by animateColorAsState(
-                targetValue = when {
-                    isError -> colors.red
-                    isFilled -> colors.primary
-                    else -> colors.divider
-                },
-                animationSpec = tween(200)
-            )
-            
-            val scale by animateFloatAsState(
-                targetValue = if (isFilled || isError) 1.3f else 1f,
-                animationSpec = tween(200)
-            )
+    // Dots should normally stay LTR so they fill from left to right,
+    // but in Persian, filling right to left is also acceptable.
+    // We force LTR here just to keep it consistent with the numpad.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(15.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 20.dp)
+        ) {
+            for (i in 0 until pinLength) {
+                val isFilled = i < currentInputLength
 
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .scale(scale)
-                    .background(dotColor, CircleShape)
-            )
+                val dotColor by animateColorAsState(
+                    targetValue = when {
+                        isError -> colors.red
+                        isFilled -> colors.primary
+                        else -> colors.divider
+                    },
+                    animationSpec = tween(200), label = "dot_color"
+                )
+
+                val scale by animateFloatAsState(
+                    targetValue = if (isFilled || isError) 1.3f else 1f,
+                    animationSpec = tween(200), label = "dot_scale"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .scale(scale)
+                        .background(dotColor, CircleShape)
+                )
+            }
         }
     }
 }
@@ -74,50 +88,60 @@ fun CustomNumpad(
 ) {
     val colors = LocalCustomColors.current
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(15.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val rows = listOf(
-            listOf("1", "2", "3"),
-            listOf("4", "5", "6"),
-            listOf("7", "8", "9")
-        )
+    // PRO FIX: Force the entire Numpad to render Left-to-Right, overriding the Persian locale!
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(15.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val rows = listOf(
+                listOf("1", "2", "3"),
+                listOf("4", "5", "6"),
+                listOf("7", "8", "9")
+            )
 
-        rows.forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(25.dp)) {
-                row.forEach { number ->
-                    NumpadButton(text = number, onClick = { onNumberClick(number) })
+            rows.forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(25.dp)) {
+                    row.forEach { number ->
+                        NumpadButton(text = number, onClick = { onNumberClick(number) })
+                    }
                 }
             }
-        }
 
-        // Bottom Row (Clear, 0, Backspace)
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(25.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "پاک کردن",
-                color = colors.textHint,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .width(70.dp)
-                    .clickable { onClearClick() }
-                    .padding(vertical = 10.dp)
-            )
-            
-            NumpadButton(text = "0", onClick = { onNumberClick("0") })
-            
-            Box(
-                modifier = Modifier
-                    .width(70.dp)
-                    .clickable { onBackspaceClick() }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
+            // Bottom Row (Clear, 0, Backspace)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(25.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(AppIcons.ChevronLeft, contentDescription = "Back", tint = colors.textSecondary) // Replace with a backspace icon if you have one
+                // Since it's forced LTR, this is on the far left.
+                Text(
+                    text = "پاک کردن",
+                    color = colors.textHint,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .width(70.dp)
+                        .clickable { onClearClick() }
+                        .padding(vertical = 10.dp)
+                )
+
+                NumpadButton(text = "0", onClick = { onNumberClick("0") })
+
+                // This is on the far right.
+                Box(
+                    modifier = Modifier
+                        .width(70.dp)
+                        .clickable { onBackspaceClick() }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Backspace icon. Ensure you are using an icon that points left (<)
+                    Icon(
+                        AppIcons.ChevronLeft,
+                        contentDescription = "Back",
+                        tint = colors.textSecondary
+                    )
+                }
             }
         }
     }
@@ -163,7 +187,9 @@ fun PinDotsPreview() {
 @Composable
 fun NumpadPreview() {
     ParentControlTheme {
-        Box(modifier = Modifier.padding(20.dp).background(Color(0xFFF0FDF4))) {
+        Box(modifier = Modifier
+            .padding(20.dp)
+            .background(Color(0xFFF0FDF4))) {
             CustomNumpad(onNumberClick = {}, onBackspaceClick = {}, onClearClick = {})
         }
     }

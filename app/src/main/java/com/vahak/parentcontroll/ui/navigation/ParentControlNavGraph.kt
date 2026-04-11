@@ -32,9 +32,7 @@ fun ParentControlNavGraph(
     onDisableLauncherRequested: () -> Unit,
 ) {
     NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        modifier = modifier
+        navController = navController, startDestination = startDestination, modifier = modifier
     ) {
 
         composable(route = Screen.Login.route) {
@@ -64,14 +62,11 @@ fun ParentControlNavGraph(
 
         composable(route = Screen.Dashboard.route) {
             MainParentScreen(
-                rootNavController = navController,
-                onLogoutComplete = {
-                    // Your logout navigation logic
+                rootNavController = navController, onLogoutComplete = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(navController.graph.id) { inclusive = true }
                     }
-                }
-            )
+                })
         }
 
         composable(route = Screen.AddChild.route) {
@@ -85,12 +80,11 @@ fun ParentControlNavGraph(
                 onBackClick = { navController.popBackStack() },
                 onAddChildClick = { navController.navigate(Screen.AddChild.route) },
                 onChildSettingsClick = { childId ->
-                    navController.navigate("child_settings/$childId")
-                }
-            )
+                    navController.navigate(Screen.ChildSettings.createRoute(childId))
+                })
         }
 
-        composable(route = "child_settings/{childId}") { backStackEntry ->
+        composable(route = Screen.ChildSettings.route) { backStackEntry ->
             val currentChildId = backStackEntry.arguments?.getString("childId") ?: ""
 
             ChildSettingsScreen(
@@ -100,28 +94,27 @@ fun ParentControlNavGraph(
                 },
                 onInterceptForPermissions = { route, missing ->
                     val missingString = missing.joinToString(",")
-                    navController.navigate("permission_slider/$route/$currentChildId/$missingString")
-                }
-            )
+                    navController.navigate(
+                        Screen.PermissionSlider.createRoute(
+                            route, currentChildId, missingString
+                        )
+                    )
+                })
         }
 
-        composable(route = "time_limit/{childId}") { backStackEntry ->
+        composable(route = Screen.TimeLimit.route) {
             TimeLimitScreen(
-                onBackClick = { navController.popBackStack() }
-            )
+                onBackClick = { navController.popBackStack() })
         }
-
-        // We store the route pattern in a variable to avoid typos in the popUpTo later
-        val permissionRoutePattern =
-            "permission_slider/{featureRoute}/{childId}/{missingPermissions}"
 
         composable(
-            route = permissionRoutePattern,
+            route = Screen.PermissionSlider.route,
             arguments = listOf(
                 navArgument("featureRoute") { type = NavType.StringType },
                 navArgument("childId") { type = NavType.StringType },
-                navArgument("missingPermissions") { type = NavType.StringType }
-            )
+                navArgument("missingPermissions") {
+                    type = NavType.StringType
+                })
         ) { backStackEntry ->
             val childId = backStackEntry.arguments?.getString("childId") ?: ""
             val featureRoute = backStackEntry.arguments?.getString("featureRoute") ?: ""
@@ -129,44 +122,45 @@ fun ParentControlNavGraph(
             PermissionSliderScreen(
                 onNavigateToFeature = { targetRoute ->
                     navController.navigate("$targetRoute/$childId") {
-                        // PRO FIX: Using the variable guarantees it matches exactly
-                        popUpTo(permissionRoutePattern) {
+                        popUpTo(Screen.PermissionSlider.route) {
                             inclusive = true
                         }
                     }
-                }
-            )
+                })
         }
 
-        composable(route = "child_launcher") {
+        composable(route = Screen.ChildLauncher.route) {
             ChildLauncherScreen(
                 onExitLauncherClick = {
-                    // Trigger the OS disable request in MainActivity
                     onDisableLauncherRequested()
-                }
-            )
+                })
         }
 
-        composable(route = "app_lock/{childId}") {
+        composable(route = Screen.AppLock.route) {
             AppSelectionScreen(
-                onBackClick = { navController.popBackStack() }
-            )
+                onBackClick = { navController.popBackStack() })
         }
 
-        composable(route = "password_management") {
-            PasswordManagementScreen(onBackClick = { navController.popBackStack() })
+        composable(route = Screen.PasswordManagement.route) {
+            PasswordManagementScreen(
+                onBackClick = { navController.popBackStack() },
+                onNavigateToDashboard = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(navController.graph.id) {
+                            inclusive = true
+                        }
+                    }
+                })
         }
 
-        composable("usage_report/{childId}") {
+        composable(route = Screen.UsageReport.route) {
             UsageReportScreen(
-                onBackClick = { navController.popBackStack() }
-            )
+                onBackClick = { navController.popBackStack() })
         }
 
-        composable(route = "sleep_time/{childId}") {
+        composable(route = Screen.SleepTime.route) {
             BedtimeScreen(
-                onBackClick = { navController.popBackStack() }
-            )
+                onBackClick = { navController.popBackStack() })
         }
     }
 }
@@ -176,7 +170,7 @@ fun ParentControlNavGraph(
 fun AppNavigationPreview() {
     ParentControlTheme {
         ParentControlNavGraph(
-            startDestination = "login",
+            startDestination = Screen.Login.route,
             onDisableLauncherRequested = {},
         )
     }
