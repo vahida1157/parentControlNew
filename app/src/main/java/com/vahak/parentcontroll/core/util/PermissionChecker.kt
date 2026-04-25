@@ -1,9 +1,15 @@
 package com.vahak.parentcontroll.core.util
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.AppOpsManager
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Context
 import android.os.Process
 import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
+import com.vahak.parentcontroll.core.receiver.SecurityAdminReceiver
+import com.vahak.parentcontroll.core.service.RestrictionAccessibilityService
 
 object PermissionChecker {
 
@@ -11,6 +17,8 @@ object PermissionChecker {
         return when (type) {
             PermissionType.USAGE_STATS -> hasUsageStatsPermission(context)
             PermissionType.OVERLAY -> hasOverlayPermission(context)
+            PermissionType.DEVICE_ADMIN -> hasDeviceAdminPermission(context)
+            PermissionType.ACCESSIBILITY -> hasAccessibilityPermission(context)
             PermissionType.LOCATION -> true // Standard permissions are handled differently, placeholder for now
         }
     }
@@ -35,5 +43,20 @@ object PermissionChecker {
 
     private fun hasOverlayPermission(context: Context): Boolean {
         return Settings.canDrawOverlays(context)
+    }
+
+    private fun hasDeviceAdminPermission(context: Context): Boolean {
+        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val adminComponent = ComponentName(context, SecurityAdminReceiver::class.java)
+        return dpm.isAdminActive(adminComponent)
+    }
+
+    private fun hasAccessibilityPermission(context: Context): Boolean {
+        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        val enabledServices =
+            am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+        return enabledServices.any {
+            it.resolveInfo.serviceInfo.name == RestrictionAccessibilityService::class.java.name
+        }
     }
 }

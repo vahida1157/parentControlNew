@@ -37,11 +37,29 @@ fun MainParentScreen(
                         ModernFamilyDashboard(
                             onAddChildClick = { rootNavController.navigate(Screen.AddChild.route) },
                             onManageFamilyClick = { rootNavController.navigate(Screen.FamilyManagement.route) },
-                            onSettingsClick = { childId -> rootNavController.navigate(Screen.ChildSettings.createRoute(childId)) },
-                            onReportClick = { childId -> rootNavController.navigate(Screen.UsageReport.createRoute(childId)) },
+                            onSettingsClick = { childId ->
+                                rootNavController.navigate(
+                                    Screen.ChildSettings.createRoute(
+                                        childId
+                                    )
+                                )
+                            },
+                            onReportClick = { childId ->
+                                rootNavController.navigate(
+                                    Screen.UsageReport.createRoute(
+                                        childId
+                                    )
+                                )
+                            },
                             onNavigateToPasswordSetup = { rootNavController.navigate(Screen.PasswordManagement.route) },
-                            onLogoutComplete = onLogoutComplete
-                        )
+                            onLogoutComplete = onLogoutComplete,
+                            onSecurityFabClick = { missingPermissions ->
+                                rootNavController.navigate(
+                                    Screen.PermissionSlider.createRoute(
+                                        Screen.Dashboard.route, "global", missingPermissions
+                                    )
+                                )
+                            })
                     }
 
                     // Tab 2: Subscription (Placeholder for now)

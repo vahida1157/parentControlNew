@@ -11,8 +11,9 @@ class RestrictionAccessibilityService : AccessibilityService() {
         private const val TAG = "RestrictionAccService"
     }
 
-    // 🚀 PRO FIX: The Cooldown Tracker
+    // 🚀 PRO FIX: State Trackers
     private var lastHomePressTime = 0L
+    private var currentForegroundApp: String = ""
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -30,33 +31,53 @@ class RestrictionAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null) return
+        if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            val packageName = event.packageName?.toString() ?: return
+        val packageName = event.packageName?.toString() ?: return
 
-            Log.d(TAG, "📱 Window Changed: $packageName")
+        // Ignore duplicate OS events to save battery and processing power
+        if (packageName == currentForegroundApp) return
 
-            if (packageName == "com.android.settings") {
-                val currentTime = System.currentTimeMillis()
+        currentForegroundApp = packageName
+        Log.d(TAG, "📱 App Switched: $currentForegroundApp")
 
-                // It swallows the 37ms glitch and prevents the 300ms camera double-tap.
-                // But it is physically impossible for a human to see the home screen,
-                // find the Settings icon, and tap it again in under half a second.
-                if (currentTime - lastHomePressTime > 500) {
-                    Log.w(TAG, "🚨 BLOCKING PRIORITY 0: Settings detected. Kicking to Home.")
+        // 1. Get the current state of the Bridge from SharedPreferences
+        val prefs = getSharedPreferences("security_prefs", MODE_PRIVATE)
+        val isBridgeOpen = prefs.getBoolean("settings_bridge_open", false)
 
-                    val homePressed = performGlobalAction(GLOBAL_ACTION_HOME)
+        val currentTime = System.currentTimeMillis()
 
-                    if (homePressed) {
-                        Log.d(TAG, "✅ System Home action executed successfully.")
-                        lastHomePressTime = currentTime // Reset the cooldown timer
-                    } else {
-                        Log.e(TAG, "❌ Failed to execute Home action.")
-                    }
+        // 🚀 THE TRAPDOOR: If the bridge is open, but they navigated ANYWHERE else
+        // (Home screen, Recent Apps, or back to our app), we instantly destroy the bridge.
+        if (isBridgeOpen && currentForegroundApp != "com.android.settings") {
+            Log.d(TAG, "💥 Secure chain broken! Destroying the Settings Bridge.")
+            prefs.edit().putBoolean("settings_bridge_open", false).apply()
+        }
+
+        // Priority 0: Settings Block Logic
+        if (currentForegroundApp == "com.android.settings") {
+
+            if (isBridgeOpen) {
+                // The parent is safely inside Settings. Let them stay as long as they need.
+                Log.v(TAG, "🌉 Bridge is active. Parent is navigating Settings safely.")
+                return
+            }
+
+            // If the bridge is FALSE, they are blocked immediately.
+            // We maintain the 500ms debounce to prevent the Samsung camera double-tap glitch.
+            if (currentTime - lastHomePressTime > 500) {
+                Log.w(TAG, "🚨 UNAUTHORIZED SETTINGS ACCESS: Kicking to Home.")
+
+                val homePressed = performGlobalAction(GLOBAL_ACTION_HOME)
+
+                if (homePressed) {
+                    Log.d(TAG, "✅ System Home action executed successfully.")
+                    lastHomePressTime = currentTime // Reset the cooldown timer
                 } else {
-                    Log.v(TAG, "⏳ Ignoring duplicate Settings event (Cooldown active)")
+                    Log.e(TAG, "❌ Failed to execute Home action.")
                 }
+            } else {
+                Log.v(TAG, "⏳ Ignoring duplicate Settings event (Cooldown active)")
             }
         }
     }

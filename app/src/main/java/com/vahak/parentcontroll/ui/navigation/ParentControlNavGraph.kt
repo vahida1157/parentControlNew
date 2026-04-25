@@ -121,7 +121,12 @@ fun ParentControlNavGraph(
 
             PermissionSliderScreen(
                 onNavigateToFeature = { targetRoute ->
-                    navController.navigate("$targetRoute/$childId") {
+                    val finalRoute = if (childId == "global") {
+                        targetRoute // Just go exactly to the return address provided
+                    } else {
+                        "$targetRoute/$childId" // Otherwise, it's a child feature, append the ID
+                    }
+                    navController.navigate(finalRoute) {
                         popUpTo(Screen.PermissionSlider.route) {
                             inclusive = true
                         }

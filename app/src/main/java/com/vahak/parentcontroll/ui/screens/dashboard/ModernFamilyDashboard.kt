@@ -1,5 +1,12 @@
 package com.vahak.parentcontroll.ui.screens.dashboard
 
+import android.annotation.SuppressLint
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,26 +30,38 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
+import com.vahak.parentcontroll.core.util.PermissionChecker
+import com.vahak.parentcontroll.core.util.PermissionType
 import com.vahak.parentcontroll.presentation.dashboard.DashboardEffect
 import com.vahak.parentcontroll.presentation.dashboard.DashboardEvent
 import com.vahak.parentcontroll.presentation.dashboard.DashboardState
@@ -65,6 +85,7 @@ fun ModernFamilyDashboard(
     onManageFamilyClick: () -> Unit = {},
     onNavigateToPasswordSetup: () -> Unit = {},
     onLogoutComplete: () -> Unit = {},
+    onSecurityFabClick: (String) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -86,9 +107,11 @@ fun ModernFamilyDashboard(
         onManageFamilyClick = onManageFamilyClick,
         onSettingsClick = onSettingsClick,
         onReportClick = onReportClick,
+        onSecurityFabClick = onSecurityFabClick,
     )
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernFamilyDashboardContent(
@@ -98,67 +121,120 @@ fun ModernFamilyDashboardContent(
     onManageFamilyClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
     onReportClick: (String) -> Unit = {},
+    onSecurityFabClick: (String) -> Unit = {},
 ) {
     val colors = LocalCustomColors.current
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
+    // Dynamic Permission State
+    var missingSecurityPermissions by remember { mutableStateOf(emptyList<PermissionType>()) }
+
+    // This checks the permissions every time the Dashboard becomes visible on the screen
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val missing = listOf(PermissionType.DEVICE_ADMIN, PermissionType.ACCESSIBILITY)
+                    .filter { !PermissionChecker.hasPermission(context, it) }
+                missingSecurityPermissions = missing
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // The Bouncing Animation Math
+    val infiniteTransition = rememberInfiniteTransition(label = "fab_bounce")
+    val fabOffsetY by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -15f, // Bounces 15 pixels up
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fab_offset"
+    )
+    Scaffold(
+        floatingActionButton = {
+            // ONLY show the FAB if there are missing permissions!
+            if (missingSecurityPermissions.isNotEmpty()) {
+                FloatingActionButton(
+                    onClick = {
+                        // Dynamically generate the string (e.g. "DEVICE_ADMIN", or "DEVICE_ADMIN,ACCESSIBILITY")
+                        val permissionsString =
+                            missingSecurityPermissions.joinToString(",") { it.name }
+                        onSecurityFabClick(permissionsString)
+                    },
+                    containerColor = colors.red, // Making it red to signify a warning!
+                    contentColor = Color.White,
+                    shape = CircleShape,
+                    modifier = Modifier.offset(y = fabOffsetY.dp) // Apply the bounce animation
+                ) {
+                    Icon(AppIcons.Settings, contentDescription = "تکمیل امنیت")
+                }
+            }
+        },
+        containerColor = colors.background
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .background(colors.background)
         ) {
-            DashboardHeader(
-                onHelpClick = {},
-                onUnlockClick = { onEvent(DashboardEvent.LockClicked) })
-
             Column(
-                modifier = Modifier.padding(horizontal = 25.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
             ) {
-                Spacer(modifier = Modifier.height(20.dp))
+                DashboardHeader(
+                    onHelpClick = {},
+                    onUnlockClick = { onEvent(DashboardEvent.LockClicked) })
 
-                ChildSelectorCard(
-                    activeChild = state.activeChild,
-                    otherChildren = state.children.filter { it.id != state.activeChild?.id },
-                    onAddClick = onAddChildClick,
-                    onClick = { onEvent(DashboardEvent.OpenChildSheet) })
+                Column(
+                    modifier = Modifier.padding(horizontal = 25.dp)
+                ) {
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                DashboardMenuItem(
-                    title = "تنظیمات خانواده", icon = AppIcons.Settings, onClick = {
+                    ChildSelectorCard(
+                        activeChild = state.activeChild,
+                        otherChildren = state.children.filter { it.id != state.activeChild?.id },
+                        onAddClick = onAddChildClick,
+                        onClick = { onEvent(DashboardEvent.OpenChildSheet) })
+
+                    DashboardMenuItem(
+                        title = "تنظیمات خانواده", icon = AppIcons.Settings, onClick = {
+                            if (state.activeChild != null) {
+                                onSettingsClick(state.activeChild.id)
+                            } else {
+                                onEvent(DashboardEvent.OpenChildSheet)
+                            }
+                        })
+
+                    DashboardMenuItem(
+                        title = "گزارش فعالیت‌ها", icon = AppIcons.ChartBar, onClick = {
+                            if (state.activeChild != null) {
+                                onReportClick(state.activeChild.id)
+                            } else {
+                                onEvent(DashboardEvent.OpenChildSheet)
+                            }
+                        })
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    SwipeToActivateButton(isActive = state.isProtectionActive, onActivate = {
                         if (state.activeChild != null) {
-                            onSettingsClick(state.activeChild.id)
+                            onEvent(DashboardEvent.ActivateProtection(state.activeChild.id))
                         } else {
                             onEvent(DashboardEvent.OpenChildSheet)
                         }
-                    })
-
-                DashboardMenuItem(
-                    title = "گزارش فعالیت‌ها", icon = AppIcons.ChartBar, onClick = {
+                    }, onDeactivate = {
                         if (state.activeChild != null) {
-                            onReportClick(state.activeChild.id)
-                        } else {
-                            onEvent(DashboardEvent.OpenChildSheet)
+                            onEvent(DashboardEvent.DeactivateProtection(state.activeChild.id))
                         }
                     })
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                SwipeToActivateButton(isActive = state.isProtectionActive, onActivate = {
-                    if (state.activeChild != null) {
-                        onEvent(DashboardEvent.ActivateProtection(state.activeChild.id))
-                    } else {
-                        onEvent(DashboardEvent.OpenChildSheet)
-                    }
-                }, onDeactivate = {
-                    if (state.activeChild != null) {
-                        onEvent(DashboardEvent.DeactivateProtection(state.activeChild.id))
-                    }
-                })
-
-                Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
             }
         }
     }

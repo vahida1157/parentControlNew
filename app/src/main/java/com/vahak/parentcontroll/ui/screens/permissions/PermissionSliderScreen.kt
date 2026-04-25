@@ -1,8 +1,10 @@
 package com.vahak.parentcontroll.ui.screens.permissions
 
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,7 +49,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.parentcontroll.core.receiver.SecurityAdminReceiver
 import com.vahak.parentcontroll.core.util.PermissionChecker
 import com.vahak.parentcontroll.core.util.PermissionType
 import com.vahak.parentcontroll.presentation.permissions.PermissionSliderEffect
@@ -64,7 +69,7 @@ fun PermissionSliderScreen(
     val context = LocalContext.current
 
     // THE FIX 1: We use a specific Int counter to force Compose to re-evaluate the LaunchedEffect every time they return from settings.
-    var checkTrigger by remember { mutableStateOf(0) }
+    var checkTrigger by remember { mutableIntStateOf(0) }
     var currentPermissionToCheck by remember { mutableStateOf<PermissionType?>(null) }
 
     val settingsLauncher = rememberLauncherForActivityResult(
@@ -85,9 +90,32 @@ fun PermissionSliderScreen(
                     // Remember which permission they are going to grant
                     currentPermissionToCheck = effect.permission
 
+                    if (effect.permission == PermissionType.ACCESSIBILITY || effect.permission == PermissionType.DEVICE_ADMIN) {
+                        val prefs =
+                            context.getSharedPreferences("security_prefs", Context.MODE_PRIVATE)
+                        prefs.edit { putBoolean("settings_bridge_open", true) }
+                    }
+
                     val intent = Intent(effect.action).apply {
-                        if (effect.action == Settings.ACTION_MANAGE_OVERLAY_PERMISSION) {
-                            data = Uri.parse("package:${context.packageName}")
+                        when (effect.permission) {
+                            PermissionType.OVERLAY -> {
+                                data = Uri.parse("package:${context.packageName}")
+                            }
+
+                            PermissionType.DEVICE_ADMIN -> {
+                                // 🚀 THIS IS STEP 4 INTEGRATED!
+                                // We inject the exact component we want to activate.
+                                val adminComponent =
+                                    ComponentName(context, SecurityAdminReceiver::class.java)
+                                putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+                                putExtra(
+                                    DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                                    "برای جلوگیری از حذف برنامه توسط کودک، این دسترسی الزامی است."
+                                )
+                            }
+
+                            else -> { /* Standard Settings intents don't need extra data */
+                            }
                         }
                     }
                     settingsLauncher.launch(intent)

@@ -1,5 +1,6 @@
 package com.vahak.parentcontroll.core.util
 
+import android.app.admin.DevicePolicyManager
 import android.provider.Settings
 
 enum class PermissionType(
@@ -27,6 +28,27 @@ enum class PermissionType(
             "۳. به برنامه برگرد"
         ),
         androidSettingsAction = Settings.ACTION_MANAGE_OVERLAY_PERMISSION
+    ),
+    DEVICE_ADMIN(
+        title = "محافظت از حذف برنامه",
+        description = "برای جلوگیری از پاک شدن برنامه توسط کودک، این دسترسی الزامی است.",
+        instruction = listOf(
+            "۱. روی اعطای دسترسی کلیک کن",
+            "۲. گزینه فعال‌سازی (Activate) را در صفحه بعد انتخاب کن",
+            "۳. به برنامه برگرد"
+        ),
+        // This is the specific OS action for Device Admin
+        androidSettingsAction = DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN
+    ),
+    ACCESSIBILITY(
+        title = "دسترسی پذیری (سپر امنیتی)",
+        description = "برای مسدود کردن تنظیمات گوشی و جلوگیری از دور زدن قوانین توسط کودک.",
+        instruction = listOf(
+            "۱. روی اعطای دسترسی کلیک کن",
+            "۲. وارد بخش برنامه‌های نصب شده (Installed apps) شو",
+            "۳. نام برنامه را پیدا کن و آن را روشن کن"
+        ),
+        androidSettingsAction = Settings.ACTION_ACCESSIBILITY_SETTINGS
     ),
     LOCATION(
         title = "موقعیت مکانی",
