@@ -23,4 +23,6 @@
     <string name="cat_games">بازی‌ها</string>
     <string name="cat_movies">فیلم</string>
     <string name="cat_music">موسیقی</string>
+
+    <string name="accessibility_description">سرویس نظارت خانواده برای محافظت از کودکان</string>
 </resources>

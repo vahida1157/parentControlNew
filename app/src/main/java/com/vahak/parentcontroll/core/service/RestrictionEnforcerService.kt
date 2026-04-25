@@ -214,8 +214,6 @@ class RestrictionEnforcerService : LifecycleService() {
                         Log.w(
                             TAG, "🚨 BLOCKING PRIORITY 0: Child attempted to open Android Settings."
                         )
-                        hideAllOverlaysExcept(appLockOverlay)
-                        appLockOverlay.show()
                     } else if (isScreenOn && currentApp.isNotEmpty() && !isOurLauncher) {
 
                         val isCriticalSystem = criticalSystemPackages.contains(currentApp)
