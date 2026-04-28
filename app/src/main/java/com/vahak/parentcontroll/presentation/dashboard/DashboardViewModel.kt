@@ -2,10 +2,13 @@ package com.vahak.parentcontroll.presentation.dashboard
 
 import android.content.Context
 import android.content.Intent
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewModelScope
 import com.vahak.parentcontroll.core.data.local.SessionManager
+import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
 import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
 import com.vahak.parentcontroll.core.service.RestrictionEnforcerService
+import com.vahak.parentcontroll.core.service.WebFilterVpnService
 import com.vahak.parentcontroll.core.util.LauncherManager
 import com.vahak.parentcontroll.domain.repository.AuthRepository
 import com.vahak.parentcontroll.domain.repository.ChildRepository
@@ -50,6 +53,7 @@ class DashboardViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val childRepository: ChildRepository,
     private val sessionManager: SessionManager,
+    private val settingsDao: SettingsDao,
 ) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState()) {
 
     init {
@@ -104,22 +108,30 @@ class DashboardViewModel @Inject constructor(
 
     private fun startProtectionService(childId: String) {
         viewModelScope.launch {
-            // --- 3. HARD GATE: Check PIN before activating launcher ---
             val savedPin = sessionManager.parentPinFlow.first()
             if (savedPin.isNullOrEmpty()) {
-                // Show dialog instead of locking the phone without a key!
                 updateState { copy(showPinRequiredDialog = true) }
                 return@launch
             }
 
+            // 1. THIS is the master switch. Setting this will trigger MainActivity!
             sessionManager.setActiveChildId(childId)
 
             val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
                 action = RestrictionEnforcerService.ACTION_START
                 putExtra(RestrictionEnforcerService.EXTRA_CHILD_ID, childId)
             }
-            context.startForegroundService(intent)
+            ContextCompat.startForegroundService(context, intent)
 
+            val settings = settingsDao.getGlobalSettings(childId).first()
+            if (settings?.isSiteManagementActive == true) {
+                val vpnIntent = Intent(context, WebFilterVpnService::class.java).apply {
+                    action = WebFilterVpnService.ACTION_START
+                }
+                ContextCompat.startForegroundService(context, vpnIntent)
+            }
+
+            // 2. Tell the OS we are the Home screen now
             LauncherManager.enableLauncherMode(context)
         }
     }
@@ -132,6 +144,11 @@ class DashboardViewModel @Inject constructor(
                 action = RestrictionEnforcerService.ACTION_STOP
             }
             context.startService(intent)
+
+            val vpnIntent = Intent(context, WebFilterVpnService::class.java).apply {
+                action = WebFilterVpnService.ACTION_STOP
+            }
+            context.startService(vpnIntent)
 
             LauncherManager.disableLauncherMode(context)
         }

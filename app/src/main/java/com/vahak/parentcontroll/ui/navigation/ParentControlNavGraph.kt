@@ -15,13 +15,13 @@ import com.vahak.parentcontroll.ui.screens.MainParentScreen
 import com.vahak.parentcontroll.ui.screens.TimeLimitScreen
 import com.vahak.parentcontroll.ui.screens.bedtime.BedtimeScreen
 import com.vahak.parentcontroll.ui.screens.family.FamilyManagementScreen
-import com.vahak.parentcontroll.ui.screens.launcher.ChildLauncherScreen
 import com.vahak.parentcontroll.ui.screens.login.LoginScreen
 import com.vahak.parentcontroll.ui.screens.login.OtpScreen
 import com.vahak.parentcontroll.ui.screens.password.PasswordManagementScreen
 import com.vahak.parentcontroll.ui.screens.permissions.PermissionSliderScreen
 import com.vahak.parentcontroll.ui.screens.report.UsageReportScreen
 import com.vahak.parentcontroll.ui.screens.settings.ChildSettingsScreen
+import com.vahak.parentcontroll.ui.screens.settings.SiteManagementScreen
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 @Composable
@@ -134,13 +134,6 @@ fun ParentControlNavGraph(
                 })
         }
 
-        composable(route = Screen.ChildLauncher.route) {
-            ChildLauncherScreen(
-                onExitLauncherClick = {
-                    onDisableLauncherRequested()
-                })
-        }
-
         composable(route = Screen.AppLock.route) {
             AppSelectionScreen(
                 onBackClick = { navController.popBackStack() })
@@ -166,6 +159,17 @@ fun ParentControlNavGraph(
         composable(route = Screen.SleepTime.route) {
             BedtimeScreen(
                 onBackClick = { navController.popBackStack() })
+        }
+
+        composable(
+            route = "site_management/{childId}",
+            arguments = listOf(navArgument("childId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val childId = backStackEntry.arguments?.getString("childId") ?: ""
+
+            SiteManagementScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
     }
 }

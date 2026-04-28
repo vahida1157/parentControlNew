@@ -134,7 +134,7 @@ fun ModernFamilyDashboardContent(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                val missing = listOf(PermissionType.DEVICE_ADMIN, PermissionType.ACCESSIBILITY)
+                val missing = listOf(PermissionType.ACCESSIBILITY, PermissionType.DEVICE_ADMIN)
                     .filter { !PermissionChecker.hasPermission(context, it) }
                 missingSecurityPermissions = missing
             }
@@ -228,9 +228,9 @@ fun ModernFamilyDashboardContent(
                             onEvent(DashboardEvent.OpenChildSheet)
                         }
                     }, onDeactivate = {
-                        if (state.activeChild != null) {
-                            onEvent(DashboardEvent.DeactivateProtection(state.activeChild.id))
-                        }
+//                        if (state.activeChild != null) {
+//                            onEvent(DashboardEvent.DeactivateProtection(state.activeChild.id))
+//                        }
                     })
 
                     Spacer(modifier = Modifier.height(20.dp))

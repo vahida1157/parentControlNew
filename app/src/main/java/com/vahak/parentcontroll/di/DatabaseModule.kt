@@ -7,6 +7,7 @@ import com.vahak.parentcontroll.core.data.local.dao.AppRuleDao
 import com.vahak.parentcontroll.core.data.local.dao.ChildDao
 import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
 import com.vahak.parentcontroll.core.data.local.dao.UsageDao
+import com.vahak.parentcontroll.core.data.local.dao.WebDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,4 +44,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideAppRuleDao(db: ParentControlDatabase): AppRuleDao = db.appRuleDao
+
+    @Provides
+    @Singleton
+    fun provideWebDao(db: ParentControlDatabase): WebDao = db.webDao
 }

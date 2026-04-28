@@ -30,4 +30,7 @@ interface SettingsDao {
     // Room automatically converts LocalTime to String here thanks to our TypeConverter!
     @Query("UPDATE global_settings SET bedtime_start = :startTime, bedtime_end = :endTime, updated_at = :time WHERE child_id = :childId")
     suspend fun updateBedtimeSchedule(childId: String, startTime: LocalTime, endTime: LocalTime, time: Long = System.currentTimeMillis())
+    // --- NEW: Site Management / Web Filter Updates ---
+    @Query("UPDATE global_settings SET is_site_management_active = :isActive, updated_at = :time WHERE child_id = :childId")
+    suspend fun updateSiteManagementToggle(childId: String, isActive: Boolean, time: Long = System.currentTimeMillis())
 }

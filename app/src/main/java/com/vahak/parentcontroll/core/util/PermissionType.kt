@@ -50,6 +50,16 @@ enum class PermissionType(
         ),
         androidSettingsAction = Settings.ACTION_ACCESSIBILITY_SETTINGS
     ),
+    VPN(
+        title = "فیلتر هوشمند وب (VPN)",
+        description = "برای مسدود کردن سایت‌های نامناسب، نیاز به ایجاد یک تونل امن (VPN محلی) داریم. هیچ داده‌ای به خارج از گوشی ارسال نمی‌شود.",
+        instruction = listOf(
+            "۱. روی اعطای دسترسی کلیک کن",
+            "۲. در پیام هشدار اندروید، تایید (OK) را انتخاب کن",
+            "۳. تمام شد!"
+        ),
+        androidSettingsAction = "ACTION_REQUEST_VPN" // Custom flag
+    ),
     LOCATION(
         title = "موقعیت مکانی",
         description = "برای تامین امنیت و ردیابی دقیق، به این دسترسی نیاز داریم.",

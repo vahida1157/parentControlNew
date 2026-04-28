@@ -58,7 +58,8 @@ class SettingsViewModel @Inject constructor(
     private val featurePermissionsMap = mapOf(
         "time_limit" to listOf(PermissionType.USAGE_STATS, PermissionType.OVERLAY),
         "app_lock" to listOf(PermissionType.USAGE_STATS, PermissionType.OVERLAY),
-        "location" to listOf(PermissionType.LOCATION)
+        "site_management" to listOf(PermissionType.VPN),
+        "location" to listOf(PermissionType.LOCATION),
     )
 
     override fun onEvent(event: SettingsEvent) {
@@ -77,7 +78,6 @@ class SettingsViewModel @Inject constructor(
 
                 if (event.route in listOf(
                         "location",
-                        "site_management",
                         "safe_search",
                         "prevent_delete",
                         "eye_protect",

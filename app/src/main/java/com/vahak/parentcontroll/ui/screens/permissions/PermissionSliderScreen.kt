@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.net.VpnService
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -89,6 +90,18 @@ fun PermissionSliderScreen(
                 is PermissionSliderEffect.LaunchAndroidSettings -> {
                     // Remember which permission they are going to grant
                     currentPermissionToCheck = effect.permission
+
+                    if (effect.permission == PermissionType.VPN) {
+                        // VpnService.prepare generates the exact intent needed to show the popup
+                        val vpnIntent = VpnService.prepare(context)
+                        if (vpnIntent != null) {
+                            settingsLauncher.launch(vpnIntent)
+                        } else {
+                            // If it's null, permission was already granted somehow, force a check!
+                            checkTrigger++
+                        }
+                        return@collect // Stop execution here for VPN
+                    }
 
                     if (effect.permission == PermissionType.ACCESSIBILITY || effect.permission == PermissionType.DEVICE_ADMIN) {
                         val prefs =

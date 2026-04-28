@@ -15,9 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.vahak.parentcontroll.core.service.RestrictionEnforcerService
+import com.vahak.parentcontroll.core.service.WebFilterVpnService
 import com.vahak.parentcontroll.core.util.LauncherManager
 import com.vahak.parentcontroll.ui.navigation.ParentControlNavGraph
-import com.vahak.parentcontroll.ui.navigation.Screen
+import com.vahak.parentcontroll.ui.screens.launcher.ChildLauncherScreen // 🚀 ADD THIS IMPORT
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -32,7 +33,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             val startDestination by mainViewModel.startDestination.collectAsState()
 
-            // 1. CREATE THE NAV CONTROLLER HERE
+            // 🚀 PRO FIX: Observe the Master Switch
+            val activeChildId by mainViewModel.activeChildId.collectAsState()
+
             val navController = rememberNavController()
 
             ParentControlTheme {
@@ -43,30 +46,41 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .background(MaterialTheme.colorScheme.background)
                     )
-                } else {
-                    // We don't use Scaffold padding for the NavGraph to ensure
-                    // the Launcher background draws edge-to-edge.
+                }
+                // 🚀 THE UI FORTRESS: If a child is active, ONLY draw the Launcher.
+                else if (activeChildId != null) {
+                    ChildLauncherScreen(
+                        // If you have the child's name in the DB, you can fetch it here later
+                        childName = "حالت کودک",
+                        onExitLauncherClick = {
+                            // 1. Flip the Master Switch (This instantly redraws the NavGraph!)
+                            mainViewModel.clearActiveLauncherSession()
+
+                            // 2. Disable OS Launcher
+                            LauncherManager.disableLauncherMode(this@MainActivity)
+
+                            // 3. Stop the Enforcer
+                            val stopIntent = Intent(this@MainActivity, RestrictionEnforcerService::class.java).apply {
+                                action = RestrictionEnforcerService.ACTION_STOP
+                            }
+                            startService(stopIntent)
+
+                            // 4. Stop the VPN
+                            val stopVpnIntent = Intent(this@MainActivity, WebFilterVpnService::class.java).apply {
+                                action = WebFilterVpnService.ACTION_STOP
+                            }
+                            startService(stopVpnIntent)
+                        }
+                    )
+                }
+                // 🚀 NORMAL MODE: Draw the Parent Dashboard NavGraph
+                else {
                     ParentControlNavGraph(
                         startDestination = startDestination!!,
                         modifier = Modifier.fillMaxSize(),
-                        navController = navController, // NOW THIS WORKS
-                        onDisableLauncherRequested = {
-                            mainViewModel.clearActiveLauncherSession()
-
-                            LauncherManager.disableLauncherMode(this)
-
-                            val stopIntent =
-                                Intent(this, RestrictionEnforcerService::class.java).apply {
-                                    action = RestrictionEnforcerService.ACTION_STOP
-                                }
-                            startService(stopIntent)
-
-                            mainViewModel.refreshDestination()
-
-                            navController.navigate(Screen.Dashboard.route) {
-                                popUpTo(navController.graph.id) { inclusive = true }
-                            }
-                        }
+                        navController = navController,
+                        // We pass an empty lambda since the NavGraph doesn't handle exiting anymore
+                        onDisableLauncherRequested = { }
                     )
                 }
             }

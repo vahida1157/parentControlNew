@@ -46,6 +46,10 @@ data class GlobalSettingsEntity(
     @ColumnInfo(name = "bedtime_end")
     val bedtimeEnd: LocalTime = LocalTime.of(7, 0), // 07:00 AM
 
+    // --- Web Filter / Site Management ---
+    @ColumnInfo(name = "is_site_management_active")
+    val isSiteManagementActive: Boolean = false,
+
     @ColumnInfo(name = "updated_at")
     val updatedAt: Long = System.currentTimeMillis()
 )

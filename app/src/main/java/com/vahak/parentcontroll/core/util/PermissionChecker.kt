@@ -5,6 +5,7 @@ import android.app.AppOpsManager
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.net.VpnService
 import android.os.Process
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
@@ -19,6 +20,7 @@ object PermissionChecker {
             PermissionType.OVERLAY -> hasOverlayPermission(context)
             PermissionType.DEVICE_ADMIN -> hasDeviceAdminPermission(context)
             PermissionType.ACCESSIBILITY -> hasAccessibilityPermission(context)
+            PermissionType.VPN -> hasVpnPermission(context)
             PermissionType.LOCATION -> true // Standard permissions are handled differently, placeholder for now
         }
     }
@@ -58,5 +60,9 @@ object PermissionChecker {
         return enabledServices.any {
             it.resolveInfo.serviceInfo.name == RestrictionAccessibilityService::class.java.name
         }
+    }
+
+    private fun hasVpnPermission(context: Context): Boolean {
+        return VpnService.prepare(context) == null
     }
 }
