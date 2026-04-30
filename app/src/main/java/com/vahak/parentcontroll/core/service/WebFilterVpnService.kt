@@ -75,38 +75,34 @@ class WebFilterVpnService : VpnService() {
     // 🚀 The Bulletproof Network Tracker
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
 
-        override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-            super.onCapabilitiesChanged(network, caps)
-            // Ignore our own VPN network to prevent the DNS loop
+        override fun onLinkPropertiesChanged(network: Network, lp: android.net.LinkProperties) {
+            super.onLinkPropertiesChanged(network, lp)
+
+            // 1. Fetch capabilities ON DEMAND to avoid race conditions
+            val caps = connectivityManager.getNetworkCapabilities(network) ?: return
+
+            // 2. Ignore our own VPN network
             if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return
 
             val isWifi = caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
             val isCell = caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
 
             if (isWifi || isCell) {
-                // Add the network to our map if it doesn't exist yet
-                activeNetworksMap.getOrPut(network) { PhysicalNetworkInfo(isWifi, null) }
-            }
-        }
+                // 3. Extract the IPv4 DNS
+                val dns = lp.dnsServers.firstOrNull {
+                    it.hostAddress?.contains(".") == true && it.hostAddress != VPN_DNS
+                }
 
-        override fun onLinkPropertiesChanged(network: Network, lp: android.net.LinkProperties) {
-            super.onLinkPropertiesChanged(network, lp)
+                // 4. Atomically insert or update the map in one single step!
+                activeNetworksMap[network] = PhysicalNetworkInfo(isWifi, dns)
 
-            // Extract the IPv4 DNS
-            val dns = lp.dnsServers.firstOrNull { it.hostAddress?.contains(".") == true && it.hostAddress != VPN_DNS }
-
-            // If we know this network, update its specific DNS
-            activeNetworksMap[network]?.let { info ->
-                activeNetworksMap[network] = PhysicalNetworkInfo(info.isWifi, dns) // Creates a fresh, safe copy
-
-                val type = if (info.isWifi) "Wi-Fi" else "Cellular"
-                Log.i(TAG, "🌐 $type DNS updated: ${dns?.hostAddress}")
+                val type = if (isWifi) "Wi-Fi" else "Cellular"
+                Log.i(TAG, "🌐 $type DNS mapped: ${dns?.hostAddress}")
             }
         }
 
         override fun onLost(network: Network) {
             super.onLost(network)
-            // The exact millisecond the network disconnects, remove it from the map
             activeNetworksMap.remove(network)
             Log.i(TAG, "🔌 Network lost. Remaining active networks: ${activeNetworksMap.size}")
         }
@@ -214,16 +210,16 @@ class WebFilterVpnService : VpnService() {
 
             Log.d(TAG, "📡 Listening for DNS packets on TUN interface...")
 
-            try {
-                while (isActive) {
+            while (isActive) {
+                // 🚀 PRO FIX: Try/Catch is INSIDE the loop.
+                // A single network glitch will no longer kill the VPN!
+                try {
                     val length = inputStream.read(packet.array())
                     if (length > 0) {
                         val rawPacketBytes = packet.array()
-                        val requestedDomain =
-                            DnsPacketHelper.extractDomainFromPacket(rawPacketBytes, length)
+                        val requestedDomain = DnsPacketHelper.extractDomainFromPacket(rawPacketBytes, length)
 
                         if (requestedDomain != null) {
-                            // Check against the dynamically updated blocklist
                             val isBlocked = activeBlockedDomains.any {
                                 requestedDomain.lowercase().contains(it)
                             }
@@ -235,13 +231,17 @@ class WebFilterVpnService : VpnService() {
                                 forwardDnsRequest(rawPacketBytes, length, outputStream)
                             }
                         }
-
-                        packet.clear()
                     }
+                } catch (e: Exception) {
+                    // Log the error, but KEEP THE LOOP RUNNING!
+                    if (isActive) Log.e(TAG, "Transient packet error, recovering: ${e.message}")
+                } finally {
+                    // 🚀 CRITICAL: Always clear the buffer so old packet data doesn't corrupt the next one
+                    packet.clear()
                 }
-            } catch (e: Exception) {
-                if (isActive) Log.e(TAG, "Packet processing error: ${e.message}")
             }
+
+            Log.w(TAG, "🛑 Packet processing loop has officially terminated.")
         }
     }
 

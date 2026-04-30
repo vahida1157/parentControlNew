@@ -26,21 +26,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.parentcontroll.core.util.LogExporter
 import com.vahak.parentcontroll.presentation.setting.AppSettingsEffect
 import com.vahak.parentcontroll.presentation.setting.AppSettingsEvent
+import com.vahak.parentcontroll.presentation.setting.AppSettingsState
 import com.vahak.parentcontroll.presentation.setting.ApplicationSettingsViewModel
 import com.vahak.parentcontroll.ui.component.SimpleFlatHeader
 import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
+import kotlinx.coroutines.launch
 
+// --- 1. STATEFUL WRAPPER ---
 @Composable
 fun ApplicationSettingsScreen(
     viewModel: ApplicationSettingsViewModel = hiltViewModel(),
@@ -48,9 +54,9 @@ fun ApplicationSettingsScreen(
     onLogoutComplete: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val colors = LocalCustomColors.current
-    val scrollState = rememberScrollState()
-    
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             if (effect is AppSettingsEffect.NavigateToLogin) {
@@ -59,6 +65,29 @@ fun ApplicationSettingsScreen(
         }
     }
 
+    // Pass everything down as pure data and callbacks
+    ApplicationSettingsContent(
+        state = state,
+        onNavigateToPasswordManagement = onNavigateToPasswordManagement,
+        onLogoutClick = { viewModel.onEvent(AppSettingsEvent.LogoutClicked) },
+        onExportLogsClick = {
+            coroutineScope.launch {
+                LogExporter.exportLogsAndShare(context)
+            }
+        }
+    )
+}
+
+// --- 2. STATELESS CONTENT ---
+@Composable
+fun ApplicationSettingsContent(
+    state: AppSettingsState,
+    onNavigateToPasswordManagement: () -> Unit,
+    onLogoutClick: () -> Unit,
+    onExportLogsClick: () -> Unit
+) {
+    val colors = LocalCustomColors.current
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
@@ -135,15 +164,39 @@ fun ApplicationSettingsScreen(
                         subtitle = "برای خروج از محیط امن و تنظیمات",
                         onClick = onNavigateToPasswordManagement
                     )
-                    // You can add more security things here later (e.g. Fingerprint)
                 }
             }
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // --- 3. DANGER ZONE (LOGOUT) ---
+            // --- 3. TROUBLESHOOTING SECTION ---
+            Text(
+                text = "پشتیبانی و رفع مشکل",
+                color = colors.textSecondary,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 10.dp, start = 5.dp)
+            )
+            Card(
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                shape = RoundedCornerShape(15.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    SettingsRowItem(
+                        icon = AppIcons.ChartBar,
+                        title = "ارسال گزارش سیستم (Debug)",
+                        subtitle = "برای بررسی مشکلات اتصال توسط توسعه‌دهنده",
+                        onClick = onExportLogsClick // 🚀 Trigger the hoisted callback
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            // --- 4. DANGER ZONE (LOGOUT) ---
             Button(
-                onClick = { viewModel.onEvent(AppSettingsEvent.LogoutClicked) },
+                onClick = onLogoutClick, // 🚀 Trigger the hoisted callback
                 colors = ButtonDefaults.buttonColors(containerColor = colors.red.copy(alpha = 0.1f)),
                 shape = RoundedCornerShape(15.dp),
                 modifier = Modifier
@@ -152,7 +205,7 @@ fun ApplicationSettingsScreen(
             ) {
                 Icon(
                     AppIcons.LockBadge, contentDescription = "Logout", tint = colors.red
-                ) // Use logout icon if you have one
+                )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     "خروج از حساب کاربری",
@@ -218,6 +271,12 @@ fun SettingsRowItem(
 @Composable
 fun ApplicationSettingsScreenPreview() {
     ParentControlTheme {
-        ApplicationSettingsScreen(onNavigateToPasswordManagement = {}, onLogoutComplete = {})
+        // 🚀 Render the Stateless Content with dummy data!
+        ApplicationSettingsContent(
+            state = AppSettingsState(parentPhoneNumber = "0912 345 6789"),
+            onNavigateToPasswordManagement = {},
+            onLogoutClick = {},
+            onExportLogsClick = {}
+        )
     }
 }

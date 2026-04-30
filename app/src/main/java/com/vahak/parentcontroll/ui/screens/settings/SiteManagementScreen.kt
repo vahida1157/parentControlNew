@@ -1,6 +1,5 @@
 package com.vahak.parentcontroll.ui.screens.settings
 
-import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +44,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.parentcontroll.core.data.local.entity.BlockedDomainEntity
-import com.vahak.parentcontroll.core.service.WebFilterVpnService
 import com.vahak.parentcontroll.presentation.sitemanagement.SiteManagementEffect
 import com.vahak.parentcontroll.presentation.sitemanagement.SiteManagementEvent
 import com.vahak.parentcontroll.presentation.sitemanagement.SiteManagementState
@@ -122,8 +120,11 @@ fun SiteManagementContent(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = colors.textPrimary,
+                            unfocusedTextColor = colors.textPrimary,
                             focusedBorderColor = colors.primary,
                             unfocusedBorderColor = colors.divider,
+                            cursorColor = colors.primary,
                         )
                     )
                     Spacer(modifier = Modifier.width(10.dp))

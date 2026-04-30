@@ -179,8 +179,8 @@ fun SetupQuestionView(
     ) {
         Text("پاسخ شما:", color = colors.textPrimary, modifier = Modifier.padding(bottom = 8.dp))
         OutlinedTextField(
-            value = state.securityAnswer,
-            onValueChange = { onEvent(PasswordEvent.AnswerChanged(it)) },
+            value = state.securityAnswer.trim(),
+            onValueChange = { onEvent(PasswordEvent.AnswerChanged(it.trim())) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
@@ -188,7 +188,7 @@ fun SetupQuestionView(
                 unfocusedTextColor = colors.textPrimary,
                 focusedBorderColor = colors.primary,
                 unfocusedBorderColor = colors.divider,
-                cursorColor = colors.primary
+                cursorColor = colors.primary,
             )
         )
     }
