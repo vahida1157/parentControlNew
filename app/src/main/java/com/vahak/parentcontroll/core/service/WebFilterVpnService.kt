@@ -4,7 +4,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.ConnectivityManager
@@ -35,7 +34,7 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.nio.ByteBuffer
-import java.util.concurrent.ConcurrentHashMap // 🚀 Added for Thread-Safe Network Tracking
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -62,95 +61,105 @@ class WebFilterVpnService : VpnService() {
     private val vpnScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var vpnJob: Job? = null
 
-    // 🚀 Network State Variables
     private lateinit var connectivityManager: ConnectivityManager
     private var activeBlockedDomains: List<String> = emptyList()
 
-    // 🚀 Data class to track the network type and its specific DNS
     data class PhysicalNetworkInfo(val isWifi: Boolean, val dns: InetAddress?)
 
-    // 🚀 The Map that tracks all active networks simultaneously
     private val activeNetworksMap = ConcurrentHashMap<Network, PhysicalNetworkInfo>()
 
-    // 🚀 The Bulletproof Network Tracker
+    // 🚀 FULLY LOGGED NETWORK TRACKER
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
 
         override fun onLinkPropertiesChanged(network: Network, lp: android.net.LinkProperties) {
             super.onLinkPropertiesChanged(network, lp)
+            Log.d(TAG, "🔄 OS triggered onLinkPropertiesChanged for network: $network")
 
-            // 1. Fetch capabilities ON DEMAND to avoid race conditions
-            val caps = connectivityManager.getNetworkCapabilities(network) ?: return
+            val caps = connectivityManager.getNetworkCapabilities(network)
+            if (caps == null) {
+                Log.w(TAG, "⚠️ Could not fetch capabilities for network $network")
+                return
+            }
 
-            // 2. Ignore our own VPN network
-            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                Log.d(TAG, "🛡️ Ignored VPN network loopback.")
+                return
+            }
 
             val isWifi = caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
             val isCell = caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
 
             if (isWifi || isCell) {
-                // 3. Extract the IPv4 DNS
                 val dns = lp.dnsServers.firstOrNull {
                     it.hostAddress?.contains(".") == true && it.hostAddress != VPN_DNS
                 }
 
-                // 4. Atomically insert or update the map in one single step!
                 activeNetworksMap[network] = PhysicalNetworkInfo(isWifi, dns)
 
                 val type = if (isWifi) "Wi-Fi" else "Cellular"
-                Log.i(TAG, "🌐 $type DNS mapped: ${dns?.hostAddress}")
+                Log.i(TAG, "🌐 $type mapped. DNS: ${dns?.hostAddress}. Total Active Networks: ${activeNetworksMap.size}")
+            } else {
+                Log.d(TAG, "❓ Ignored unknown network transport type.")
             }
         }
 
         override fun onLost(network: Network) {
             super.onLost(network)
-            activeNetworksMap.remove(network)
-            Log.i(TAG, "🔌 Network lost. Remaining active networks: ${activeNetworksMap.size}")
+            val removed = activeNetworksMap.remove(network)
+            val type = if (removed?.isWifi == true) "Wi-Fi" else "Cellular"
+            Log.i(TAG, "🔌 $type Network lost. Remaining active networks: ${activeNetworksMap.size}")
         }
     }
 
-    // 🚀 The Priority Router
+    // 🚀 FULLY LOGGED ROUTER
     private fun getBestUnderlyingDns(): InetAddress {
-        // 1. Absolute Priority: If ANY Wi-Fi network is alive and has a DNS, use it!
         val wifiDns = activeNetworksMap.values.firstOrNull { it.isWifi && it.dns != null }?.dns
-        if (wifiDns != null) return wifiDns
+        if (wifiDns != null) {
+            Log.v(TAG, "🔀 Router Selected: Wi-Fi DNS (${wifiDns.hostAddress})")
+            return wifiDns
+        }
 
-        // 2. Fallback: If no Wi-Fi, look for a Cellular DNS
         val cellDns = activeNetworksMap.values.firstOrNull { !it.isWifi && it.dns != null }?.dns
-        if (cellDns != null) return cellDns
+        if (cellDns != null) {
+            Log.v(TAG, "🔀 Router Selected: Cellular DNS (${cellDns.hostAddress})")
+            return cellDns
+        }
 
-        // 3. Worst-case scenario: Both dropped, fallback to safe public DNS
+        Log.w(TAG, "🔀 Router Warning: No physical DNS found in map! Falling back to 8.8.8.8")
         return InetAddress.getByName("8.8.8.8")
     }
 
     override fun onCreate() {
         super.onCreate()
-        connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        Log.i(TAG, "🟢 Service onCreate called")
+        connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
 
-        // Listen for Wi-Fi and Cellular network changes dynamically
         val request = NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .build()
         connectivityManager.registerNetworkCallback(request, networkCallback)
+        Log.d(TAG, "📡 Network Callback Registered")
 
-        // Keep the blocklist updated in memory for zero-latency packet processing
         vpnScope.launch {
             sessionManager.activeChildIdFlow.collectLatest { childId ->
+                Log.d(TAG, "👦 Active Child ID changed: $childId")
                 if (childId != null) {
                     webDao.observeBlockedDomains(childId).collectLatest { domains ->
-                        activeBlockedDomains =
-                            domains.filter { it.isActive }.map { it.domain.lowercase() }
+                        activeBlockedDomains = domains.filter { it.isActive }.map { it.domain.lowercase() }
+                        Log.i(TAG, "📋 Blocklist loaded into memory. Active rules: ${activeBlockedDomains.size}")
                     }
                 } else {
                     activeBlockedDomains = emptyList()
+                    Log.i(TAG, "📋 Blocklist cleared (No active child).")
                 }
             }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.i(TAG, "⚙️ onStartCommand received action: ${intent?.action}")
         when (intent?.action) {
             ACTION_START -> {
-                // Satisfy the OS 5-second deadline instantly
                 createNotificationChannel()
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -163,7 +172,6 @@ class WebFilterVpnService : VpnService() {
                     startForeground(NOTIFICATION_ID, buildSecureNotification())
                 }
 
-                // Now it's safe to actually build the VPN tunnel
                 startVpn()
             }
             ACTION_STOP -> stopVpn()
@@ -173,30 +181,31 @@ class WebFilterVpnService : VpnService() {
 
     private fun startVpn() {
         if (vpnInterface != null) {
-            Log.i(TAG, "VPN is already running.")
+            Log.w(TAG, "⚠️ startVpn called but interface is already running.")
             return
         }
 
         try {
+            Log.d(TAG, "🏗️ Building VPN Interface...")
             val builder = Builder()
                 .setSession("محافظت وب خانواده")
                 .setMtu(1500)
                 .addAddress(VPN_ADDRESS, 24)
                 .addDnsServer(VPN_DNS)
-                .addRoute(VPN_DNS, 32) // Split Tunnel
+                .addRoute(VPN_DNS, 32)
 
             vpnInterface = builder.establish()
 
             if (vpnInterface != null) {
-                Log.i(TAG, "🚀 VPN Interface Established Successfully")
+                Log.i(TAG, "🚀 VPN Interface Established Successfully!")
                 startPacketProcessing()
             } else {
-                Log.e(TAG, "❌ Failed to establish VPN.")
+                Log.e(TAG, "❌ Failed to establish VPN (builder returned null).")
                 stopVpn()
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error configuring VPN: ${e.message}")
+            Log.e(TAG, "💥 Error configuring VPN: ${e.javaClass.simpleName} - ${e.message}", e)
             stopVpn()
         }
     }
@@ -208,14 +217,13 @@ class WebFilterVpnService : VpnService() {
             val outputStream = FileOutputStream(fd)
             val packet = ByteBuffer.allocate(1500)
 
-            Log.d(TAG, "📡 Listening for DNS packets on TUN interface...")
+            Log.i(TAG, "🎧 TUN Listener Thread Started. Waiting for traffic...")
 
             while (isActive) {
-                // 🚀 PRO FIX: Try/Catch is INSIDE the loop.
-                // A single network glitch will no longer kill the VPN!
                 try {
                     val length = inputStream.read(packet.array())
                     if (length > 0) {
+//                        Log.v(TAG, "📦 Read $length bytes from TUN")
                         val rawPacketBytes = packet.array()
                         val requestedDomain = DnsPacketHelper.extractDomainFromPacket(rawPacketBytes, length)
 
@@ -225,18 +233,20 @@ class WebFilterVpnService : VpnService() {
                             }
 
                             if (isBlocked) {
-                                Log.w(TAG, "🚨 BLOCKED: Dropping packets for $requestedDomain")
+                                Log.w(TAG, "🚨 BLOCKED: Dropping packet for domain -> $requestedDomain")
                             } else {
-                                Log.v(TAG, "✅ ALLOWED: $requestedDomain")
+                                Log.v(TAG, "✅ ALLOWED: Forwarding domain -> $requestedDomain")
                                 forwardDnsRequest(rawPacketBytes, length, outputStream)
                             }
+                        } else {
+                            Log.v(TAG, "❓ Packet parsed, but no domain extracted. (Not a standard DNS A/AAAA record)")
                         }
                     }
                 } catch (e: Exception) {
-                    // Log the error, but KEEP THE LOOP RUNNING!
-                    if (isActive) Log.e(TAG, "Transient packet error, recovering: ${e.message}")
+                    if (isActive) {
+                        Log.e(TAG, "⚠️ Packet loop exception: ${e.javaClass.simpleName} - ${e.message}")
+                    }
                 } finally {
-                    // 🚀 CRITICAL: Always clear the buffer so old packet data doesn't corrupt the next one
                     packet.clear()
                 }
             }
@@ -257,21 +267,23 @@ class WebFilterVpnService : VpnService() {
                 val dnsPayloadOffset = ihl + 8
                 val dnsPayloadLength = length - dnsPayloadOffset
 
-                if (dnsPayloadLength <= 0) return@withContext
+                if (dnsPayloadLength <= 0) {
+                    Log.v(TAG, "⚠️ DNS payload length <= 0, skipping forward.")
+                    return@withContext
+                }
 
                 val dnsPayload = ByteArray(dnsPayloadLength)
                 System.arraycopy(rawPacketBytes, dnsPayloadOffset, dnsPayload, 0, dnsPayloadLength)
 
                 socket = DatagramSocket()
 
-                // PUNCH A HOLE IN THE VPN to prevent the routing loop
                 if (!protect(socket)) {
-                    Log.e(TAG, "❌ Failed to protect the outbound socket.")
+                    Log.e(TAG, "❌ Failed to protect the outbound UDP socket from VPN loop!")
                     return@withContext
                 }
 
-                // 🚀 PRO FIX: Use the Priority Map to find the best active DNS
                 val systemDns = getBestUnderlyingDns()
+                Log.v(TAG, "📤 Sending UDP packet ($dnsPayloadLength bytes) to ${systemDns.hostAddress}:53")
 
                 val outPacket = DatagramPacket(dnsPayload, dnsPayloadLength, systemDns, 53)
                 socket.send(outPacket)
@@ -279,15 +291,18 @@ class WebFilterVpnService : VpnService() {
                 socket.soTimeout = 3000
                 val responseBuffer = ByteArray(1024)
                 val inPacket = DatagramPacket(responseBuffer, responseBuffer.size)
+
                 socket.receive(inPacket)
+                Log.v(TAG, "📥 Received UDP response (${inPacket.length} bytes) from ${inPacket.address.hostAddress}")
 
                 val responseDnsPayload = inPacket.data.copyOfRange(0, inPacket.length)
                 val finalIpPacket = forgeDnsResponsePacket(rawPacketBytes, responseDnsPayload)
 
                 outputStream.write(finalIpPacket)
+                Log.v(TAG, "✍️ Forged IP packet written back to TUN interface.")
 
             } catch (e: Exception) {
-                Log.v(TAG, "DNS Forwarding timeout/error: ${e.message}")
+                Log.e(TAG, "⏳ DNS Forwarding timeout/error: ${e.javaClass.simpleName} - ${e.message}")
             } finally {
                 socket?.close()
             }
@@ -380,12 +395,13 @@ class WebFilterVpnService : VpnService() {
     }
 
     private fun stopVpn() {
-        Log.i(TAG, "🛑 Stopping Web Filter VPN")
+        Log.i(TAG, "🛑 Triggering stopVpn(). Shutting down interfaces...")
         vpnJob?.cancel()
         try {
             vpnInterface?.close()
+            Log.d(TAG, "🔒 VPN Interface closed successfully.")
         } catch (e: Exception) {
-            Log.e(TAG, "Error closing VPN interface: ${e.message}")
+            Log.e(TAG, "💥 Error closing VPN interface: ${e.message}")
         }
         vpnInterface = null
 
@@ -394,6 +410,7 @@ class WebFilterVpnService : VpnService() {
     }
 
     override fun onDestroy() {
+        Log.i(TAG, "💀 Service onDestroy called. Unregistering callbacks.")
         connectivityManager.unregisterNetworkCallback(networkCallback)
         stopVpn()
         super.onDestroy()

@@ -2,6 +2,7 @@ package com.vahak.parentcontroll.core.util
 
 import android.content.Context
 import android.content.Intent
+import android.os.Process
 import android.util.Log
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
@@ -35,7 +36,9 @@ object LogExporter {
                 // -d = dump and exit
                 // -v threadtime = include timestamps
                 // -t 5000 = only fetch the latest 5000 events
-                val process = Runtime.getRuntime().exec("logcat -d -v threadtime -t 8000 -f ${logTxtFile.absolutePath}")
+                val myPid = Process.myPid()
+                // This tells logcat to silence the "View" tag completely, but keep everything else
+                val process = Runtime.getRuntime().exec("logcat -d -v threadtime -t 10000 --pid=$myPid View:S -f ${logTxtFile.absolutePath}")
                 process.waitFor()
 
                 // 4. Compress the text file into a highly compressed ZIP archive
