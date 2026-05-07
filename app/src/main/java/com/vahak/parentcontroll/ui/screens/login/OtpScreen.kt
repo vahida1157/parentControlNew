@@ -61,7 +61,8 @@ fun OtpScreen(
     phoneNumber: String,
     viewModel: OtpViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
-    onVerifyClick: () -> Unit
+    onVerifyClick: () -> Unit,
+    onNavigateToPasswordSetup: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -71,11 +72,13 @@ fun OtpScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is OtpEffect.NavigateToDashboard -> onVerifyClick()
+                is OtpEffect.NavigateToPasswordSetup -> onNavigateToPasswordSetup()
                 is OtpEffect.ShowToast -> Toast.makeText(
                     context,
                     effect.message,
                     Toast.LENGTH_SHORT
                 ).show()
+
             }
         }
     }
@@ -245,12 +248,17 @@ fun OtpScreenContent(
 
                 Spacer(modifier = Modifier.height(40.dp))
 
+                val minutes = (state.timerSeconds / 60).toString().padStart(2, '0')
+                val seconds = (state.timerSeconds % 60).toString().padStart(2, '0')
+
                 Text(
-                    text = "ارسال مجدد کد (01:59)",
+                    text = if (state.canResend) "ارسال مجدد کد" else "ارسال مجدد کد ($minutes:$seconds)",
                     style = MaterialTheme.typography.labelLarge,
-                    color = colors.primary,
+                    color = if (state.canResend) colors.primary else colors.textHint,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { onEvent(OtpEvent.ResendClicked) }
+                    modifier = Modifier.clickable(enabled = state.canResend) {
+                        onEvent(OtpEvent.ResendClicked(phoneNumber))
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(30.dp))

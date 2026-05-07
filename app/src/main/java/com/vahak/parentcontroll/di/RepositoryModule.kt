@@ -4,6 +4,8 @@ import com.vahak.parentcontroll.domain.repository.AuthRepository
 import com.vahak.parentcontroll.domain.repository.AuthRepositoryImpl
 import com.vahak.parentcontroll.domain.repository.ChildRepository
 import com.vahak.parentcontroll.domain.repository.ChildRepositoryImpl
+import com.vahak.parentcontroll.domain.repository.ProfileRepository
+import com.vahak.parentcontroll.domain.repository.ProfileRepositoryImpl
 import com.vahak.parentcontroll.domain.repository.SettingsRepository
 import com.vahak.parentcontroll.domain.repository.SettingsRepositoryImpl
 import dagger.Binds
@@ -33,4 +35,10 @@ abstract class RepositoryModule {
     abstract fun bindSettingsRepository(
         settingsRepositoryImpl: SettingsRepositoryImpl
     ): SettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindProfileRepository(
+        profileRepositoryImpl: ProfileRepositoryImpl
+    ): ProfileRepository
 }

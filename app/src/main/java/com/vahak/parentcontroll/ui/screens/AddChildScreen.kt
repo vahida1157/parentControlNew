@@ -42,6 +42,7 @@ import com.vahak.parentcontroll.presentation.addchild.AddChildEffect
 import com.vahak.parentcontroll.presentation.addchild.AddChildEvent
 import com.vahak.parentcontroll.presentation.addchild.AddChildState
 import com.vahak.parentcontroll.presentation.addchild.AddChildViewModel
+import com.vahak.parentcontroll.ui.component.AvatarPickerBadge
 import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
@@ -242,7 +243,7 @@ fun AddChildScreenContent(
 
                 // 3. Reusable Profile Uploader
                 Box(modifier = Modifier.align(Alignment.TopCenter)) {
-                    _root_ide_package_.com.vahak.parentcontroll.ui.component.AvatarPickerBadge(
+                    AvatarPickerBadge(
                         onClick = { /* Open Image Picker */ })
                 }
             }

@@ -26,6 +26,7 @@ class SessionManager @Inject constructor(
         private val PARENT_PIN = stringPreferencesKey("parent_pin")
         private val SECURITY_QUESTION = stringPreferencesKey("security_question")
         private val SECURITY_ANSWER = stringPreferencesKey("security_answer")
+        private val HAS_PIN_SETUP = booleanPreferencesKey("has_pin_setup")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[IS_LOGGED_IN] ?: false }
@@ -35,17 +36,18 @@ class SessionManager @Inject constructor(
     val parentPinFlow: Flow<String?> = context.dataStore.data.map { it[PARENT_PIN] }
     val securityQuestionFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_QUESTION] }
     val securityAnswerFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_ANSWER] }
-    suspend fun saveSession(token: String, phone: String) {
+    val hasPinSetupFlow: Flow<Boolean> = context.dataStore.data.map { it[HAS_PIN_SETUP] ?: false }
+    suspend fun saveSession(token: String, phone: String, hasPinSetup: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[IS_LOGGED_IN] = true
             prefs[AUTH_TOKEN] = token
             prefs[USER_PHONE] = phone
+            prefs[HAS_PIN_SETUP] = hasPinSetup
         }
     }
 
     suspend fun clearSession() {
-//        context.dataStore.edit { it.clear() }
-        clearParentPin()
+        context.dataStore.edit { it.clear() }
     }
 
     suspend fun setActiveChildId(childId: String) {

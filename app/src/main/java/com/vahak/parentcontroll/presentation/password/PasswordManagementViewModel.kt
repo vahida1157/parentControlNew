@@ -2,6 +2,7 @@ package com.vahak.parentcontroll.presentation.password
 
 import androidx.lifecycle.viewModelScope
 import com.vahak.parentcontroll.core.data.local.SessionManager
+import com.vahak.parentcontroll.domain.usecase.SetupSecurityUseCase
 import com.vahak.parentcontroll.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +58,8 @@ sealed class PasswordEffect {
 
 @HiltViewModel
 class PasswordManagementViewModel @Inject constructor(
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val setupSecurityUseCase: SetupSecurityUseCase
 ) : BaseViewModel<PasswordState, PasswordEvent, PasswordEffect>(PasswordState()) {
 
     val questionsList = listOf(
@@ -170,12 +172,18 @@ class PasswordManagementViewModel @Inject constructor(
 
             when (state.value.step) {
                 PasswordStep.SETUP_PIN -> {
-                    withContext(Dispatchers.IO) {
-                        sessionManager.setParentPin(pin)
+                    val result = setupSecurityUseCase.execute(
+                        pin = pin,
+                        question = state.value.selectedQuestion,
+                        answer = state.value.securityAnswer
+                    )
+
+                    result.onSuccess {
+                        sendEffect(PasswordEffect.ShowToast("رمز عبور در سرور ذخیره شد!"))
+                        sendEffect(PasswordEffect.NavigateToDashboard)
+                    }.onFailure { error ->
+                        triggerErrorState(error.message ?: "خطای نامشخص")
                     }
-                    sessionManager.parentPinFlow.first { emittedPin -> emittedPin == pin }
-                    sendEffect(PasswordEffect.ShowToast("رمز عبور با موفقیت ذخیره شد!"))
-                    sendEffect(PasswordEffect.NavigateToDashboard)
                 }
 
                 PasswordStep.ENTER_CURRENT -> {

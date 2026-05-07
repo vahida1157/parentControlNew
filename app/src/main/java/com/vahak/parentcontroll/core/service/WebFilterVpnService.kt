@@ -34,6 +34,7 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.nio.ByteBuffer
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
@@ -55,6 +56,9 @@ class WebFilterVpnService : VpnService() {
 
         private const val NOTIFICATION_ID = 9999
         private const val CHANNEL_ID = "secure_vpn_channel"
+
+        // Default safe MTU for MCI/Irancell
+        private const val SAFE_MTU = 1300
     }
 
     private var vpnInterface: ParcelFileDescriptor? = null
@@ -64,11 +68,11 @@ class WebFilterVpnService : VpnService() {
     private lateinit var connectivityManager: ConnectivityManager
     private var activeBlockedDomains: List<String> = emptyList()
 
-    data class PhysicalNetworkInfo(val isWifi: Boolean, val dns: InetAddress?)
+    // 🚀 Store the Network object here so we can bind to it later
+    data class PhysicalNetworkInfo(val isWifi: Boolean, val dns: InetAddress?, val network: Network)
 
     private val activeNetworksMap = ConcurrentHashMap<Network, PhysicalNetworkInfo>()
 
-    // 🚀 FULLY LOGGED NETWORK TRACKER
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
 
         override fun onLinkPropertiesChanged(network: Network, lp: android.net.LinkProperties) {
@@ -94,7 +98,8 @@ class WebFilterVpnService : VpnService() {
                     it.hostAddress?.contains(".") == true && it.hostAddress != VPN_DNS
                 }
 
-                activeNetworksMap[network] = PhysicalNetworkInfo(isWifi, dns)
+                // Save the actual 'network' object into our map
+                activeNetworksMap[network] = PhysicalNetworkInfo(isWifi, dns, network)
 
                 val type = if (isWifi) "Wi-Fi" else "Cellular"
                 Log.i(TAG, "🌐 $type mapped. DNS: ${dns?.hostAddress}. Total Active Networks: ${activeNetworksMap.size}")
@@ -111,22 +116,19 @@ class WebFilterVpnService : VpnService() {
         }
     }
 
-    // 🚀 FULLY LOGGED ROUTER
-    private fun getBestUnderlyingDns(): InetAddress {
-        val wifiDns = activeNetworksMap.values.firstOrNull { it.isWifi && it.dns != null }?.dns
-        if (wifiDns != null) {
-            Log.v(TAG, "🔀 Router Selected: Wi-Fi DNS (${wifiDns.hostAddress})")
-            return wifiDns
+    // 🚀 RESTORED: Now returns the PhysicalNetworkInfo containing the Network object
+    private fun getBestUnderlyingNetwork(): PhysicalNetworkInfo? {
+        val wifiInfo = activeNetworksMap.values.firstOrNull { it.isWifi && it.dns != null }
+        if (wifiInfo != null) {
+            return wifiInfo
         }
 
-        val cellDns = activeNetworksMap.values.firstOrNull { !it.isWifi && it.dns != null }?.dns
-        if (cellDns != null) {
-            Log.v(TAG, "🔀 Router Selected: Cellular DNS (${cellDns.hostAddress})")
-            return cellDns
+        val cellInfo = activeNetworksMap.values.firstOrNull { !it.isWifi && it.dns != null }
+        if (cellInfo != null) {
+            return cellInfo
         }
 
-        Log.w(TAG, "🔀 Router Warning: No physical DNS found in map! Falling back to 8.8.8.8")
-        return InetAddress.getByName("8.8.8.8")
+        return null
     }
 
     override fun onCreate() {
@@ -186,10 +188,10 @@ class WebFilterVpnService : VpnService() {
         }
 
         try {
-            Log.d(TAG, "🏗️ Building VPN Interface...")
+            Log.d(TAG, "🏗️ Building VPN Interface with MTU $SAFE_MTU...")
             val builder = Builder()
                 .setSession("محافظت وب خانواده")
-                .setMtu(1500)
+                .setMtu(SAFE_MTU) // 🚀 Hardcoded to 1300 for stability
                 .addAddress(VPN_ADDRESS, 24)
                 .addDnsServer(VPN_DNS)
                 .addRoute(VPN_DNS, 32)
@@ -223,23 +225,26 @@ class WebFilterVpnService : VpnService() {
                 try {
                     val length = inputStream.read(packet.array())
                     if (length > 0) {
-//                        Log.v(TAG, "📦 Read $length bytes from TUN")
                         val rawPacketBytes = packet.array()
                         val requestedDomain = DnsPacketHelper.extractDomainFromPacket(rawPacketBytes, length)
 
                         if (requestedDomain != null) {
+                            // 🚀 Generate a unique ID for this specific packet flow
+                            val packetId = UUID.randomUUID().toString().substring(0, 4).uppercase()
+
                             val isBlocked = activeBlockedDomains.any {
                                 requestedDomain.lowercase().contains(it)
                             }
 
                             if (isBlocked) {
-                                Log.w(TAG, "🚨 BLOCKED: Dropping packet for domain -> $requestedDomain")
+                                Log.w(TAG, "[$packetId] 🚨 BLOCKED: Dropping packet for -> $requestedDomain")
                             } else {
-                                Log.v(TAG, "✅ ALLOWED: Forwarding domain -> $requestedDomain")
-                                forwardDnsRequest(rawPacketBytes, length, outputStream)
+                                Log.v(TAG, "[$packetId] ✅ ALLOWED: Forwarding domain -> $requestedDomain")
+                                // Pass the ID and domain down so we don't parse it twice
+                                forwardDnsRequest(rawPacketBytes, length, outputStream, requestedDomain, packetId)
                             }
                         } else {
-                            Log.v(TAG, "❓ Packet parsed, but no domain extracted. (Not a standard DNS A/AAAA record)")
+                            Log.v(TAG, "❓ Packet parsed, but no domain extracted.")
                         }
                     }
                 } catch (e: Exception) {
@@ -258,7 +263,9 @@ class WebFilterVpnService : VpnService() {
     private suspend fun forwardDnsRequest(
         rawPacketBytes: ByteArray,
         length: Int,
-        outputStream: FileOutputStream
+        outputStream: FileOutputStream,
+        requestedDomain: String,
+        packetId: String
     ) {
         withContext(Dispatchers.IO) {
             var socket: DatagramSocket? = null
@@ -268,7 +275,7 @@ class WebFilterVpnService : VpnService() {
                 val dnsPayloadLength = length - dnsPayloadOffset
 
                 if (dnsPayloadLength <= 0) {
-                    Log.v(TAG, "⚠️ DNS payload length <= 0, skipping forward.")
+                    Log.v(TAG, "[$packetId] ⚠️ DNS payload length <= 0, skipping.")
                     return@withContext
                 }
 
@@ -278,12 +285,19 @@ class WebFilterVpnService : VpnService() {
                 socket = DatagramSocket()
 
                 if (!protect(socket)) {
-                    Log.e(TAG, "❌ Failed to protect the outbound UDP socket from VPN loop!")
+                    Log.e(TAG, "[$packetId] ❌ Failed to protect the outbound UDP socket!")
                     return@withContext
                 }
 
-                val systemDns = getBestUnderlyingDns()
-                Log.v(TAG, "📤 Sending UDP packet ($dnsPayloadLength bytes) to ${systemDns.hostAddress}:53")
+                // 🚀 BIND SOCKET TO PHYSICAL NETWORK
+                val bestNetworkInfo = getBestUnderlyingNetwork()
+                if (bestNetworkInfo != null) {
+                    bestNetworkInfo.network.bindSocket(socket)
+                    Log.v(TAG, "[$packetId] 🔗 Bound to ${if(bestNetworkInfo.isWifi) "Wi-Fi" else "Cellular"} antenna")
+                }
+
+                val systemDns = bestNetworkInfo?.dns ?: InetAddress.getByName("8.8.8.8")
+                Log.v(TAG, "[$packetId] 📤 Sending UDP packet ($dnsPayloadLength bytes) to ${systemDns.hostAddress}:53")
 
                 val outPacket = DatagramPacket(dnsPayload, dnsPayloadLength, systemDns, 53)
                 socket.send(outPacket)
@@ -293,16 +307,17 @@ class WebFilterVpnService : VpnService() {
                 val inPacket = DatagramPacket(responseBuffer, responseBuffer.size)
 
                 socket.receive(inPacket)
-                Log.v(TAG, "📥 Received UDP response (${inPacket.length} bytes) from ${inPacket.address.hostAddress}")
+                Log.v(TAG, "[$packetId] 📥 Received UDP response (${inPacket.length} bytes) from ${inPacket.address.hostAddress}")
 
                 val responseDnsPayload = inPacket.data.copyOfRange(0, inPacket.length)
                 val finalIpPacket = forgeDnsResponsePacket(rawPacketBytes, responseDnsPayload)
 
                 outputStream.write(finalIpPacket)
-                Log.v(TAG, "✍️ Forged IP packet written back to TUN interface.")
+                Log.v(TAG, "[$packetId] ✍️ Forged IP packet written back to TUN.")
 
             } catch (e: Exception) {
-                Log.e(TAG, "⏳ DNS Forwarding timeout/error: ${e.javaClass.simpleName} - ${e.message}")
+                // 🚀 The log you requested: Shows the domain, the error, and the exact packet ID
+                Log.e(TAG, "[$packetId] ⏳ Forwarding timeout/error for $requestedDomain: ${e.javaClass.simpleName} - ${e.message}")
             } finally {
                 socket?.close()
             }

@@ -1,16 +1,14 @@
 package com.vahak.parentcontroll.presentation.addchild
 
 import androidx.lifecycle.viewModelScope
-import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
+import com.vahak.parentcontroll.core.util.JalaliConverter
 import com.vahak.parentcontroll.domain.repository.ChildRepository
+import com.vahak.parentcontroll.domain.usecase.ChildValidationResult
 import com.vahak.parentcontroll.domain.usecase.ValidateAddChildUseCase
-import com.vahak.parentcontroll.domain.usecase.ValidationResult
 import com.vahak.parentcontroll.presentation.BaseViewModel
 import com.vahak.parentcontroll.ui.screens.Gender
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.util.UUID
 import javax.inject.Inject
 import com.vahak.parentcontroll.core.data.local.entity.Gender as DbGender
 
@@ -19,6 +17,8 @@ data class AddChildState(
     val name: String = "",
     val dob: String = "",
     val gender: Gender? = null,
+    val avatarId: Int = 1,
+    val isAvatarSheetOpen: Boolean = false,
     val errorMessage: String? = null,
     val isSaving: Boolean = false,
     val isDobSheetOpen: Boolean = false,
@@ -30,6 +30,11 @@ sealed class AddChildEvent {
     object CloseDobSheet : AddChildEvent()
     data class DobSelected(val year: Int, val month: Int, val day: Int) : AddChildEvent()
     data class GenderSelected(val gender: Gender) : AddChildEvent()
+
+    object OpenAvatarSheet : AddChildEvent()
+    object CloseAvatarSheet : AddChildEvent()
+    data class AvatarSelected(val id: Int) : AddChildEvent()
+
     object SaveClicked : AddChildEvent()
 }
 
@@ -48,8 +53,7 @@ class AddChildViewModel @Inject constructor(
         when (event) {
             is AddChildEvent.NameChanged -> updateState {
                 copy(
-                    name = event.name,
-                    errorMessage = null
+                    name = event.name, errorMessage = null
                 )
             }
 
@@ -71,10 +75,13 @@ class AddChildViewModel @Inject constructor(
             }
 
             is AddChildEvent.GenderSelected -> updateState {
-                copy(
-                    gender = event.gender,
-                    errorMessage = null
-                )
+                copy(gender = event.gender, errorMessage = null)
+            }
+
+            is AddChildEvent.OpenAvatarSheet -> updateState { copy(isAvatarSheetOpen = true) }
+            is AddChildEvent.CloseAvatarSheet -> updateState { copy(isAvatarSheetOpen = false) }
+            is AddChildEvent.AvatarSelected -> updateState {
+                copy(avatarId = event.id, isAvatarSheetOpen = false)
             }
 
             is AddChildEvent.SaveClicked -> submitData()
@@ -85,53 +92,38 @@ class AddChildViewModel @Inject constructor(
         val currentState = state.value
 
         val validationResult = validateUseCase.execute(
-            name = currentState.name,
-            dob = currentState.dob,
-            gender = currentState.gender
+            name = currentState.name, dob = currentState.dob, gender = currentState.gender
         )
 
-        when (validationResult) {
-            is ValidationResult.Error -> {
-                updateState { copy(errorMessage = validationResult.message) }
-            }
+        if (validationResult is ChildValidationResult.Error) {
+            updateState { copy(errorMessage = validationResult.message) }
+            return
+        }
 
-            is ValidationResult.Success -> {
-                updateState { copy(isSaving = true, errorMessage = null) }
+        updateState { copy(isSaving = true, errorMessage = null) }
 
-                viewModelScope.launch {
-                    try {
-                        // 1. Map UI Enum to DB Enum
-                        val dbGender =
-                            if (currentState.gender == Gender.Boy) DbGender.BOY else DbGender.GIRL
+        viewModelScope.launch {
+            val dbGender = if (currentState.gender == Gender.Boy) DbGender.BOY else DbGender.GIRL
 
-                        // 2. Map String to LocalDate (Note: In a real Persian app, use a Jalali-to-Gregorian converter here)
-                        // For now, we will mock a safe date parsing to prevent crashes
-                        val defaultDate = LocalDate.now()
+            // PRO FIX: Parse the string and convert Jalali to Gregorian
+            val dobParts = currentState.dob.split("/")
+            val jy = dobParts[0].toInt()
+            val jm = dobParts[1].toInt()
+            val jd = dobParts[2].toInt()
 
-                        // 3. Create the Entity
-                        val newChild = ChildEntity(
-                            id = UUID.randomUUID().toString(),
-                            name = currentState.name,
-                            dob = defaultDate, // We use the safe date
-                            gender = dbGender,
-                            avatarId = 0 // Default avatar for now
-                        )
+            val gregorianDob = JalaliConverter.jalaliToGregorian(jy, jm, jd)
 
-                        // 4. Save to Room Database
-                        childRepository.createChild(newChild)
+            val result = childRepository.createChild(
+                name = currentState.name, dob = gregorianDob,
+                gender = dbGender, avatarId = currentState.avatarId
+            )
 
-                        // 5. Success Effect
-                        sendEffect(AddChildEffect.ShowToast("فرزند با موفقیت اضافه شد."))
-                        sendEffect(AddChildEffect.NavigateBack)
-
-                    } catch (_: Exception) {
-                        updateState {
-                            copy(
-                                isSaving = false,
-                                errorMessage = "خطا در ذخیره اطلاعات."
-                            )
-                        }
-                    }
+            result.onSuccess {
+                sendEffect(AddChildEffect.ShowToast("فرزند با موفقیت اضافه شد."))
+                sendEffect(AddChildEffect.NavigateBack)
+            }.onFailure { error ->
+                updateState {
+                    copy(isSaving = false, errorMessage = error.message ?: "خطا در ذخیره اطلاعات.")
                 }
             }
         }

@@ -37,9 +37,9 @@ fun ParentControlNavGraph(
 
         composable(route = Screen.Login.route) {
             LoginScreen(
-                onNavigateToOtp = { phone ->
+                onNavigateToOtp = { phone, expiresInSeconds ->
                     if (phone.isNotBlank()) {
-                        navController.navigate(Screen.Otp.createRoute(phone))
+                        navController.navigate(Screen.Otp.createRoute(phone, expiresInSeconds))
                     }
                 })
         }
@@ -57,7 +57,8 @@ fun ParentControlNavGraph(
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
-                })
+                },
+                onNavigateToPasswordSetup = { navController.navigate(Screen.PasswordManagement.route) })
         }
 
         composable(route = Screen.Dashboard.route) {
@@ -168,8 +169,7 @@ fun ParentControlNavGraph(
             val childId = backStackEntry.arguments?.getString("childId") ?: ""
 
             SiteManagementScreen(
-                onBackClick = { navController.popBackStack() }
-            )
+                onBackClick = { navController.popBackStack() })
         }
     }
 }

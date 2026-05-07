@@ -3,9 +3,11 @@ package com.vahak.parentcontroll.ui.navigation
 sealed class Screen(val route: String) {
     // --- Auth & Setup ---
     object Login : Screen("login")
-    object Otp : Screen("otp/{phoneNumber}") {
-        fun createRoute(phoneNumber: String) = "otp/$phoneNumber"
+    object Otp : Screen("otp/{phoneNumber}/{expiresInSeconds}") {
+        fun createRoute(phoneNumber: String, expiresInSeconds: Int) =
+            "otp/$phoneNumber/$expiresInSeconds"
     }
+
     object PasswordManagement : Screen("password_management")
 
     // --- Main Flow ---
@@ -36,7 +38,8 @@ sealed class Screen(val route: String) {
     }
 
     // --- System & Permissions ---
-    object PermissionSlider : Screen("permission_slider/{featureRoute}/{childId}/{missingPermissions}") {
+    object PermissionSlider :
+        Screen("permission_slider/{featureRoute}/{childId}/{missingPermissions}") {
         fun createRoute(featureRoute: String, childId: String, missingPermissions: String) =
             "permission_slider/$featureRoute/$childId/$missingPermissions"
     }

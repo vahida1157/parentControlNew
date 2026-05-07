@@ -65,6 +65,12 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+
+    // Retrofit & Network
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0") // To see network logs in Logcat
+
     ksp(libs.room.compiler)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)

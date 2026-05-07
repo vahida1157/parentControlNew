@@ -1,6 +1,5 @@
 package com.vahak.parentcontroll.ui.screens.login
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +21,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -45,33 +45,49 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.parentcontroll.presentation.login.LoginEffect
 import com.vahak.parentcontroll.presentation.login.LoginEvent
+import com.vahak.parentcontroll.presentation.login.LoginState
 import com.vahak.parentcontroll.presentation.login.LoginViewModel
 import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
+// 1. STATEFUL WRAPPER
+// This handles the ViewModel, State Collection, and Navigation Effects.
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
-    onNavigateToOtp: (String) -> Unit
+    onNavigateToOtp: (String, Int) -> Unit
 ) {
-    val colors = LocalCustomColors.current
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is LoginEffect.NavigateToOtp -> onNavigateToOtp(effect.phone)
+                is LoginEffect.NavigateToOtp -> onNavigateToOtp(effect.phone, effect.ttl)
             }
         }
     }
 
-    // Replicating --primary-gradient: linear-gradient(135deg, #00b09b, #96c93d);
+    // Pass everything down to the Stateless component
+    LoginScreenContent(
+        state = state,
+        onEvent = viewModel::onEvent
+    )
+}
+
+// 2. STATELESS CONTENT (Safe for Previews)
+// This only knows about UI logic. It takes data in (state) and sends events up (onEvent).
+@Composable
+fun LoginScreenContent(
+    state: LoginState,
+    onEvent: (LoginEvent) -> Unit
+) {
+    val colors = LocalCustomColors.current
+
     val primaryGradient = Brush.linearGradient(
         colors = listOf(colors.primary, colors.secondary)
     )
 
-    // Full screen background matching body { background-color: var(--bg-body); }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -80,7 +96,6 @@ fun LoginScreen(
             .padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Main Container matching .login-container
         Card(
             shape = RoundedCornerShape(30.dp),
             colors = CardDefaults.cardColors(containerColor = colors.surface),
@@ -112,7 +127,7 @@ fun LoginScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        painter = AppIcons.Phone, // Replacing fa-mobile-alt
+                        painter = AppIcons.Phone,
                         contentDescription = "Mobile Icon",
                         tint = Color.White,
                         modifier = Modifier.size(40.dp)
@@ -120,7 +135,7 @@ fun LoginScreen(
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
-                // Title
+
                 Text(
                     text = "صفحه ورود",
                     style = MaterialTheme.typography.titleLarge,
@@ -137,7 +152,7 @@ fun LoginScreen(
                 ) {
                     if (state.errorMessage != null) {
                         Text(
-                            text = state.errorMessage!!,
+                            text = state.errorMessage,
                             color = colors.red,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(8.dp)
@@ -152,7 +167,7 @@ fun LoginScreen(
 
                     OutlinedTextField(
                         value = state.phoneNumber,
-                        onValueChange = { viewModel.onEvent(LoginEvent.PhoneChanged(it)) },
+                        onValueChange = { onEvent(LoginEvent.PhoneChanged(it)) }, // Replaced viewModel call
                         placeholder = {
                             Text(
                                 text = "لطفا شماره تماس خود را وارد کنید مانند : 09102112222",
@@ -166,12 +181,12 @@ fun LoginScreen(
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            textDirection = TextDirection.Ltr, // Keep numbers LTR
+                            textDirection = TextDirection.Ltr,
                             textAlign = TextAlign.Start,
                             color = colors.textPrimary
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = Color(0xFFF8F9FA), // --input-bg
+                            unfocusedContainerColor = Color(0xFFF8F9FA),
                             focusedContainerColor = colors.surface,
                             unfocusedBorderColor = Color(0xFFEEEEEE),
                             focusedBorderColor = colors.primary,
@@ -211,42 +226,55 @@ fun LoginScreen(
 
                 // Submit Button
                 Button(
-                    onClick = { viewModel.onEvent(LoginEvent.SubmitClicked) },
+                    onClick = { onEvent(LoginEvent.SubmitClicked) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(60.dp),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues() // Remove default padding to let gradient fill
+                    contentPadding = PaddingValues(),
+                    enabled = !state.isLoading // Disable button while network request is happening
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(primaryGradient)
+                            .background(
+                                if (!state.isLoading) primaryGradient
+                                else Brush.linearGradient(listOf(Color.Gray, Color.LightGray))
+                            )
                             .shadow(
                                 10.dp,
                                 RoundedCornerShape(18.dp),
-                                spotColor = colors.primary.copy(alpha = 0.3f)
+                                spotColor = if (!state.isLoading) colors.primary.copy(alpha = 0.3f) else Color.Transparent
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "دریافت کد تایید",
+                        // FIX: Added Loading Indicator
+                        if (state.isLoading) {
+                            CircularProgressIndicator(
                                 color = Color.White,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                modifier = Modifier.size(28.dp),
+                                strokeWidth = 3.dp
                             )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Icon(
-                                painter = AppIcons.ChevronLeft, // Using your existing AppIcons
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "دریافت کد تایید",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Icon(
+                                    painter = AppIcons.ChevronLeft,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -255,11 +283,40 @@ fun LoginScreen(
     }
 }
 
-
-@Preview(showBackground = true, locale = "fa")
+// 3. SAFE PREVIEWS
+@Preview(showBackground = true, locale = "fa", name = "1. Normal State")
 @Composable
 fun LoginScreenPreview() {
     ParentControlTheme {
-        LoginScreen(onNavigateToOtp = {})
+        // We now preview the Stateless component and mock the data
+        LoginScreenContent(
+            state = LoginState(phoneNumber = ""),
+            onEvent = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, locale = "fa", name = "2. Loading State")
+@Composable
+fun LoginScreenLoadingPreview() {
+    ParentControlTheme {
+        LoginScreenContent(
+            state = LoginState(phoneNumber = "09123456789", isLoading = true),
+            onEvent = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, locale = "fa", name = "3. Error State")
+@Composable
+fun LoginScreenErrorPreview() {
+    ParentControlTheme {
+        LoginScreenContent(
+            state = LoginState(
+                phoneNumber = "123",
+                errorMessage = "شماره تماس نامعتبر است (مثال: 09123456789)"
+            ),
+            onEvent = {}
+        )
     }
 }

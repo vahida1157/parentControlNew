@@ -59,8 +59,8 @@ class DashboardViewModel @Inject constructor(
     init {
         // --- 1. PRO FIX: IMMEDIATE PIN CHECK ON LOAD ---
         viewModelScope.launch {
-            val savedPin = sessionManager.parentPinFlow.first()
-            if (savedPin.isNullOrEmpty()) {
+            val savedPin = sessionManager.hasPinSetupFlow.first()
+            if (!savedPin) {
                 // If it's their first time logging in, send them straight to password setup!
                 sendEffect(DashboardEffect.NavigateToPasswordSetup)
             }
@@ -82,6 +82,22 @@ class DashboardViewModel @Inject constructor(
             sessionManager.activeChildIdFlow.collectLatest { activeId ->
                 updateState { copy(isProtectionActive = activeId != null) }
             }
+        }
+
+        viewModelScope.launch {
+            childRepository.getAllChildren().collectLatest { childList ->
+                updateState {
+                    copy(
+                        children = childList,
+                        activeChild = activeChild ?: childList.firstOrNull()
+                    )
+                }
+            }
+        }
+
+        // 2. Silently sync fresh data from the backend
+        viewModelScope.launch {
+            childRepository.syncChildrenFromServer()
         }
     }
 
@@ -108,8 +124,8 @@ class DashboardViewModel @Inject constructor(
 
     private fun startProtectionService(childId: String) {
         viewModelScope.launch {
-            val savedPin = sessionManager.parentPinFlow.first()
-            if (savedPin.isNullOrEmpty()) {
+            val savedPin = sessionManager.hasPinSetupFlow.first()
+            if (!savedPin) {
                 updateState { copy(showPinRequiredDialog = true) }
                 return@launch
             }
