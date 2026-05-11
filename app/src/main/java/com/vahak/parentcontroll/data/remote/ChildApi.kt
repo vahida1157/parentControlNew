@@ -7,9 +7,10 @@ import retrofit2.http.POST
 
 data class CreateChildRequestDto(
     val name: String,
-    val dob: String, // We will send ISO format "YYYY-MM-DD"
-    val gender: String, // "BOY" or "GIRL"
-    val avatarId: Int
+    val dob: String,
+    val gender: String,
+    val avatarId: Int,
+    val phone: String?,
 )
 
 data class ChildResponseDto(
@@ -17,7 +18,8 @@ data class ChildResponseDto(
     val name: String,
     val dob: String,
     val gender: String,
-    val avatarId: Int
+    val avatarId: Int,
+    val phone: String?,
 )
 
 interface ChildApi {

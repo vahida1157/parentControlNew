@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
 
             val navController = rememberNavController()
 
-            ParentControlTheme {
+            com.vahak.parentcontroll.uiv2.theme.ParentControlTheme() {
                 if (startDestination == null) {
                     // Splash / Loading State
                     Box(

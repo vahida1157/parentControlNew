@@ -32,7 +32,7 @@ data class CustomColors(
     val backgroundButtonDisable: Color,
 )
 
-data class LightColors(
+internal data class LightColors(
     val primary: Color = Color(0xFF00B09B),
     val primaryVariant: Color = Color(0xFF00897B),
     val secondary: Color = Color(0xFF96C93D),
@@ -62,7 +62,7 @@ data class LightColors(
     val backgroundButtonDisable: Color = Color(0xFFBDBDBD)
 )
 
-data class DarkColors(
+internal data class DarkColors(
     val primary: Color = Color(0xFF4DB6AC),
     val primaryVariant: Color = Color(0xFF00796B),
     val secondary: Color = Color(0xFFAED581),

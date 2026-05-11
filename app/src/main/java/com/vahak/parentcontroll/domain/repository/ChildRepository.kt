@@ -13,10 +13,10 @@ import com.vahak.parentcontroll.core.data.local.entity.Gender as DbGender
 
 interface ChildRepository {
     suspend fun createChild(
-        name: String, dob: LocalDate, gender: DbGender, avatarId: Int
+        name: String, dob: LocalDate, gender: DbGender, avatarId: Int, phone: String?
     ): Result<Unit>
 
-    suspend fun syncChildrenFromServer(): Result<Unit> // New Sync Method
+    suspend fun syncChildrenFromServer(): Result<Unit>
     fun getAllChildren(): Flow<List<ChildEntity>>
     fun observeChildById(childId: String): Flow<ChildEntity?>
     suspend fun getChildById(childId: String): ChildEntity?
@@ -25,35 +25,36 @@ interface ChildRepository {
 class ChildRepositoryImpl @Inject constructor(
     private val childDao: ChildDao,
     private val settingsDao: SettingsDao,
-    private val childApi: ChildApi // Injected via NetworkModule
+    private val childApi: ChildApi
 ) : ChildRepository {
 
     override suspend fun createChild(
-        name: String, dob: LocalDate, gender: DbGender, avatarId: Int
+        name: String, dob: LocalDate, gender: DbGender, avatarId: Int, phone: String?
     ): Result<Unit> {
         return try {
-            // 1. Ask the backend to create the child
             val request = CreateChildRequestDto(
-                name = name, dob = dob.toString(), gender = gender.name, avatarId = avatarId
+                name = name,
+                dob = dob.toString(),
+                gender = gender.name,
+                avatarId = avatarId,
+                phone = phone,
             )
             val response = childApi.addChild(request)
 
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
 
-                // 2. Create the entity using the official UUID from the server
                 val newChild = ChildEntity(
                     id = body.id,
                     name = body.name,
                     dob = LocalDate.parse(body.dob),
                     gender = gender,
-                    avatarId = body.avatarId
+                    avatarId = body.avatarId,
+                    phone = body.phone,
                 )
 
-                // 3. Save the child profile safely
                 childDao.upsertChild(newChild)
 
-                // 4. Automatically create default global settings
                 val defaultSettings = GlobalSettingsEntity(childId = newChild.id)
                 settingsDao.upsertGlobalSettings(defaultSettings)
 
@@ -76,11 +77,11 @@ class ChildRepositoryImpl @Inject constructor(
                         name = dto.name,
                         dob = LocalDate.parse(dto.dob),
                         gender = if (dto.gender == "BOY") DbGender.BOY else DbGender.GIRL,
-                        avatarId = dto.avatarId
+                        avatarId = dto.avatarId,
+                        phone = dto.phone,
                     )
                 }
 
-                // Safely update all existing children and insert new ones
                 childDao.upsertChildren(serverChildren)
                 Result.success(Unit)
             } else {

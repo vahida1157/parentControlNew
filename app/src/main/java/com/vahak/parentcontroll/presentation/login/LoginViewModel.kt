@@ -33,7 +33,7 @@ class LoginViewModel @Inject constructor(
     override fun onEvent(event: LoginEvent) {
         when (event) {
             is LoginEvent.PhoneChanged -> {
-                if (event.phone.length <= 11 && event.phone.all { it.isDigit() }) {
+                if (event.phone.length <= 10 && event.phone.all { it.isDigit() }) {
                     updateState { copy(phoneNumber = event.phone, errorMessage = null) }
                 }
             }

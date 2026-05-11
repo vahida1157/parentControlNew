@@ -25,7 +25,7 @@ import com.vahak.parentcontroll.core.data.local.entity.GlobalSettingsEntity
         AppUsageRecordEntity::class,
         BlockedDomainEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)

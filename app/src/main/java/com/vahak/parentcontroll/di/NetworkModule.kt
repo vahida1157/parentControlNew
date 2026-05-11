@@ -24,8 +24,8 @@ object NetworkModule {
      * 2. If testing on a Physical Device via Wi-Fi: Use your PC's local IP (e.g., "http://192.168.1.15:8080/")
      */
 //    private const val BASE_URL = "http://10.0.2.2:8080/"
-//    private const val BASE_URL = "http://192.168.0.83:8080/"
-    private const val BASE_URL = "http://10.240.183.10:8080/"
+    private const val BASE_URL = "http://192.168.0.83:8080/"
+//    private const val BASE_URL = "http://10.240.183.10:8080/"
 
     @Provides
     @Singleton

@@ -5,8 +5,10 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.vahak.parentcontroll.uiv2.theme.AppTheme
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,6 +21,7 @@ class SessionManager @Inject constructor(
 ) {
 
     companion object {
+        private val THEME_KEY = stringPreferencesKey("app_theme")
         private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         private val AUTH_TOKEN = stringPreferencesKey("auth_token")
         private val USER_PHONE = stringPreferencesKey("user_phone")
@@ -29,6 +32,9 @@ class SessionManager @Inject constructor(
         private val HAS_PIN_SETUP = booleanPreferencesKey("has_pin_setup")
     }
 
+    val appThemeFlow: Flow<AppTheme> = context.dataStore.data.map {
+        AppTheme.valueOf(it[THEME_KEY] ?: AppTheme.SYSTEM.name)
+    }
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[IS_LOGGED_IN] ?: false }
     val authToken: Flow<String?> = context.dataStore.data.map { it[AUTH_TOKEN] }
     val userPhoneFlow: Flow<String?> = context.dataStore.data.map { it[USER_PHONE] }
@@ -36,18 +42,32 @@ class SessionManager @Inject constructor(
     val parentPinFlow: Flow<String?> = context.dataStore.data.map { it[PARENT_PIN] }
     val securityQuestionFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_QUESTION] }
     val securityAnswerFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_ANSWER] }
-    val hasPinSetupFlow: Flow<Boolean> = context.dataStore.data.map { it[HAS_PIN_SETUP] ?: false }
-    suspend fun saveSession(token: String, phone: String, hasPinSetup: Boolean) {
+
+    suspend fun saveSession(
+        token: String,
+        phone: String,
+        pin: String?,
+        securityQuestion: String?,
+        securityAnswer: String?
+    ) {
         context.dataStore.edit { prefs ->
             prefs[IS_LOGGED_IN] = true
             prefs[AUTH_TOKEN] = token
             prefs[USER_PHONE] = phone
-            prefs[HAS_PIN_SETUP] = hasPinSetup
+            pin?.let { prefs[PARENT_PIN] = it }
+            securityQuestion?.let { prefs[SECURITY_QUESTION] = it }
+            securityAnswer?.let { prefs[SECURITY_ANSWER] = it }
         }
     }
 
     suspend fun clearSession() {
         context.dataStore.edit { it.clear() }
+    }
+
+    suspend fun setAppTheme(theme: AppTheme) {
+        context.dataStore.edit { prefs ->
+            prefs[THEME_KEY] = theme.name
+        }
     }
 
     suspend fun setActiveChildId(childId: String) {
@@ -66,6 +86,10 @@ class SessionManager @Inject constructor(
         context.dataStore.edit { prefs ->
             prefs[PARENT_PIN] = pin
         }
+    }
+
+    suspend fun hasParentPin(): Boolean {
+        return !(parentPinFlow.first().isNullOrEmpty())
     }
 
     suspend fun clearParentPin() {

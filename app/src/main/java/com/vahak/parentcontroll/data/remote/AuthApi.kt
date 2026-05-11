@@ -12,7 +12,9 @@ data class AuthResponseDto(
     val parentId: String?,
     val accessToken: String?,
     val expiresInSeconds: Int?,
-    val hasPinSetup: Boolean?
+    val pinPassword: String? = null,
+    val securityQuestion: String? = null,
+    val securityAnswer: String? = null,
 )
 
 interface AuthApi {

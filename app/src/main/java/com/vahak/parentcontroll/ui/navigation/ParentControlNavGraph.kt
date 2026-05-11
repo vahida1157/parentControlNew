@@ -9,20 +9,20 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.vahak.parentcontroll.ui.screens.AddChildScreen
-import com.vahak.parentcontroll.ui.screens.AppSelectionScreen
-import com.vahak.parentcontroll.ui.screens.MainParentScreen
-import com.vahak.parentcontroll.ui.screens.TimeLimitScreen
-import com.vahak.parentcontroll.ui.screens.bedtime.BedtimeScreen
-import com.vahak.parentcontroll.ui.screens.family.FamilyManagementScreen
-import com.vahak.parentcontroll.ui.screens.login.LoginScreen
-import com.vahak.parentcontroll.ui.screens.login.OtpScreen
-import com.vahak.parentcontroll.ui.screens.password.PasswordManagementScreen
-import com.vahak.parentcontroll.ui.screens.permissions.PermissionSliderScreen
-import com.vahak.parentcontroll.ui.screens.report.UsageReportScreen
-import com.vahak.parentcontroll.ui.screens.settings.ChildSettingsScreen
+import com.vahak.parentcontroll.uiv2.screens.applimit.AppSelectionScreen
+import com.vahak.parentcontroll.uiv2.screens.timelimit.TimeLimitScreen
+import com.vahak.parentcontroll.uiv2.screens.bedtime.BedtimeScreen
+import com.vahak.parentcontroll.uiv2.screens.family.FamilyManagementScreen
+import com.vahak.parentcontroll.uiv2.screens.permissions.PermissionSliderScreen
+import com.vahak.parentcontroll.uiv2.screens.report.UsageReportScreen
+import com.vahak.parentcontroll.uiv2.screens.settings.ChildSettingsScreen
 import com.vahak.parentcontroll.ui.screens.settings.SiteManagementScreen
-import com.vahak.parentcontroll.ui.theme.ParentControlTheme
+import com.vahak.parentcontroll.uiv2.theme.ParentControlTheme
+import com.vahak.parentcontroll.uiv2.screens.MainParentScreen
+import com.vahak.parentcontroll.uiv2.screens.addchild.AddChildScreen
+import com.vahak.parentcontroll.uiv2.screens.login.LoginScreen
+import com.vahak.parentcontroll.uiv2.screens.login.OtpScreen
+import com.vahak.parentcontroll.uiv2.screens.password.PasswordManagementScreen
 
 @Composable
 fun ParentControlNavGraph(
@@ -142,7 +142,7 @@ fun ParentControlNavGraph(
 
         composable(route = Screen.PasswordManagement.route) {
             PasswordManagementScreen(
-                onBackClick = { navController.popBackStack() },
+//                onBackClick = { navController.popBackStack() },
                 onNavigateToDashboard = {
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(navController.graph.id) {

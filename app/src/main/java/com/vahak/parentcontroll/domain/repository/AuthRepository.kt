@@ -50,13 +50,17 @@ class AuthRepositoryImpl @Inject constructor(
             val body = response.body()
 
             if (response.isSuccessful && body?.accessToken != null) {
-                val hasPin = body.hasPinSetup ?: false
-
                 // Save it all directly to DataStore
-                sessionManager.saveSession(body.accessToken, phone, hasPin)
+                sessionManager.saveSession(
+                    body.accessToken,
+                    phone,
+                    body.pinPassword,
+                    body.securityQuestion,
+                    body.securityAnswer
+                )
 
                 // Return the token and the flag
-                Result.success(Pair(body.accessToken, hasPin))
+                Result.success(Pair(body.accessToken, !(body.pinPassword.isNullOrEmpty())))
             } else {
                 Result.failure(Exception("کد وارد شده صحیح نیست"))
             }

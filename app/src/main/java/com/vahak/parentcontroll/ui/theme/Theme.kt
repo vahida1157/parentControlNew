@@ -9,7 +9,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 
-fun LightColors.toCustomColors() = CustomColors(
+private fun LightColors.toCustomColors() = CustomColors(
     primary = primary,
     primaryVariant = primaryVariant,
     secondary = secondary,
@@ -39,7 +39,7 @@ fun LightColors.toCustomColors() = CustomColors(
     backgroundButtonDisable = backgroundButtonDisable,
 )
 
-fun DarkColors.toCustomColors() = CustomColors(
+private fun DarkColors.toCustomColors() = CustomColors(
     primary = primary,
     primaryVariant = primaryVariant,
     secondary = secondary,

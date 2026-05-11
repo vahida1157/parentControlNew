@@ -43,6 +43,9 @@ import com.vahak.parentcontroll.presentation.addchild.AddChildEvent
 import com.vahak.parentcontroll.presentation.addchild.AddChildState
 import com.vahak.parentcontroll.presentation.addchild.AddChildViewModel
 import com.vahak.parentcontroll.ui.component.AvatarPickerBadge
+import com.vahak.parentcontroll.ui.component.DynamicDatePicker
+import com.vahak.parentcontroll.ui.component.GenderOption
+import com.vahak.parentcontroll.ui.component.SimpleCurvedHeader
 import com.vahak.parentcontroll.ui.theme.AppIcons
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
@@ -99,7 +102,7 @@ fun AddChildScreenContent(
     ) {
 
         // 1. Reusable Header
-        _root_ide_package_.com.vahak.parentcontroll.ui.component.SimpleCurvedHeader(
+        SimpleCurvedHeader(
             title = "افزودن فرزند جدید",
             onBackClick = onBackClick
         )
@@ -192,7 +195,7 @@ fun AddChildScreenContent(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(15.dp)
                         ) {
-                            _root_ide_package_.com.vahak.parentcontroll.ui.component.GenderOption(
+                            GenderOption(
                                 isSelected = state.gender == Gender.Girl,
                                 title = "دختر",
                                 icon = AppIcons.Female,
@@ -200,7 +203,7 @@ fun AddChildScreenContent(
                                 modifier = Modifier.weight(1f)
                             ) { onEvent(AddChildEvent.GenderSelected(Gender.Girl)) }
 
-                            _root_ide_package_.com.vahak.parentcontroll.ui.component.GenderOption(
+                            GenderOption(
                                 isSelected = state.gender == Gender.Boy,
                                 title = "پسر",
                                 icon = AppIcons.Male,
@@ -255,7 +258,7 @@ fun AddChildScreenContent(
                 val currentMonth = dobParts.getOrNull(1)?.toIntOrNull() ?: 1
                 val currentDay = dobParts.getOrNull(2)?.toIntOrNull() ?: 1
 
-                _root_ide_package_.com.vahak.parentcontroll.ui.component.DynamicDatePicker(
+                DynamicDatePicker(
                     title = "تاریخ تولد فرزند",
                     mode = com.vahak.parentcontroll.ui.component.PickerPresentationMode.DIALOG,
                     yearRange = 1380..1403,

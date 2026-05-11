@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 4,
-    "identityHash": "a75e1908cc0e5af406bc59271dab5b1a",
+    "identityHash": "937fc13c747bb9dfdf1432d0e7df5538",
     "entities": [
       {
         "tableName": "children",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `dob` TEXT NOT NULL, `gender` TEXT NOT NULL, `avatar_id` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `dob` TEXT NOT NULL, `gender` TEXT NOT NULL, `avatar_id` INTEGER NOT NULL, `phone` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -37,6 +37,11 @@
             "columnName": "avatar_id",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "phone",
+            "columnName": "phone",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "createdAt",
@@ -408,7 +413,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a75e1908cc0e5af406bc59271dab5b1a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '937fc13c747bb9dfdf1432d0e7df5538')"
     ]
   }
 }

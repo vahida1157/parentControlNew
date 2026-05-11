@@ -16,13 +16,16 @@ data class ChildEntity(
     val name: String,
 
     @ColumnInfo(name = "dob")
-    val dob: LocalDate, 
+    val dob: LocalDate,
 
     @ColumnInfo(name = "gender")
     val gender: Gender,
 
     @ColumnInfo(name = "avatar_id")
-    val avatarId: Int = 0, 
+    val avatarId: Int = 0,
+
+    @ColumnInfo(name = "phone")
+    val phone: String? = null,
 
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
