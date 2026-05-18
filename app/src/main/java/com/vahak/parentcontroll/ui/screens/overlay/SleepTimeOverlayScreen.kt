@@ -27,8 +27,8 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 import kotlin.random.Random
 
 @Composable
-fun BedtimeOverlayScreen(onBackClick: () -> Unit) {
-    val infiniteTransition = rememberInfiniteTransition(label = "bedtime_animations")
+fun SleepTimeOverlayScreen(onBackClick: () -> Unit) {
+    val infiniteTransition = rememberInfiniteTransition(label = "sleeptime_animations")
 
     // 1. Breathing Animation for the Character
     val breatheScale by infiniteTransition.animateFloat(
@@ -116,9 +116,9 @@ fun BedtimeOverlayScreen(onBackClick: () -> Unit) {
 
             // --- Gentle Shaking Badges ---
             Row(horizontalArrangement = Arrangement.spacedBy(15.dp)) {
-                BedtimeBadge("🎨", badgeRotation)
-                BedtimeBadge("🧸", -badgeRotation) // Opposite phase
-                BedtimeBadge("⚽", badgeRotation)
+                SleepTimeBadge("🎨", badgeRotation)
+                SleepTimeBadge("🧸", -badgeRotation) // Opposite phase
+                SleepTimeBadge("⚽", badgeRotation)
             }
         }
 
@@ -184,7 +184,7 @@ fun ZzzParticle(
 }
 
 @Composable
-fun BedtimeBadge(emoji: String, rotation: Float) {
+fun SleepTimeBadge(emoji: String, rotation: Float) {
     Box(
         modifier = Modifier
             .graphicsLayer { rotationZ = rotation }
@@ -232,8 +232,8 @@ fun TwinklingStars(infiniteTransition: InfiniteTransition) {
 // ==========================================
 @Preview(showBackground = true, locale = "fa", widthDp = 360, heightDp = 800)
 @Composable
-fun BedtimeOverlayScreenPreview() {
+fun SleepTimeOverlayScreenPreview() {
     ParentControlTheme {
-        BedtimeOverlayScreen(onBackClick = {})
+        SleepTimeOverlayScreen(onBackClick = {})
     }
 }

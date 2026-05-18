@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
 import com.vahak.parentcontroll.core.data.local.entity.Gender
+import com.vahak.parentcontroll.presentation.family.FamilyChildUi
 import com.vahak.parentcontroll.presentation.family.FamilyEffect
 import com.vahak.parentcontroll.presentation.family.FamilyEvent
 import com.vahak.parentcontroll.presentation.family.FamilyState
@@ -138,12 +139,12 @@ fun FamilyManagementContent(
                             }
 
                             ClickableListItem(
-                                name = child.name,
+                                name = child.child.name,
                                 avatarIcon = AppIcons.YoungChild,
                                 avatarBg = bg,
                                 avatarTint = tint,
                                 showDivider = index != state.children.lastIndex,
-                                onClick = { onEvent(FamilyEvent.ChildClicked(child.id)) }
+                                onClick = { onEvent(FamilyEvent.ChildClicked(child.child.id)) }
                             )
                         }
                     }
@@ -154,26 +155,24 @@ fun FamilyManagementContent(
 }
 
 // 3. PREVIEWS
+
+private val mockChild1 =
+    ChildEntity(id = "1", name = "علی", dob = LocalDate.now().minusYears(10), gender = Gender.BOY)
+private val mockChild2 =
+    ChildEntity(id = "2", name = "سارا", dob = LocalDate.now().minusYears(8), gender = Gender.GIRL)
+
+// FIXED: Wrapped the mock ChildEntities into the required FamilyChildUi class
+private val mockChildUi1 =
+    FamilyChildUi(child = mockChild1, ageYears = 10, usageSecondsToday = 6300)
+private val mockChildUi2 = FamilyChildUi(child = mockChild2, ageYears = 8, usageSecondsToday = 3600)
+
 @Preview(showBackground = true, locale = "fa")
 @Composable
 fun FamilyManagementPreview() {
     ParentControlTheme {
         FamilyManagementContent(
             state = FamilyState(
-                children = listOf(
-                    ChildEntity(
-                        id = "1",
-                        name = "محمد",
-                        dob = LocalDate.now(),
-                        gender = Gender.BOY
-                    ),
-                    ChildEntity(
-                        id = "2",
-                        name = "محمدمهدی",
-                        dob = LocalDate.now(),
-                        gender = Gender.BOY
-                    )
-                ),
+                children = listOf(mockChildUi1, mockChildUi2),
                 isLoading = false
             ),
             onEvent = {}

@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
+import com.vahak.parentcontroll.core.data.local.entity.Gender
 import com.vahak.parentcontroll.presentation.report.AppUsageUi
 import com.vahak.parentcontroll.presentation.report.UsageReportEffect
 import com.vahak.parentcontroll.presentation.report.UsageReportEvent
@@ -45,6 +47,7 @@ import com.vahak.parentcontroll.presentation.report.UsageReportViewModel
 import com.vahak.parentcontroll.ui.component.SimpleFlatHeader
 import com.vahak.parentcontroll.ui.theme.LocalCustomColors
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
+import java.time.LocalDate
 
 // --- 1. STATEFUL WRAPPER ---
 @Composable
@@ -84,7 +87,7 @@ fun UsageReportContent(
     ) {
         // Show the child's name dynamically in the header
         SimpleFlatHeader(
-            title = "گزارش فعالیت ${state.childName}",
+            title = "گزارش فعالیت ${state.activeChild?.name}",
             onBackClick = { onEvent(UsageReportEvent.BackClicked) }
         )
 
@@ -266,7 +269,12 @@ fun UsageReportPopulatedPreview() {
 
         UsageReportContent(
             state = UsageReportState(
-                childName = "محمدمهدی",
+                activeChild = ChildEntity(
+                    id = "2",
+                    name = "سارا",
+                    dob = LocalDate.now(),
+                    gender = Gender.GIRL
+                ),
                 totalSecondsToday = 7450, // 2h 4m 10s
                 isLoading = false,
                 appUsages = listOf(
@@ -286,7 +294,12 @@ fun UsageReportEmptyPreview() {
     ParentControlTheme {
         UsageReportContent(
             state = UsageReportState(
-                childName = "سارا",
+                activeChild = ChildEntity(
+                    id = "2",
+                    name = "سارا",
+                    dob = LocalDate.now(),
+                    gender = Gender.GIRL
+                ),
                 totalSecondsToday = 0,
                 isLoading = false,
                 appUsages = emptyList()

@@ -142,7 +142,7 @@ fun LoginScreenContent(
 
             // Title & Subtitle (Always white due to dark teal background)
             Text(
-                text = "خانواده مدرن",
+                text = "مهربان",
                 style = MaterialTheme.typography.headlineLarge,
                 color = Color.White,
                 fontWeight = FontWeight.Black,

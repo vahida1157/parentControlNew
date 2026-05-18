@@ -1,9 +1,8 @@
-// TimeLimitViewModelV2.kt
 package com.vahak.parentcontroll.presentation.timelimit
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
+import com.vahak.parentcontroll.domain.repository.SettingsRepository
 import com.vahak.parentcontroll.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -13,29 +12,21 @@ import javax.inject.Inject
 
 data class TimeLimitStateV2(
     val isTimeLimitActive: Boolean = true,
-    val hoursInput: String = "3",
-    val minutesInput: String = "0",
+    val hours: Int = 3,
+    val minutes: Int = 0,
     val isWarningEnabled: Boolean = true,
     val isWeekendSeparate: Boolean = false,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val isPickerVisible: Boolean = false
 ) {
-    val totalMinutes: Int
-        get() {
-            val h = hoursInput.toIntOrNull() ?: 0
-            val m = minutesInput.toIntOrNull() ?: 0
-            return (h * 60) + m
-        }
-        
+    val totalMinutes: Int get() = (hours * 60) + minutes
+
     val previewText: String
-        get() {
-            val h = hoursInput.toIntOrNull() ?: 0
-            val m = minutesInput.toIntOrNull() ?: 0
-            return when {
-                h > 0 && m > 0 -> "$h ساعت و $m دقیقه"
-                h > 0 -> "$h ساعت"
-                m > 0 -> "$m دقیقه"
-                else -> "بدون محدودیت"
-            }
+        get() = when {
+            hours > 0 && minutes > 0 -> "$hours ساعت و $minutes دقیقه"
+            hours > 0 -> "$hours ساعت"
+            minutes > 0 -> "$minutes دقیقه"
+            else -> "بدون محدودیت"
         }
 }
 
@@ -43,11 +34,12 @@ sealed class TimeLimitEventV2 {
     data class ToggleActive(val isActive: Boolean) : TimeLimitEventV2()
     data class ToggleWarning(val isActive: Boolean) : TimeLimitEventV2()
     data class ToggleWeekend(val isActive: Boolean) : TimeLimitEventV2()
-    
     data class TimePresetSelected(val hours: Int, val minutes: Int) : TimeLimitEventV2()
-    data class HoursChanged(val hours: String) : TimeLimitEventV2()
-    data class MinutesChanged(val minutes: String) : TimeLimitEventV2()
-    
+
+    object OpenPicker : TimeLimitEventV2()
+    object ClosePicker : TimeLimitEventV2()
+    data class ConfirmTime(val hours: Int, val minutes: Int) : TimeLimitEventV2()
+
     object SaveClicked : TimeLimitEventV2()
     object BackClicked : TimeLimitEventV2()
 }
@@ -60,21 +52,26 @@ sealed class TimeLimitEffectV2 {
 @HiltViewModel
 class TimeLimitViewModelV2 @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val settingsDao: SettingsDao
+    private val settingsRepository: SettingsRepository // CHANGED: Replaced DAO with Repository
 ) : BaseViewModel<TimeLimitStateV2, TimeLimitEventV2, TimeLimitEffectV2>(TimeLimitStateV2()) {
 
     private val childId: String = checkNotNull(savedStateHandle["childId"])
 
     init {
+        // 1. Fire a background sync when the screen opens to get any changes from other devices
         viewModelScope.launch {
-            settingsDao.getGlobalSettings(childId).collectLatest { settings ->
+            settingsRepository.syncSettingsFromServer(childId)
+        }
+
+        // 2. Observe the local database via the Repository
+        viewModelScope.launch {
+            settingsRepository.getGlobalSettings(childId).collectLatest { settings ->
                 if (settings != null) {
                     updateState {
                         copy(
                             isTimeLimitActive = settings.isTimeLimitActive,
-                            hoursInput = (settings.dailyTimeLimitMins / 60).toString(),
-                            minutesInput = (settings.dailyTimeLimitMins % 60).toString()
-                            // Note: Add isWarningEnabled and isWeekendSeparate to your GlobalSettingsEntity later
+                            hours = settings.dailyTimeLimitMins / 60,
+                            minutes = settings.dailyTimeLimitMins % 60
                         )
                     }
                 }
@@ -87,23 +84,23 @@ class TimeLimitViewModelV2 @Inject constructor(
             is TimeLimitEventV2.ToggleActive -> updateState { copy(isTimeLimitActive = event.isActive) }
             is TimeLimitEventV2.ToggleWarning -> updateState { copy(isWarningEnabled = event.isActive) }
             is TimeLimitEventV2.ToggleWeekend -> updateState { copy(isWeekendSeparate = event.isActive) }
-            
-            is TimeLimitEventV2.TimePresetSelected -> updateState { 
-                copy(hoursInput = event.hours.toString(), minutesInput = event.minutes.toString()) 
+            is TimeLimitEventV2.TimePresetSelected -> updateState {
+                copy(
+                    hours = event.hours,
+                    minutes = event.minutes
+                )
             }
-            
-            is TimeLimitEventV2.HoursChanged -> {
-                val filtered = event.hours.filter { it.isDigit() }
-                val h = filtered.toIntOrNull() ?: 0
-                if (h <= 23) updateState { copy(hoursInput = filtered) }
+
+            is TimeLimitEventV2.OpenPicker -> updateState { copy(isPickerVisible = true) }
+            is TimeLimitEventV2.ClosePicker -> updateState { copy(isPickerVisible = false) }
+            is TimeLimitEventV2.ConfirmTime -> updateState {
+                copy(
+                    hours = event.hours,
+                    minutes = event.minutes,
+                    isPickerVisible = false
+                )
             }
-            
-            is TimeLimitEventV2.MinutesChanged -> {
-                val filtered = event.minutes.filter { it.isDigit() }
-                val m = filtered.toIntOrNull() ?: 0
-                if (m <= 59) updateState { copy(minutesInput = filtered) }
-            }
-            
+
             is TimeLimitEventV2.SaveClicked -> saveSettings()
             is TimeLimitEventV2.BackClicked -> sendEffect(TimeLimitEffectV2.NavigateBack)
         }
@@ -112,12 +109,14 @@ class TimeLimitViewModelV2 @Inject constructor(
     private fun saveSettings() {
         updateState { copy(isSaving = true) }
         viewModelScope.launch {
-            // Save to DB
-            settingsDao.updateTimeLimitToggle(childId, state.value.isTimeLimitActive)
-            settingsDao.updateDailyTimeLimit(childId, state.value.totalMinutes)
-            
-            delay(500) // Simulated delay for smooth UX
-            
+            // This now saves to Room AND automatically pushes the JSON payload to Spring Boot!
+            settingsRepository.updateTimeLimit(
+                childId = childId,
+                isActive = state.value.isTimeLimitActive,
+                limitMins = state.value.totalMinutes
+            )
+
+            delay(500)
             updateState { copy(isSaving = false) }
             sendEffect(TimeLimitEffectV2.ShowToast("تنظیمات زمان ذخیره شد ✅"))
             sendEffect(TimeLimitEffectV2.NavigateBack)

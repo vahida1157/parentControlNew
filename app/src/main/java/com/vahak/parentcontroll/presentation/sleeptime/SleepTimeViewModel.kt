@@ -1,4 +1,4 @@
-package com.vahak.parentcontroll.presentation.bedtime
+package com.vahak.parentcontroll.presentation.sleeptime
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -14,8 +14,8 @@ import javax.inject.Inject
 enum class TimeEditMode { NONE, START, END }
 
 // Using LocalTime natively in our State!
-data class BedtimeState(
-    val isBedtimeActive: Boolean = false,
+data class SleepTimeState(
+    val isSleepTimeActive: Boolean = false,
     val startTime: LocalTime = LocalTime.of(22, 0),
     val endTime: LocalTime = LocalTime.of(7, 0),
     val currentEditMode: TimeEditMode = TimeEditMode.NONE
@@ -23,23 +23,23 @@ data class BedtimeState(
     val isPickerVisible: Boolean get() = currentEditMode != TimeEditMode.NONE
 }
 
-sealed class BedtimeEvent {
-    object BackClicked : BedtimeEvent()
-    data class ToggleActive(val isActive: Boolean) : BedtimeEvent()
-    data class OpenPicker(val mode: TimeEditMode) : BedtimeEvent()
-    object ClosePicker : BedtimeEvent()
-    data class ConfirmTime(val hours: Int, val minutes: Int) : BedtimeEvent() // Comes from UI Picker
+sealed class SleepTimeEvent {
+    object BackClicked : SleepTimeEvent()
+    data class ToggleActive(val isActive: Boolean) : SleepTimeEvent()
+    data class OpenPicker(val mode: TimeEditMode) : SleepTimeEvent()
+    object ClosePicker : SleepTimeEvent()
+    data class ConfirmTime(val hours: Int, val minutes: Int) : SleepTimeEvent() // Comes from UI Picker
 }
 
-sealed class BedtimeEffect {
-    object NavigateBack : BedtimeEffect()
+sealed class SleepTimeEffect {
+    object NavigateBack : SleepTimeEffect()
 }
 
 @HiltViewModel
-class BedtimeViewModel @Inject constructor(
+class SleepTimeViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val settingsRepository: SettingsRepository
-) : BaseViewModel<BedtimeState, BedtimeEvent, BedtimeEffect>(BedtimeState()) {
+) : BaseViewModel<SleepTimeState, SleepTimeEvent, SleepTimeEffect>(SleepTimeState()) {
 
     private val childId: String = checkNotNull(savedStateHandle["childId"])
 
@@ -50,9 +50,9 @@ class BedtimeViewModel @Inject constructor(
                 if (settings != null) {
                     updateState {
                         copy(
-                            isBedtimeActive = settings.isBedtimeActive,
-                            startTime = settings.bedtimeStart,
-                            endTime = settings.bedtimeEnd
+                            isSleepTimeActive = settings.isSleepTimeActive,
+                            startTime = settings.sleepTimeStart,
+                            endTime = settings.sleepTimeEnd
                         )
                     }
                 }
@@ -60,20 +60,20 @@ class BedtimeViewModel @Inject constructor(
         }
     }
 
-    override fun onEvent(event: BedtimeEvent) {
+    override fun onEvent(event: SleepTimeEvent) {
         when (event) {
-            is BedtimeEvent.BackClicked -> sendEffect(BedtimeEffect.NavigateBack)
+            is SleepTimeEvent.BackClicked -> sendEffect(SleepTimeEffect.NavigateBack)
 
-            is BedtimeEvent.ToggleActive -> {
+            is SleepTimeEvent.ToggleActive -> {
                 viewModelScope.launch(Dispatchers.IO) {
-                    settingsRepository.updateBedtimeToggle(childId, event.isActive)
+                    settingsRepository.updateSleepTimeToggle(childId, event.isActive)
                 }
             }
 
-            is BedtimeEvent.OpenPicker -> updateState { copy(currentEditMode = event.mode) }
-            is BedtimeEvent.ClosePicker -> updateState { copy(currentEditMode = TimeEditMode.NONE) }
+            is SleepTimeEvent.OpenPicker -> updateState { copy(currentEditMode = event.mode) }
+            is SleepTimeEvent.ClosePicker -> updateState { copy(currentEditMode = TimeEditMode.NONE) }
 
-            is BedtimeEvent.ConfirmTime -> {
+            is SleepTimeEvent.ConfirmTime -> {
                 val newTime = LocalTime.of(event.hours, event.minutes)
                 val isStart = state.value.currentEditMode == TimeEditMode.START
 
@@ -81,7 +81,7 @@ class BedtimeViewModel @Inject constructor(
                 updateState { copy(currentEditMode = TimeEditMode.NONE) }
 
                 viewModelScope.launch(Dispatchers.IO) {
-                    settingsRepository.updateBedtimeSchedule(
+                    settingsRepository.updateSleepTimeSchedule(
                         childId = childId,
                         startTime = if (isStart) newTime else state.value.startTime,
                         endTime = if (!isStart) newTime else state.value.endTime

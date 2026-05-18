@@ -2,7 +2,7 @@ package com.vahak.parentcontroll.presentation.timelimit
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
+import com.vahak.parentcontroll.core.data.local.dao.ChildSettingsDao
 import com.vahak.parentcontroll.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -33,7 +33,7 @@ sealed class TimeLimitEffect {
 @HiltViewModel
 class TimeLimitViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val settingsDao: SettingsDao
+    private val childSettingsDao: ChildSettingsDao
 ) : BaseViewModel<TimeLimitState, TimeLimitEvent, TimeLimitEffect>(TimeLimitState()) {
 
     // Fetch the ID passed from the NavGraph
@@ -42,7 +42,7 @@ class TimeLimitViewModel @Inject constructor(
     init {
         // Reactively listen to this child's settings in Room
         viewModelScope.launch {
-            settingsDao.getGlobalSettings(childId).collectLatest { settings ->
+            childSettingsDao.getGlobalSettings(childId).collectLatest { settings ->
                 if (settings != null) {
                     updateState {
                         copy(
@@ -59,14 +59,14 @@ class TimeLimitViewModel @Inject constructor(
     override fun onEvent(event: TimeLimitEvent) {
         when (event) {
             is TimeLimitEvent.ToggleActive -> {
-                viewModelScope.launch { settingsDao.updateTimeLimitToggle(childId, event.isActive) }
+                viewModelScope.launch { childSettingsDao.updateTimeLimitToggle(childId, event.isActive) }
             }
             is TimeLimitEvent.OpenPicker -> updateState { copy(isBottomSheetVisible = true) }
             is TimeLimitEvent.ClosePicker -> updateState { copy(isBottomSheetVisible = false) }
             is TimeLimitEvent.ConfirmTime -> {
                 val totalMinutes = (event.hours * 60) + event.minutes
                 updateState { copy(isBottomSheetVisible = false) }
-                viewModelScope.launch { settingsDao.updateDailyTimeLimit(childId, totalMinutes) }
+                viewModelScope.launch { childSettingsDao.updateDailyTimeLimit(childId, totalMinutes) }
             }
             is TimeLimitEvent.BackClicked -> sendEffect(TimeLimitEffect.NavigateBack)
         }

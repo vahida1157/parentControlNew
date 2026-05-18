@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">خانواده مدرن</string>
+    <string name="app_name">مهربان</string>
     <string name="dashboard_title">تنظیمات نظارتی</string>
     <string name="dashboard_subtitle">مدیریت کامل دسترسی‌های فرزند در این بخش انجام می‌شود</string>
 
@@ -28,7 +28,7 @@
 
 
     <!--    V2    -->
-    <string name="app_name_pro">خانواده مدرن</string>
+    <string name="app_name_pro">مهربان</string>
 
     <!--    Login    -->
     <string name="login_subtitle">پنل مدیریت هوشمند والدین</string>

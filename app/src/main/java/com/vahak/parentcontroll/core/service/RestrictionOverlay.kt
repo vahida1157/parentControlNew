@@ -15,14 +15,14 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import com.vahak.parentcontroll.ui.screens.overlay.BedtimeOverlayScreen
+import com.vahak.parentcontroll.ui.screens.overlay.SleepTimeOverlayScreen
 import com.vahak.parentcontroll.ui.screens.overlay.DizzyPhoneScreen
 import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 
 // 1. PRO FIX: Define the specific reasons an overlay might appear
 enum class OverlayType {
     TIME_LIMIT,
-    BEDTIME,
+    SLEEP_TIME,
     APP_BLOCK
 }
 
@@ -72,8 +72,8 @@ class RestrictionOverlay(
                             DizzyPhoneScreen(onBackClick = { navigateHome() })
                         }
 
-                        OverlayType.BEDTIME -> {
-                            BedtimeOverlayScreen(onBackClick = { navigateHome() })
+                        OverlayType.SLEEP_TIME -> {
+                            SleepTimeOverlayScreen(onBackClick = { navigateHome() })
                         }
 
                         OverlayType.APP_BLOCK -> {

@@ -26,10 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,7 +51,6 @@ import com.vahak.parentcontroll.uiv2.theme.LocalCustomColors
 import com.vahak.parentcontroll.uiv2.theme.ParentControlTheme
 import kotlinx.coroutines.launch
 
-// --- 1. STATEFUL WRAPPER ---
 @Composable
 fun ApplicationSettingsScreen(
     viewModel: ApplicationSettingsViewModel = hiltViewModel(),
@@ -75,8 +71,8 @@ fun ApplicationSettingsScreen(
 
     ApplicationSettingsContent(
         state = state,
+        onEvent = viewModel::onEvent,
         onNavigateToPasswordManagement = onNavigateToPasswordManagement,
-        onLogoutClick = { viewModel.onEvent(AppSettingsEvent.LogoutClicked) },
         onExportLogsClick = {
             coroutineScope.launch {
                 LogExporter.exportLogsAndShare(context)
@@ -85,19 +81,17 @@ fun ApplicationSettingsScreen(
     )
 }
 
-// --- 2. STATELESS CONTENT ---
 @Composable
 fun ApplicationSettingsContent(
     state: AppSettingsState,
+    onEvent: (AppSettingsEvent) -> Unit,
     onNavigateToPasswordManagement: () -> Unit,
-    onLogoutClick: () -> Unit,
     onExportLogsClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
     val isDark = isSystemInDarkTheme()
     val scrollState = rememberScrollState()
 
-    // Gradients from HTML
     val headerGradient = Brush.linearGradient(
         colors = listOf(colors.primary, colors.primaryVariant)
     )
@@ -127,7 +121,6 @@ fun ApplicationSettingsContent(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Avatar
                     Box(
                         modifier = Modifier
                             .size(80.dp)
@@ -136,7 +129,7 @@ fun ApplicationSettingsContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            painter = AppIcons.Profile, // Use a user/profile icon
+                            painter = AppIcons.Profile,
                             contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(40.dp)
@@ -144,7 +137,7 @@ fun ApplicationSettingsContent(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "والد گرامی", // Or fetch from state if you add it
+                        text = "والد گرامی",
                         color = Color.White,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Black
@@ -164,18 +157,19 @@ fun ApplicationSettingsContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    // Negative offset to pull the menu up slightly over the header curve like HTML
-                    .padding(top = 16.dp, bottom = 100.dp)
+                    .padding(top = 16.dp, bottom = 40.dp) // Adjusted padding
             ) {
 
-                // Theme Switcher Card
-                ThemeSwitcherCard()
+                // Theme Switcher Card now wired to ViewModel
+                ThemeSwitcherCard(
+                    currentTheme = state.currentTheme,
+                    onThemeChange = { newTheme -> onEvent(AppSettingsEvent.ThemeSelected(newTheme)) }
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Settings Menu
                 ProfileMenuItemV2(
-                    icon = AppIcons.LockBadge, // Use settings/lock icon
+                    icon = AppIcons.LockBadge,
                     iconBgColor = colors.blue.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.blue,
                     title = "تنظیمات رمز عبور",
@@ -183,7 +177,7 @@ fun ApplicationSettingsContent(
                 )
 
                 ProfileMenuItemV2(
-                    icon = AppIcons.Notification, // Use bell icon
+                    icon = AppIcons.Notification,
                     iconBgColor = colors.green.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.green,
                     title = "اعلان‌ها",
@@ -191,7 +185,7 @@ fun ApplicationSettingsContent(
                 )
 
                 ProfileMenuItemV2(
-                    icon = AppIcons.ShieldCheck, // Use shield icon
+                    icon = AppIcons.ShieldCheck,
                     iconBgColor = colors.primary.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.primary,
                     title = "حریم خصوصی",
@@ -199,16 +193,15 @@ fun ApplicationSettingsContent(
                 )
 
                 ProfileMenuItemV2(
-                    icon = AppIcons.Info, // Use question mark/info icon
+                    icon = AppIcons.Info,
                     iconBgColor = colors.orange.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.orange,
                     title = "راهنما و پشتیبانی",
                     onClick = { /* TODO */ }
                 )
 
-                // Preserved Debug/Log Export functionality
                 ProfileMenuItemV2(
-                    icon = AppIcons.ChartBar, // Use bug/chart icon
+                    icon = AppIcons.ChartBar,
                     iconBgColor = colors.textSecondary.copy(alpha = if (isDark) 0.2f else 0.1f),
                     iconTintColor = colors.textSecondary,
                     title = "ارسال گزارش سیستم (Debug)",
@@ -217,15 +210,14 @@ fun ApplicationSettingsContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Logout Button
                 ProfileMenuItemV2(
-                    icon = AppIcons.Logout, // Use door/logout icon
+                    icon = AppIcons.Logout,
                     iconBgColor = colors.redLight,
                     iconTintColor = colors.red,
                     title = "خروج از حساب کاربری",
                     titleColor = colors.red,
                     modifier = Modifier.border(2.dp, colors.redLight, RoundedCornerShape(12.dp)),
-                    onClick = onLogoutClick
+                    onClick = { onEvent(AppSettingsEvent.LogoutClicked) }
                 )
             }
         }
@@ -294,13 +286,12 @@ fun ProfileMenuItemV2(
 }
 
 @Composable
-fun ThemeSwitcherCard() {
+fun ThemeSwitcherCard(
+    currentTheme: AppTheme,
+    onThemeChange: (AppTheme) -> Unit
+) {
     val colors = LocalCustomColors.current
     val isDark = isSystemInDarkTheme()
-
-    // Note: Local UI state for visual demonstration.
-    // To make this functional, state must be hoisted to MainActivity.
-    var selectedTheme by remember { mutableStateOf("system") }
 
     Column(
         modifier = Modifier
@@ -342,23 +333,23 @@ fun ThemeSwitcherCard() {
         ) {
             ThemeOptionButton(
                 title = "روشن",
-                icon = AppIcons.Sun, // Use Sun icon
-                isSelected = selectedTheme == "light",
-                onClick = { selectedTheme = "light" },
+                icon = AppIcons.Sun,
+                isSelected = currentTheme == AppTheme.LIGHT,
+                onClick = { onThemeChange(AppTheme.LIGHT) },
                 modifier = Modifier.weight(1f)
             )
             ThemeOptionButton(
                 title = "تیره",
-                icon = AppIcons.Moon, // Use Moon icon
-                isSelected = selectedTheme == "dark",
-                onClick = { selectedTheme = "dark" },
+                icon = AppIcons.Moon,
+                isSelected = currentTheme == AppTheme.DARK,
+                onClick = { onThemeChange(AppTheme.DARK) },
                 modifier = Modifier.weight(1f)
             )
             ThemeOptionButton(
                 title = "سیستم",
-                icon = AppIcons.Smartphone, // Use Phone/System icon
-                isSelected = selectedTheme == "system",
-                onClick = { selectedTheme = "system" },
+                icon = AppIcons.Smartphone,
+                isSelected = currentTheme == AppTheme.SYSTEM,
+                onClick = { onThemeChange(AppTheme.SYSTEM) },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -413,10 +404,11 @@ fun ThemeOptionButton(
 fun ApplicationSettingsScreenPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         ApplicationSettingsContent(
-            state = AppSettingsState("9368630582"),
+            state = AppSettingsState("9368630582", AppTheme.LIGHT),
+            onEvent = {},
             onNavigateToPasswordManagement = {},
-            onExportLogsClick = {},
-            onLogoutClick = {})
+            onExportLogsClick = {}
+        )
     }
 }
 
@@ -425,9 +417,10 @@ fun ApplicationSettingsScreenPreviewLight() {
 fun ApplicationSettingsScreenPreviewDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         ApplicationSettingsContent(
-            state = AppSettingsState("9368630582"),
+            state = AppSettingsState("9368630582", AppTheme.DARK),
+            onEvent = {},
             onNavigateToPasswordManagement = {},
-            onExportLogsClick = {},
-            onLogoutClick = {})
+            onExportLogsClick = {}
+        )
     }
 }

@@ -33,6 +33,13 @@ data class BlockedDomainEntity(
     @ColumnInfo(name = "is_active")
     val isActive: Boolean = true,
 
+    // --- OFFLINE SYNC FLAGS ---
+    @ColumnInfo(name = "is_synced")
+    val isSynced: Boolean = true, // Default true assuming pulled from server
+
+    @ColumnInfo(name = "is_deleted")
+    val isDeleted: Boolean = false, // Soft delete flag
+
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
 

@@ -5,19 +5,24 @@ import android.content.Intent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewModelScope
 import com.vahak.parentcontroll.core.data.local.SessionManager
-import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
 import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
 import com.vahak.parentcontroll.core.service.RestrictionEnforcerService
 import com.vahak.parentcontroll.core.service.WebFilterVpnService
 import com.vahak.parentcontroll.core.util.LauncherManager
 import com.vahak.parentcontroll.domain.repository.AuthRepository
 import com.vahak.parentcontroll.domain.repository.ChildRepository
+import com.vahak.parentcontroll.domain.repository.SettingsRepository
+import com.vahak.parentcontroll.domain.repository.UsageRepository
 import com.vahak.parentcontroll.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 // 1. Contract
@@ -26,8 +31,20 @@ data class DashboardState(
     val activeChild: ChildEntity? = null,
     val isChildSheetOpen: Boolean = false,
     val isProtectionActive: Boolean = false,
-    val showPinRequiredDialog: Boolean = false // NEW: Dialog state
-)
+    val showPinRequiredDialog: Boolean = false,
+
+    val activeChildTimeLimitMins: Int = 0,
+    val isTimeLimitActive: Boolean = false,
+
+    // 🚀 FIXED: The UI binds to this, so we will manually update it with the max value
+    val activeChildUsageSeconds: Int = 0,
+
+    val activeChildLocalSeconds: Int = 0,
+    val activeChildGlobalSeconds: Int = 0,
+) {
+    val effectiveUsageSeconds: Int
+        get() = maxOf(activeChildLocalSeconds, activeChildGlobalSeconds)
+}
 
 sealed class DashboardEvent {
     object LockClicked : DashboardEvent()
@@ -36,8 +53,6 @@ sealed class DashboardEvent {
     data class SelectChild(val child: ChildEntity) : DashboardEvent()
     data class ActivateProtection(val childId: String) : DashboardEvent()
     data class DeactivateProtection(val childId: String) : DashboardEvent()
-
-    // NEW: Dialog Events
     object ClosePinRequiredDialog : DashboardEvent()
     object GoToPasswordSetupClicked : DashboardEvent()
 }
@@ -53,26 +68,21 @@ class DashboardViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val childRepository: ChildRepository,
     private val sessionManager: SessionManager,
-    private val settingsDao: SettingsDao,
+    private val settingsRepository: SettingsRepository,
+    private val usageRepository: UsageRepository
 ) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState()) {
 
     init {
-        // --- 1. PRO FIX: IMMEDIATE PIN CHECK ON LOAD ---
         viewModelScope.launch {
             if (!sessionManager.hasParentPin()) {
-                // If it's their first time logging in, send them straight to password setup!
                 sendEffect(DashboardEffect.NavigateToPasswordSetup)
             }
         }
 
-        // --- 2. Observe Data ---
         viewModelScope.launch {
             childRepository.getAllChildren().collectLatest { childList ->
                 updateState {
-                    copy(
-                        children = childList,
-                        activeChild = activeChild ?: childList.firstOrNull()
-                    )
+                    copy(children = childList, activeChild = activeChild ?: childList.firstOrNull())
                 }
             }
         }
@@ -83,20 +93,72 @@ class DashboardViewModel @Inject constructor(
             }
         }
 
+        viewModelScope.launch { childRepository.syncChildrenFromServer() }
+
+        val activeChildIdFlow = state.map { it.activeChild?.id }.distinctUntilChanged()
+
+        // A) Network Sync: Trigger server fetch when child changes
         viewModelScope.launch {
-            childRepository.getAllChildren().collectLatest { childList ->
-                updateState {
-                    copy(
-                        children = childList,
-                        activeChild = activeChild ?: childList.firstOrNull()
-                    )
+            activeChildIdFlow.collectLatest { childId ->
+                if (childId != null) {
+                    settingsRepository.syncSettingsFromServer(childId)
+
+                    // 🚀 FIXED: Apply the fetched global time directly to activeChildUsageSeconds
+                    val globalResponse = usageRepository.syncUnsyncedData(activeChildId = childId, forcePing = true)
+                    if (globalResponse != null) {
+                        val fetchedGlobal = globalResponse.globalDailySeconds[childId] ?: 0
+                        updateState {
+                            val newGlobal = maxOf(activeChildGlobalSeconds, fetchedGlobal)
+                            copy(
+                                activeChildGlobalSeconds = newGlobal,
+                                activeChildUsageSeconds = maxOf(activeChildLocalSeconds, newGlobal)
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        // 2. Silently sync fresh data from the backend
+        // B) Observe Settings
         viewModelScope.launch {
-            childRepository.syncChildrenFromServer()
+            @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+            activeChildIdFlow
+                .flatMapLatest { childId ->
+                    if (childId != null) settingsRepository.getGlobalSettings(childId)
+                    else kotlinx.coroutines.flow.flowOf(null)
+                }
+                .collectLatest { settings ->
+                    updateState {
+                        copy(
+                            activeChildTimeLimitMins = settings?.dailyTimeLimitMins ?: 0,
+                            isTimeLimitActive = settings?.isTimeLimitActive ?: false
+                        )
+                    }
+                }
+        }
+
+        // C) Observe LOCAL Usage & Room Cache
+        viewModelScope.launch {
+            @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+            activeChildIdFlow
+                .flatMapLatest { childId ->
+                    if (childId != null) usageRepository.observeDailyUsage(childId, LocalDate.now())
+                    else kotlinx.coroutines.flow.flowOf(null)
+                }
+                .collectLatest { daily ->
+                    val local = daily?.usedSeconds ?: 0
+                    val cachedGlobal = daily?.globalUsedSeconds ?: 0
+
+                    updateState {
+                        val newGlobal = maxOf(activeChildGlobalSeconds, cachedGlobal)
+                        copy(
+                            activeChildLocalSeconds = local,
+                            activeChildGlobalSeconds = newGlobal,
+                            // 🚀 FIXED: Instantly pushes the highest value directly to the UI card!
+                            activeChildUsageSeconds = maxOf(local, newGlobal)
+                        )
+                    }
+                }
         }
     }
 
@@ -105,14 +167,19 @@ class DashboardViewModel @Inject constructor(
             is DashboardEvent.LockClicked -> performLogout()
             is DashboardEvent.OpenChildSheet -> updateState { copy(isChildSheetOpen = true) }
             is DashboardEvent.CloseChildSheet -> updateState { copy(isChildSheetOpen = false) }
-            is DashboardEvent.SelectChild -> {
-                updateState { copy(activeChild = event.child, isChildSheetOpen = false) }
+            is DashboardEvent.SelectChild -> updateState {
+                copy(
+                    activeChild = event.child,
+                    isChildSheetOpen = false,
+                    activeChildTimeLimitMins = 0,
+                    isTimeLimitActive = false,
+                    activeChildUsageSeconds = 0,
+                    activeChildLocalSeconds = 0,
+                    activeChildGlobalSeconds = 0
+                )
             }
-
             is DashboardEvent.ActivateProtection -> startProtectionService(event.childId)
             is DashboardEvent.DeactivateProtection -> stopProtectionService()
-
-            // Handle Dialog
             is DashboardEvent.ClosePinRequiredDialog -> updateState { copy(showPinRequiredDialog = false) }
             is DashboardEvent.GoToPasswordSetupClicked -> {
                 updateState { copy(showPinRequiredDialog = false) }
@@ -128,7 +195,6 @@ class DashboardViewModel @Inject constructor(
                 return@launch
             }
 
-            // 1. THIS is the master switch. Setting this will trigger MainActivity!
             sessionManager.setActiveChildId(childId)
 
             val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
@@ -137,7 +203,7 @@ class DashboardViewModel @Inject constructor(
             }
             ContextCompat.startForegroundService(context, intent)
 
-            val settings = settingsDao.getGlobalSettings(childId).first()
+            val settings = settingsRepository.getGlobalSettings(childId).first()
             if (settings?.isSiteManagementActive == true) {
                 val vpnIntent = Intent(context, WebFilterVpnService::class.java).apply {
                     action = WebFilterVpnService.ACTION_START
@@ -145,7 +211,6 @@ class DashboardViewModel @Inject constructor(
                 ContextCompat.startForegroundService(context, vpnIntent)
             }
 
-            // 2. Tell the OS we are the Home screen now
             LauncherManager.enableLauncherMode(context)
         }
     }
@@ -155,7 +220,7 @@ class DashboardViewModel @Inject constructor(
             sessionManager.clearActiveChildId()
 
             val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
-                action = RestrictionEnforcerService.ACTION_STOP
+                action = RestrictionEnforcerService.ACTION_START
             }
             context.startService(intent)
 

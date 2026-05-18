@@ -2,15 +2,18 @@ package com.vahak.parentcontroll.data.remote
 
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
-import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
 
 data class CreateChildRequestDto(
+    val id: String,
     val name: String,
     val dob: String,
     val gender: String,
     val avatarId: Int,
-    val phone: String?,
+    val phone: String?
 )
 
 data class ChildResponseDto(
@@ -19,13 +22,21 @@ data class ChildResponseDto(
     val dob: String,
     val gender: String,
     val avatarId: Int,
-    val phone: String?,
+    val phone: String?
 )
 
 interface ChildApi {
-    @POST("api/v1/children")
-    suspend fun addChild(@Body request: CreateChildRequestDto): Response<ChildResponseDto>
-
     @GET("api/v1/children")
     suspend fun getChildren(): Response<List<ChildResponseDto>>
+
+    @PUT("api/v1/children/{childId}")
+    suspend fun upsertChild(
+        @Path("childId") childId: String,
+        @Body request: CreateChildRequestDto
+    ): Response<ChildResponseDto>
+
+    @DELETE("api/v1/children/{childId}")
+    suspend fun deleteChild(
+        @Path("childId") childId: String
+    ): Response<Unit>
 }

@@ -11,10 +11,11 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.vahak.parentcontroll.core.data.local.dao.AppRuleDao
-import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
+import com.vahak.parentcontroll.core.data.local.dao.ChildSettingsDao
 import com.vahak.parentcontroll.core.data.local.dao.UsageDao
 import com.vahak.parentcontroll.core.data.local.entity.AppUsageRecordEntity
 import com.vahak.parentcontroll.core.data.local.entity.DailyUsageEntity
+import com.vahak.parentcontroll.domain.repository.UsageRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,7 +36,7 @@ import javax.inject.Inject
 class RestrictionEnforcerService : LifecycleService() {
 
     @Inject
-    lateinit var settingsDao: SettingsDao
+    lateinit var childSettingsDao: ChildSettingsDao
 
     @Inject
     lateinit var usageDao: UsageDao
@@ -43,9 +44,12 @@ class RestrictionEnforcerService : LifecycleService() {
     @Inject
     lateinit var appRuleDao: AppRuleDao
 
+    @Inject
+    lateinit var usageRepository: UsageRepository
+
     private lateinit var timeLockOverlay: RestrictionOverlay
     private lateinit var appLockOverlay: RestrictionOverlay
-    private lateinit var bedtimeLockOverlay: RestrictionOverlay
+    private lateinit var sleepTimeLockOverlay: RestrictionOverlay
 
     private var monitoringJob: Job? = null
     private var currentChildId: String? = null
@@ -53,8 +57,14 @@ class RestrictionEnforcerService : LifecycleService() {
 
     // --- HOISTED TRACKING VARIABLES ---
     private var currentDateTracker: LocalDate = LocalDate.now()
-    private var usedSecondsTodayTracker: Int = 0
-    private val appUsageMapTracker = mutableMapOf<String, Int>()
+
+    // --- LOCAL TRACKERS (Saved to Room, increments instantly offline) ---
+    private var usedSecondsTodayTracker = 0
+    private var appUsageMapTracker = mutableMapOf<String, Int>()
+
+    // --- EXTERNAL TRACKERS (From Server, represents time spent on OTHER devices) ---
+    private var externalDailySecondsTracker = 0
+    private var externalAppUsageMapTracker = mutableMapOf<String, Int>()
 
     companion object {
         private const val TAG = "EnforcerService"
@@ -71,14 +81,13 @@ class RestrictionEnforcerService : LifecycleService() {
 
         timeLockOverlay = RestrictionOverlay(this, this, OverlayType.TIME_LIMIT)
         appLockOverlay = RestrictionOverlay(this, this, OverlayType.APP_BLOCK)
-        bedtimeLockOverlay = RestrictionOverlay(this, this, OverlayType.BEDTIME)
+        sleepTimeLockOverlay = RestrictionOverlay(this, this, OverlayType.SLEEP_TIME)
 
         createNotificationChannel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        Log.d(TAG, "🚀 onStartCommand triggered with Action = ${intent?.action}")
 
         when (intent?.action) {
             ACTION_START -> {
@@ -121,7 +130,7 @@ class RestrictionEnforcerService : LifecycleService() {
         return lastKnownPackage
     }
 
-    private fun isBedtimeActiveNow(start: LocalTime, end: LocalTime): Boolean {
+    private fun isSleepTimeActiveNow(start: LocalTime, end: LocalTime): Boolean {
         val now = LocalTime.now()
         return if (start.isBefore(end)) {
             !now.isBefore(start) && now.isBefore(end)
@@ -137,52 +146,49 @@ class RestrictionEnforcerService : LifecycleService() {
         monitoringJob = lifecycleScope.launch {
             Log.i(TAG, "👀 startMonitoring() initiated for Child ID: $childId")
 
+            // 1. Reset all trackers
             currentDateTracker = LocalDate.now()
-            usedSecondsTodayTracker =
-                usageDao.getDailyUsage(childId, currentDateTracker)?.usedSeconds ?: 0
-
+            externalDailySecondsTracker = 0
+            externalAppUsageMapTracker.clear()
             appUsageMapTracker.clear()
-            val existingAppUsages =
-                usageDao.observeAppUsageForDay(childId, currentDateTracker).first()
-            existingAppUsages.forEach { appUsageMapTracker[it.packageName] = it.usedSeconds }
 
-            Log.d(
-                TAG,
-                "🔄 Local State Restored. Starting at: $usedSecondsTodayTracker seconds for today."
-            )
+            // 2. Load Local State AND Global Offline Cache
+            val dailyRecord = usageDao.getDailyUsage(childId, currentDateTracker)
+            usedSecondsTodayTracker = dailyRecord?.usedSeconds ?: 0
+
+            // 🚀 THE OFFLINE BOOT FIX: Remember external time even without internet
+            val cachedGlobalDaily = dailyRecord?.globalUsedSeconds ?: 0
+            externalDailySecondsTracker = maxOf(0, cachedGlobalDaily - usedSecondsTodayTracker)
+
+            val existingAppUsages = usageDao.observeAppUsageForDay(childId, currentDateTracker).first()
+            existingAppUsages.forEach { appRecord ->
+                appUsageMapTracker[appRecord.packageName] = appRecord.usedSeconds
+                // Load global cache for specific apps
+                externalAppUsageMapTracker[appRecord.packageName] = maxOf(0, appRecord.globalUsedSeconds - appRecord.usedSeconds)
+            }
+
+            Log.d(TAG, "🔄 Local State Restored. Local: $usedSecondsTodayTracker | External: $externalDailySecondsTracker")
 
             var loopCounter = 0
 
             combine(
-                settingsDao.getGlobalSettings(childId), appRuleDao.observeAllowedApps(childId)
+                childSettingsDao.getGlobalSettings(childId), appRuleDao.observeAllowedApps(childId)
             ) { settings, allowedApps ->
                 Pair(settings, allowedApps.map { it.packageName }.toSet())
             }.collectLatest { (settings, allowedPackages) ->
 
-                if (settings == null) {
-                    Log.w(TAG, "⚠️ Settings are null. Waiting for DB initialization...")
-                    return@collectLatest
-                }
+                if (settings == null) return@collectLatest
 
                 val isTimeLimitEnabled = settings.isTimeLimitActive
                 val limitInSeconds = settings.dailyTimeLimitMins * 60
-                val isBedtimeEnabled = settings.isBedtimeActive
-                val bedtimeStart = settings.bedtimeStart
-                val bedtimeEnd = settings.bedtimeEnd
+                val isSleepTimeEnabled = settings.isSleepTimeActive
+                val sleepTimeStart = settings.sleepTimeStart
+                val sleepTimeEnd = settings.sleepTimeEnd
 
-                Log.i(
-                    TAG,
-                    "📊 Settings Loaded | TimeLimit Active: $isTimeLimitEnabled ($limitInSeconds sec) | Bedtime Active: $isBedtimeEnabled ($bedtimeStart - $bedtimeEnd) | Allowed Apps Count: ${allowedPackages.size}"
-                )
-
-                val homeIntent =
-                    Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
+                val homeIntent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
                 val launcherPackages = packageManager.queryIntentActivities(homeIntent, 0)
                     .map { it.activityInfo.packageName }.toSet()
-
-                val criticalSystemPackages =
-                    setOf("com.android.systemui", "android") + launcherPackages
-                Log.d(TAG, "🛡️ System Whitelist active for: $criticalSystemPackages")
+                val criticalSystemPackages = setOf("com.android.systemui", "android") + launcherPackages
 
                 while (isActive) {
                     val now = LocalDate.now()
@@ -190,62 +196,45 @@ class RestrictionEnforcerService : LifecycleService() {
                     // Midnight Rollover
                     if (now != currentDateTracker) {
                         Log.i(TAG, "🌙 Midnight Rollover detected! Resetting daily trackers.")
-                        saveDataToRoom(
-                            childId, currentDateTracker, usedSecondsTodayTracker, appUsageMapTracker
-                        )
+                        saveDataToRoom(childId, currentDateTracker, usedSecondsTodayTracker, appUsageMapTracker)
                         currentDateTracker = now
                         usedSecondsTodayTracker = 0
                         appUsageMapTracker.clear()
+                        externalDailySecondsTracker = 0
+                        externalAppUsageMapTracker.clear()
                     }
 
                     val isScreenOn = powerManager.isInteractive
                     val currentApp = getForegroundPackage()
                     val isOurLauncher = currentApp == packageName
-                    val isBedtimeNow =
-                        isBedtimeEnabled && isBedtimeActiveNow(bedtimeStart, bedtimeEnd)
+                    val isSleepTimeNow = isSleepTimeEnabled && isSleepTimeActiveNow(sleepTimeStart, sleepTimeEnd)
 
-                    // --- THE HEARTBEAT LOG ---
-                    Log.d(
-                        TAG,
-                        "⏱️ TICK | Screen: ${if (isScreenOn) "ON" else "OFF"} | App: $currentApp | Time: $usedSecondsTodayTracker/$limitInSeconds sec | BedtimeNow: $isBedtimeNow"
-                    )
+                    // 🚀 MULTI-DEVICE OFFLINE-FIRST LOGIC: Calculate Effective Time
+                    val effectiveDailyTotal = usedSecondsTodayTracker + externalDailySecondsTracker
 
                     if (currentApp == "com.android.settings") {
-                        Log.w(
-                            TAG, "🚨 BLOCKING PRIORITY 0: Child attempted to open Android Settings."
-                        )
+                        Log.w(TAG, "🚨 BLOCKING PRIORITY 0: Child attempted to open Android Settings.")
                     } else if (isScreenOn && currentApp.isNotEmpty() && !isOurLauncher) {
 
                         val isCriticalSystem = criticalSystemPackages.contains(currentApp)
                         val isAppAllowed = allowedPackages.contains(currentApp)
 
-                        if (isBedtimeNow && !isCriticalSystem) {
-                            Log.w(
-                                TAG,
-                                "💤 BLOCKING PRIORITY 1: Bedtime is active. Blocking $currentApp"
-                            )
-                            hideAllOverlaysExcept(bedtimeLockOverlay)
-                            bedtimeLockOverlay.show()
+                        if (isSleepTimeNow && !isCriticalSystem) {
+                            hideAllOverlaysExcept(sleepTimeLockOverlay)
+                            sleepTimeLockOverlay.show()
                         } else if (!isAppAllowed && !isCriticalSystem) {
-                            Log.w(
-                                TAG,
-                                "🚫 BLOCKING PRIORITY 2: App is not on the allowed list -> $currentApp"
-                            )
                             hideAllOverlaysExcept(appLockOverlay)
                             appLockOverlay.show()
                         } else {
+                            // Valid usage -> Increment local counters
                             if (!isCriticalSystem) {
                                 usedSecondsTodayTracker += 1
-                                appUsageMapTracker[currentApp] =
-                                    (appUsageMapTracker[currentApp] ?: 0) + 1
-                                Log.v(TAG, "✅ App Allowed: $currentApp | Tracking incremented.")
+                                appUsageMapTracker[currentApp] = (appUsageMapTracker[currentApp] ?: 0) + 1
                             }
 
-                            if (isTimeLimitEnabled && usedSecondsTodayTracker >= limitInSeconds) {
-                                Log.w(
-                                    TAG,
-                                    "⏳ BLOCKING PRIORITY 3: Daily Time Limit reached ($usedSecondsTodayTracker sec). Blocking $currentApp"
-                                )
+                            // 🚀 Check limits against EFFECTIVE (Local + External) time
+                            if (isTimeLimitEnabled && effectiveDailyTotal >= limitInSeconds) {
+                                Log.w(TAG, "⏳ BLOCKING: Global limit reached ($effectiveDailyTotal sec).")
                                 hideAllOverlaysExcept(timeLockOverlay)
                                 timeLockOverlay.show()
                             } else {
@@ -253,17 +242,36 @@ class RestrictionEnforcerService : LifecycleService() {
                             }
                         }
                     } else {
-                        // Safe Zone
-                        hideAllOverlays()
+                        hideAllOverlays() // Screen off or inside our Launcher
                     }
 
-                    // DB Save every 60 seconds
+                    // --- 60-SECOND BACKGROUND SYNC ---
                     loopCounter++
                     if (loopCounter >= 60) {
-                        Log.d(TAG, "⏲️ 60-second mark reached. Triggering DB save.")
-                        saveDataToRoom(
-                            childId, currentDateTracker, usedSecondsTodayTracker, appUsageMapTracker
-                        )
+                        saveDataToRoom(childId, currentDateTracker, usedSecondsTodayTracker, appUsageMapTracker)
+
+                        // Launch sync in background so we NEVER block the 1-second enforcement loop
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                val globalResponse = usageRepository.syncUnsyncedData(
+                                    activeChildId = childId, forcePing = false
+                                )
+                                if (globalResponse != null) {
+                                    val globalDaily = globalResponse.globalDailySeconds[childId] ?: usedSecondsTodayTracker
+                                    val globalApps = globalResponse.globalAppSeconds[childId] ?: emptyMap()
+
+                                    // Calculate External Delta
+                                    externalDailySecondsTracker = maxOf(0, globalDaily - usedSecondsTodayTracker)
+
+                                    globalApps.forEach { (pkg, globalAppTime) ->
+                                        val localAppTime = appUsageMapTracker[pkg] ?: 0
+                                        externalAppUsageMapTracker[pkg] = maxOf(0, globalAppTime - localAppTime)
+                                    }
+                                }
+                            } catch (_: Exception) {
+                                Log.d(TAG, "📡 Offline or Sync Failed. Continuing with local metrics.")
+                            }
+                        }
                         loopCounter = 0
                     }
                     delay(1000L)
@@ -273,28 +281,30 @@ class RestrictionEnforcerService : LifecycleService() {
     }
 
     private fun hideAllOverlays() {
-        if (timeLockOverlay.isShowing() || appLockOverlay.isShowing() || bedtimeLockOverlay.isShowing()) {
-            Log.v(TAG, "🧹 Hiding all overlays.")
+        if (timeLockOverlay.isShowing() || appLockOverlay.isShowing() || sleepTimeLockOverlay.isShowing()) {
+            timeLockOverlay.hide()
+            appLockOverlay.hide()
+            sleepTimeLockOverlay.hide()
         }
-        timeLockOverlay.hide()
-        appLockOverlay.hide()
-        bedtimeLockOverlay.hide()
     }
 
     private fun hideAllOverlaysExcept(activeOverlay: RestrictionOverlay) {
         if (activeOverlay != timeLockOverlay) timeLockOverlay.hide()
         if (activeOverlay != appLockOverlay) appLockOverlay.hide()
-        if (activeOverlay != bedtimeLockOverlay) bedtimeLockOverlay.hide()
+        if (activeOverlay != sleepTimeLockOverlay) sleepTimeLockOverlay.hide()
     }
 
     private suspend fun saveDataToRoom(
         childId: String, date: LocalDate, totalSeconds: Int, appMap: Map<String, Int>
     ) {
         try {
-            Log.i(TAG, "💾 Saving to Room DB... Total: $totalSeconds sec | Apps: ${appMap.size}")
-            usageDao.insertOrUpdateDailyUsage(DailyUsageEntity(childId, date, totalSeconds))
+            usageDao.insertOrUpdateDailyUsage(
+                DailyUsageEntity(
+                    childId, date, totalSeconds, isSynced = false
+                )
+            )
             val appRecords = appMap.map { (pkg, seconds) ->
-                AppUsageRecordEntity(childId, date, pkg, seconds)
+                AppUsageRecordEntity(childId, date, pkg, seconds, isSynced = false)
             }
             if (appRecords.isNotEmpty()) usageDao.insertOrUpdateAppUsages(appRecords)
         } catch (e: Exception) {
@@ -305,24 +315,27 @@ class RestrictionEnforcerService : LifecycleService() {
     private fun performFinalSave() {
         val childId = currentChildId ?: return
         if (usedSecondsTodayTracker == 0 && appUsageMapTracker.isEmpty()) return
-        Log.i(TAG, "💾 [FINAL SAVE] Service shutting down. Saving final state...")
+
         CoroutineScope(Dispatchers.IO).launch {
             withContext(NonCancellable) {
                 saveDataToRoom(
                     childId, currentDateTracker, usedSecondsTodayTracker, appUsageMapTracker
                 )
+                try {
+                    usageRepository.syncUnsyncedData(activeChildId = childId, forcePing = false)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Final sync failed on exit. Data preserved in Room.")
+                }
             }
         }
     }
 
     private fun stopMonitoring() {
-        Log.i(TAG, "🛑 stopMonitoring() called. Canceling job and hiding overlays.")
         monitoringJob?.cancel()
         hideAllOverlays()
     }
 
     override fun onDestroy() {
-        Log.d(TAG, "💥 Service Destroyed")
         performFinalSave()
         stopMonitoring()
         super.onDestroy()

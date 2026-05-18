@@ -5,7 +5,7 @@ import androidx.room.Room
 import com.vahak.parentcontroll.core.data.local.ParentControlDatabase
 import com.vahak.parentcontroll.core.data.local.dao.AppRuleDao
 import com.vahak.parentcontroll.core.data.local.dao.ChildDao
-import com.vahak.parentcontroll.core.data.local.dao.SettingsDao
+import com.vahak.parentcontroll.core.data.local.dao.ChildSettingsDao
 import com.vahak.parentcontroll.core.data.local.dao.UsageDao
 import com.vahak.parentcontroll.core.data.local.dao.WebDao
 import dagger.Module
@@ -29,8 +29,8 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideSettingsDao(db: ParentControlDatabase): SettingsDao {
-        return db.settingsDao
+    fun provideSettingsDao(db: ParentControlDatabase): ChildSettingsDao {
+        return db.childSettingsDao
     }
 
     @Provides

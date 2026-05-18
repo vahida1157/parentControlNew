@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -38,7 +39,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -80,11 +80,12 @@ import com.vahak.parentcontroll.presentation.dashboard.DashboardEffect
 import com.vahak.parentcontroll.presentation.dashboard.DashboardEvent
 import com.vahak.parentcontroll.presentation.dashboard.DashboardState
 import com.vahak.parentcontroll.presentation.dashboard.DashboardViewModel
-import com.vahak.parentcontroll.ui.theme.AppIcons
+import com.vahak.parentcontroll.uiv2.theme.AppIcons
 import com.vahak.parentcontroll.uiv2.theme.AppTheme
 import com.vahak.parentcontroll.uiv2.theme.LocalCustomColors
 import com.vahak.parentcontroll.uiv2.theme.ParentControlTheme
 import java.time.LocalDate
+import java.time.Period
 
 @Composable
 fun DashboardScreen(
@@ -167,7 +168,7 @@ fun DashboardScreenContent(
 
     Scaffold(
         containerColor = colors.background, floatingActionButton = {
-            if (missingSecurityPermissions.isNotEmpty()) {
+            if (missingSecurityPermissions.isNotEmpty())
                 FloatingActionButton(
                     onClick = {
                         val permissionsString =
@@ -179,16 +180,13 @@ fun DashboardScreenContent(
                     shape = CircleShape,
                     modifier = Modifier
                         .offset(y = fabOffsetY.dp)
-                        .padding(bottom = 80.dp)
                 ) {
                     Icon(AppIcons.Settings, contentDescription = "تکمیل امنیت")
                 }
-            }
-        }) { paddingValues ->
+        }) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
             DashboardHeaderV2()
@@ -202,7 +200,12 @@ fun DashboardScreenContent(
 
             state.activeChild?.let { child ->
                 ActiveChildSummaryCardV2(
-                    child = child, onSettingsClick = { onSettingsClick(child.id) })
+                    child = child,
+                    timeLimitMins = state.activeChildTimeLimitMins,
+                    isTimeLimitActive = state.isTimeLimitActive, // FIXED: Pass it to the UI
+                    usageSeconds = state.activeChildUsageSeconds,
+                    onSettingsClick = { onSettingsClick(child.id) }
+                )
             }
 
             LauncherCTAButtonV2(
@@ -212,7 +215,8 @@ fun DashboardScreenContent(
                     } else {
                         onEvent(DashboardEvent.OpenChildSheet)
                     }
-                })
+                }, isProtectionActive = state.isProtectionActive
+            )
 
             ActionGridV2(
                 onSettingsClick = { state.activeChild?.let { onSettingsClick(it.id) } },
@@ -588,9 +592,40 @@ fun HomeChildSelectorV2(
 
 @Composable
 fun ActiveChildSummaryCardV2(
-    child: ChildEntity, onSettingsClick: () -> Unit
+    child: ChildEntity,
+    timeLimitMins: Int,
+    isTimeLimitActive: Boolean,
+    usageSeconds: Int,
+    onSettingsClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
+
+    val age = Period.between(child.dob, LocalDate.now()).years
+    val ageText = if (age > 0) "$age ساله" else "کمتر از یک سال"
+
+    val usageHours = usageSeconds / 3600
+    val usageMins = (usageSeconds % 3600) / 60
+    val formattedUsage = String.format("%d:%02d", usageHours, usageMins)
+
+    val limitHours = timeLimitMins / 60
+    val limitMins = timeLimitMins % 60
+    val formattedLimit = if (!isTimeLimitActive || timeLimitMins == 0) {
+        "نامحدود"
+    } else {
+        buildString {
+            if (limitHours > 0) append("$limitHours ساعت ")
+            if (limitMins > 0) append("$limitMins دقیقه")
+        }.trim().ifEmpty { "نامحدود" }
+    }
+
+    val totalLimitSeconds = (timeLimitMins * 60).toFloat().coerceAtLeast(1f)
+
+    // 🚀 BUG FIX: If the limit is off, force progress to 0 so the bar stays empty!
+    val progress = if (!isTimeLimitActive || timeLimitMins == 0) {
+        0f
+    } else {
+        (usageSeconds.toFloat() / totalLimitSeconds).coerceIn(0f, 1f)
+    }
 
     Card(
         modifier = Modifier
@@ -602,7 +637,6 @@ fun ActiveChildSummaryCardV2(
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
-            // Top Section
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -620,15 +654,11 @@ fun ActiveChildSummaryCardV2(
                         fontSize = 17.sp,
                         color = colors.textPrimary
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(colors.green, CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("آنلاین • ۱۰ ساله", color = colors.textSecondary, fontSize = 12.sp)
-                    }
+                    Text(
+                        ageText,
+                        color = colors.textSecondary,
+                        fontSize = 12.sp
+                    )
                 }
                 IconButton(
                     onClick = onSettingsClick,
@@ -647,9 +677,9 @@ fun ActiveChildSummaryCardV2(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Progress Bar Section
             Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     "زمان استفاده امروز",
@@ -658,35 +688,25 @@ fun ActiveChildSummaryCardV2(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    "۱:۴۵ از ۳ ساعت",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Black,
-                    color = colors.textPrimary
+                    if (isTimeLimitActive && timeLimitMins > 0) "$formattedUsage از $formattedLimit" else "$formattedUsage (نامحدود)",
+                    fontSize = 12.sp, fontWeight = FontWeight.Black, color = colors.textPrimary
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
             LinearProgressIndicator(
-                progress = { 0.58f },
+                progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(CircleShape),
-                color = colors.primary,
+                color = when {
+                    !isTimeLimitActive || timeLimitMins == 0 -> colors.divider // 🚀 Force neutral color when unlimited
+                    progress > 0.9f -> colors.red
+                    progress > 0.75f -> colors.yellow
+                    else -> colors.primary
+                },
                 trackColor = colors.divider,
             )
-
-            Spacer(modifier = Modifier.height(14.dp))
-            HorizontalDivider(color = colors.divider.copy(alpha = 0.5f))
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Mini Stats Section
-            Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                MiniStatItem("۳", "⚠️ هشدار")
-                MiniStatItem("۵", "🚫 مسدود شده")
-                MiniStatItem("مدرسه", "📍 موقعیت")
-            }
         }
     }
 }
@@ -707,18 +727,28 @@ fun MiniStatItem(value: String, label: String) {
 }
 
 @Composable
-fun LauncherCTAButtonV2(childName: String, onClick: () -> Unit) {
+fun LauncherCTAButtonV2(childName: String, isProtectionActive: Boolean, onClick: () -> Unit) {
     val colors = LocalCustomColors.current
-    val coralGradient = Brush.linearGradient(listOf(colors.red, Color(0xFFD44245)))
+    // Change color to green if active
+    val bgGradient = if (isProtectionActive) {
+        Brush.linearGradient(listOf(colors.green, Color(0xFF0D9488)))
+    } else {
+        Brush.linearGradient(listOf(colors.red, Color(0xFFD44245)))
+    }
 
     Button(
-        onClick = onClick,
+        // Disable clicking if it is already active
+        onClick = { if (!isProtectionActive) onClick() },
         modifier = Modifier
             .padding(horizontal = 20.dp)
             .fillMaxWidth()
             .height(84.dp)
             .padding(bottom = 16.dp)
-            .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = colors.red.copy(alpha = 0.4f)),
+            .shadow(
+                12.dp,
+                RoundedCornerShape(16.dp),
+                spotColor = (if (isProtectionActive) colors.green else colors.red).copy(alpha = 0.4f)
+            ),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
         contentPadding = PaddingValues(0.dp)
@@ -726,7 +756,7 @@ fun LauncherCTAButtonV2(childName: String, onClick: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(coralGradient)
+                .background(bgGradient)
                 .padding(horizontal = 18.dp),
             contentAlignment = Alignment.CenterStart
         ) {
@@ -738,30 +768,19 @@ fun LauncherCTAButtonV2(childName: String, onClick: () -> Unit) {
                         .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("🛡️", fontSize = 28.sp)
+                    Text(if (isProtectionActive) "✅" else "🛡️", fontSize = 28.sp)
                 }
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "ورود به حالت لانچر فرزند",
-                        color = Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 16.sp
+                        if (isProtectionActive) "محیط امن فعال است" else "ورود به حالت لانچر فرزند",
+                        color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        "فعال‌سازی محیط امن برای $childName",
-                        color = Color.White.copy(alpha = 0.95f),
-                        fontSize = 11.sp
+                        if (isProtectionActive) "در حال محافظت از $childName" else "فعال‌سازی محیط امن برای $childName",
+                        color = Color.White.copy(alpha = 0.95f), fontSize = 11.sp
                     )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("←", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 }
             }
         }
@@ -864,18 +883,28 @@ fun ActionCardV2(
 @Composable
 fun BannerSliderV2() {
     val colors = LocalCustomColors.current
-    val pagerState = rememberPagerState(pageCount = { 3 })
 
     val banners = listOf(
-        Triple("📢", "کانال رسمی فرزندبان", "آخرین بروزرسانی‌ها و نکات والدگری"),
+        Triple("📢", "کانال رسمی مهربان", "آخرین بروزرسانی‌ها و نکات والدگری"),
         Triple("💬", "پشتیبانی ۲۴ ساعته", "سوال یا مشکلی دارید؟ تیم پشتیبانی در خدمت شماست"),
-        Triple("🎁", "پیشنهاد ویژه اشتراک", "۳۰٪ تخفیف اشتراک سالانه فرزندبان پلاس")
+        Triple("🎁", "پیشنهاد ویژه اشتراک", "۳۰٪ تخفیف اشتراک سالانه مهربان پلاس")
     )
+
+    // Move pageCount to use the dynamic size of your list
+    val pagerState = rememberPagerState(pageCount = { banners.size })
+
+    // --- NEW: Auto-scroll logic ---
+    LaunchedEffect(pagerState.currentPage) {
+        kotlinx.coroutines.delay(10_000L) // Wait for 10 seconds
+        // Calculate the next page, looping back to 0 when it reaches the end
+        val nextPage = (pagerState.currentPage + 1) % banners.size
+        pagerState.animateScrollToPage(nextPage)
+    }
 
     val bannerColors = listOf(
         Brush.linearGradient(listOf(colors.primary, colors.primaryVariant)),
         Brush.linearGradient(listOf(colors.yellow, Color(0xFFC49530))),
-        Brush.linearGradient(listOf(colors.blue, Color(0xFF4C51BF)))
+        Brush.linearGradient(listOf(colors.blue, Color(0xFF4C51BF))),
     )
 
     Column(
@@ -890,12 +919,20 @@ fun BannerSliderV2() {
                 .fillMaxWidth()
                 .height(130.dp)
         ) {
-            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                pageSpacing = 16.dp,
+                flingBehavior = PagerDefaults.flingBehavior(state = pagerState)
+            ) { page ->
                 val banner = banners[page]
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(bannerColors[page])
+                        .clickable {
+                            // TODO/FIXME: Redirect to actual Web URL or Channel Link in the future
+                        }
                         .padding(18.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
@@ -931,7 +968,7 @@ fun BannerSliderV2() {
         }
         Spacer(modifier = Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            repeat(3) { index ->
+            repeat(banners.size) { index ->
                 val isSelected = pagerState.currentPage == index
                 Box(
                     modifier = Modifier
@@ -951,7 +988,7 @@ fun BannerSliderV2() {
 // ==========================================
 
 private val mockChild1 =
-    ChildEntity(id = "1", name = "علی", dob = LocalDate.now(), gender = Gender.BOY)
+    ChildEntity(id = "1", name = "علی", dob = LocalDate.of(2009, 1, 1), gender = Gender.BOY)
 private val mockChild2 =
     ChildEntity(id = "2", name = "سارا", dob = LocalDate.now(), gender = Gender.GIRL)
 
@@ -976,7 +1013,8 @@ fun DashboardScreenPreviewPopulatedLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         DashboardScreenContent(
             state = DashboardState(
-                children = listOf(mockChild1, mockChild2), activeChild = mockChild1
+                children = listOf(mockChild1, mockChild2), activeChild = mockChild1,
+                activeChildTimeLimitMins = 50, activeChildUsageSeconds = 1700
             ),
             onEvent = {},
             onAddChildClick = {},
@@ -1012,7 +1050,7 @@ fun DashboardScreenPreviewDialog() {
             state = DashboardState(
                 children = listOf(mockChild1),
                 activeChild = mockChild1,
-                showPinRequiredDialog = true
+                showPinRequiredDialog = true,
             ),
             onEvent = {},
             onAddChildClick = {},

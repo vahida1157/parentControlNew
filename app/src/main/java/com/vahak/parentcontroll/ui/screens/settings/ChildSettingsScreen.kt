@@ -25,10 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 import com.vahak.parentcontroll.core.data.local.entity.GlobalSettingsEntity
-import com.vahak.parentcontroll.presentation.setting.SettingsEffect
-import com.vahak.parentcontroll.presentation.setting.SettingsEvent
-import com.vahak.parentcontroll.presentation.setting.SettingsState
-import com.vahak.parentcontroll.presentation.setting.SettingsViewModel
+import com.vahak.parentcontroll.presentation.setting.ChildSettingsEffect
+import com.vahak.parentcontroll.presentation.setting.ChildSettingsEvent
+import com.vahak.parentcontroll.presentation.setting.ChildSettingsState
+import com.vahak.parentcontroll.presentation.setting.ChildSettingsViewModel
 import com.vahak.parentcontroll.ui.component.ParentalHeader
 import com.vahak.parentcontroll.ui.component.SettingsGridItem
 import com.vahak.parentcontroll.ui.component.SettingsSectionTitle
@@ -40,7 +40,7 @@ import com.vahak.parentcontroll.ui.theme.ParentControlTheme
 // 1. STATEFUL WRAPPER
 @Composable
 fun ChildSettingsScreen(
-    viewModel: SettingsViewModel = hiltViewModel(),
+    viewModel: ChildSettingsViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onNavigateToFeature: (String) -> Unit,
     onInterceptForPermissions: (String, List<String>) -> Unit
@@ -51,13 +51,13 @@ fun ChildSettingsScreen(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is SettingsEffect.NavigateBack -> onBackClick()
-                is SettingsEffect.NavigateToFeature -> onNavigateToFeature(effect.route)
-                is SettingsEffect.ShowToast -> Toast.makeText(
+                is ChildSettingsEffect.NavigateBack -> onBackClick()
+                is ChildSettingsEffect.NavigateToFeature -> onNavigateToFeature(effect.route)
+                is ChildSettingsEffect.ShowToast -> Toast.makeText(
                     context, effect.message, Toast.LENGTH_SHORT
                 ).show()
 
-                is SettingsEffect.NavigateToPermissionSlider -> {
+                is ChildSettingsEffect.NavigateToPermissionSlider -> {
                     onInterceptForPermissions(effect.route, effect.missingPermissions)
                 }
             }
@@ -72,7 +72,7 @@ fun ChildSettingsScreen(
 // 2. STATELESS CONTENT (Matches the HTML Grid perfectly)
 @Composable
 fun ChildSettingsContent(
-    state: SettingsState, onEvent: (SettingsEvent) -> Unit
+    state: ChildSettingsState, onEvent: (ChildSettingsEvent) -> Unit
 ) {
     val colors = LocalCustomColors.current
     val isThemeActive = state.settings?.isChildThemeActive ?: true
@@ -88,8 +88,8 @@ fun ChildSettingsContent(
         ParentalHeader(
             title = "تنظیمات نظارتی",
             subtitle = "مدیریت کامل دسترسی‌های فرزند",
-            onBackClick = { onEvent(SettingsEvent.BackClicked) },
-            onHelpClick = { onEvent(SettingsEvent.HelpClicked) })
+            onBackClick = { onEvent(ChildSettingsEvent.BackClicked) },
+            onHelpClick = { onEvent(ChildSettingsEvent.HelpClicked) })
 
         Column(
             modifier = Modifier
@@ -97,9 +97,9 @@ fun ChildSettingsContent(
                 .padding(horizontal = 20.dp, vertical = 10.dp)
         ) {
 
-            ThemeToggleCard(
-                isActive = isThemeActive,
-                onToggle = { isActive -> onEvent(SettingsEvent.ToggleChildTheme(isActive)) })
+//            ThemeToggleCard(
+//                isActive = isThemeActive,
+//                onToggle = { isActive -> onEvent(ChildSettingsEvent.ToggleChildTheme(isActive)) })
 
             // --- SECTION 1: Time Management ---
             SettingsSectionTitle(
@@ -114,7 +114,7 @@ fun ChildSettingsContent(
                         label = "قفل زمان", icon = AppIcons.ChartPie, // Use Hourglass
                         onClick = {
                             onEvent(
-                                SettingsEvent.GridItemClicked(
+                                ChildSettingsEvent.GridItemClicked(
                                     "time_limit", localContext
                                 )
                             )
@@ -125,7 +125,7 @@ fun ChildSettingsContent(
                         label = "زمان خواب", icon = AppIcons.ChartPie, // Use Bed
                         onClick = {
                             onEvent(
-                                SettingsEvent.GridItemClicked(
+                                ChildSettingsEvent.GridItemClicked(
                                     "sleep_time", localContext
                                 )
                             )
@@ -149,7 +149,7 @@ fun ChildSettingsContent(
                         label = "قفل برنامه‌ها", icon = AppIcons.Games, // Use Apps icon
                         onClick = {
                             onEvent(
-                                SettingsEvent.GridItemClicked(
+                                ChildSettingsEvent.GridItemClicked(
                                     "app_lock", localContext
                                 )
                             )
@@ -160,7 +160,7 @@ fun ChildSettingsContent(
                         label = "مدیریت سایت‌ها", icon = AppIcons.ContentLayer, // Use Globe
                         onClick = {
                             onEvent(
-                                SettingsEvent.GridItemClicked(
+                                ChildSettingsEvent.GridItemClicked(
                                     "site_management", localContext
                                 )
                             )
@@ -171,7 +171,7 @@ fun ChildSettingsContent(
                         label = "جستجوی ایمن", icon = AppIcons.Help, // Use Search
                         onClick = {
                             onEvent(
-                                SettingsEvent.GridItemClicked(
+                                ChildSettingsEvent.GridItemClicked(
                                     "safe_search", localContext
                                 )
                             )
@@ -187,7 +187,7 @@ fun ChildSettingsContent(
                         label = "جلوگیری از حذف", icon = AppIcons.LockBadge, // Use Trash Slash
                         onClick = {
                             onEvent(
-                                SettingsEvent.GridItemClicked(
+                                ChildSettingsEvent.GridItemClicked(
                                     "prevent_delete", localContext
                                 )
                             )
@@ -197,7 +197,7 @@ fun ChildSettingsContent(
                     SettingsGridItem(
                         label = "جلوگیری از تبلیغ",
                         icon = AppIcons.LockBadge, // Use Ban
-                        onClick = { onEvent(SettingsEvent.HelpClicked) } // Not implemented yet
+                        onClick = { onEvent(ChildSettingsEvent.HelpClicked) } // Not implemented yet
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -216,7 +216,7 @@ fun ChildSettingsContent(
                         label = "موقعیت مکانی", icon = AppIcons.ChartBar, // Use Location
                         onClick = {
                             onEvent(
-                                SettingsEvent.GridItemClicked(
+                                ChildSettingsEvent.GridItemClicked(
                                     "location", localContext
                                 )
                             )
@@ -227,7 +227,7 @@ fun ChildSettingsContent(
                         label = "محافظ چشم", icon = AppIcons.Profile, // Use Eye
                         onClick = {
                             onEvent(
-                                SettingsEvent.GridItemClicked(
+                                ChildSettingsEvent.GridItemClicked(
                                     "eye_protect", localContext
                                 )
                             )
@@ -237,7 +237,7 @@ fun ChildSettingsContent(
                     SettingsGridItem(
                         label = "فیلم و انیمیشن", icon = AppIcons.Movies, onClick = {
                             onEvent(
-                                SettingsEvent.GridItemClicked(
+                                ChildSettingsEvent.GridItemClicked(
                                     "content_movies", localContext
                                 )
                             )
@@ -256,8 +256,8 @@ fun ChildSettingsContent(
 fun SettingsPreview() {
     ParentControlTheme {
         ChildSettingsContent(
-            state = SettingsState(
-                childId = "mock-123",
+            state = ChildSettingsState(
+//                childId = "mock-123",
                 settings = GlobalSettingsEntity(childId = "mock-123", isChildThemeActive = true),
                 isLoading = false
             ), onEvent = {})

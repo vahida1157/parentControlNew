@@ -11,7 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.vahak.parentcontroll.uiv2.screens.applimit.AppSelectionScreen
 import com.vahak.parentcontroll.uiv2.screens.timelimit.TimeLimitScreen
-import com.vahak.parentcontroll.uiv2.screens.bedtime.BedtimeScreen
+import com.vahak.parentcontroll.uiv2.screens.sleeptime.SleepTimeScreen
 import com.vahak.parentcontroll.uiv2.screens.family.FamilyManagementScreen
 import com.vahak.parentcontroll.uiv2.screens.permissions.PermissionSliderScreen
 import com.vahak.parentcontroll.uiv2.screens.report.UsageReportScreen
@@ -158,7 +158,7 @@ fun ParentControlNavGraph(
         }
 
         composable(route = Screen.SleepTime.route) {
-            BedtimeScreen(
+            SleepTimeScreen(
                 onBackClick = { navController.popBackStack() })
         }
 

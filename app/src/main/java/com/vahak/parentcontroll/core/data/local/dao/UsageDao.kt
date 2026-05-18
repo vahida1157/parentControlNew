@@ -30,4 +30,25 @@ interface UsageDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateAppUsages(records: List<AppUsageRecordEntity>)
+
+    // --- TELEMETRY SYNC SUPPORT ---
+
+    @Query("SELECT * FROM daily_usage WHERE is_synced = 0")
+    suspend fun getUnsyncedDailyUsages(): List<DailyUsageEntity>
+
+    @Query("SELECT * FROM app_usage_records WHERE is_synced = 0")
+    suspend fun getUnsyncedAppUsages(): List<AppUsageRecordEntity>
+
+    @Query("UPDATE daily_usage SET is_synced = 1 WHERE child_id = :childId AND date = :date")
+    suspend fun markDailyUsageSynced(childId: String, date: LocalDate)
+
+    @Query("UPDATE app_usage_records SET is_synced = 1 WHERE child_id = :childId AND date = :date AND package_name = :packageName")
+    suspend fun markAppUsageSynced(childId: String, date: LocalDate, packageName: String)
+
+    // --- GLOBAL CACHE UPDATES ---
+    @Query("UPDATE daily_usage SET global_used_seconds = :globalSeconds, is_synced = 1 WHERE child_id = :childId AND date = :date")
+    suspend fun updateGlobalDailyUsage(childId: String, date: LocalDate, globalSeconds: Int): Int
+
+    @Query("UPDATE app_usage_records SET global_used_seconds = :globalSeconds, is_synced = 1 WHERE child_id = :childId AND date = :date AND package_name = :packageName")
+    suspend fun updateGlobalAppUsage(childId: String, date: LocalDate, packageName: String, globalSeconds: Int): Int
 }

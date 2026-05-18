@@ -22,11 +22,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.systemGesturesPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -181,6 +184,7 @@ fun PermissionSliderContent(
     }
 
     Scaffold(
+        modifier = Modifier.systemBarsPadding(),
         containerColor = colors.background,
         bottomBar = {
             val isLastPage = pagerState.currentPage == permissions.lastIndex
@@ -331,7 +335,7 @@ fun PermissionHeaderV2(currentPage: Int, totalPages: Int) {
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    "فرزندبان",
+                    "مهربان",
                     color = Color.White,
                     fontWeight = FontWeight.Black,
                     fontSize = 18.sp
@@ -511,7 +515,7 @@ fun PermissionFooterV2(buttonText: String, onGrantClick: () -> Unit) {
 fun PermissionSliderPreviewLight() {
     // Mocked PermissionType instructions just for the preview rendering
     val mockInstruction =
-        listOf("به تنظیمات بروید", "بخش دسترسی‌ها را انتخاب کنید", "فرزندبان را فعال کنید")
+        listOf("به تنظیمات بروید", "بخش دسترسی‌ها را انتخاب کنید", "مهربان را فعال کنید")
 
     val mockPermissions = listOf(
         PermissionType.USAGE_STATS.apply { /* Mock logic */ },
@@ -528,7 +532,9 @@ fun PermissionSliderPreviewLight() {
     }
 }
 
-@Preview(showBackground = true, name = "2. Permission Slider Dark", locale = "fa")
+@Preview(showBackground = true, name = "2. Permission Slider Dark", locale = "fa",
+    showSystemUi = true, device = "spec:parent=pixel_5,navigation=buttons"
+)
 @Composable
 fun PermissionSliderPreviewDark() {
     val mockPermissions = listOf(PermissionType.DEVICE_ADMIN)

@@ -1,4 +1,4 @@
-package com.vahak.parentcontroll.ui.screens.bedtime
+package com.vahak.parentcontroll.ui.screens.sleeptime
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -16,11 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.vahak.parentcontroll.presentation.bedtime.BedtimeEffect
-import com.vahak.parentcontroll.presentation.bedtime.BedtimeEvent
-import com.vahak.parentcontroll.presentation.bedtime.BedtimeState
-import com.vahak.parentcontroll.presentation.bedtime.BedtimeViewModel
-import com.vahak.parentcontroll.presentation.bedtime.TimeEditMode
+import com.vahak.parentcontroll.presentation.sleeptime.SleepTimeEffect
+import com.vahak.parentcontroll.presentation.sleeptime.SleepTimeEvent
+import com.vahak.parentcontroll.presentation.sleeptime.SleepTimeState
+import com.vahak.parentcontroll.presentation.sleeptime.SleepTimeViewModel
+import com.vahak.parentcontroll.presentation.sleeptime.TimeEditMode
 import com.vahak.parentcontroll.ui.component.DynamicTimePicker
 import com.vahak.parentcontroll.ui.component.FeatureToggleCard
 import com.vahak.parentcontroll.ui.component.SettingActionCard
@@ -40,19 +40,19 @@ fun formatTime(hour: Int, minute: Int): String {
 
 // --- 1. STATEFUL WRAPPER ---
 @Composable
-fun BedtimeScreen(
-    viewModel: BedtimeViewModel = hiltViewModel(),
+fun SleepTimeScreen(
+    viewModel: SleepTimeViewModel = hiltViewModel(),
     onBackClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
-            if (effect is BedtimeEffect.NavigateBack) onBackClick()
+            if (effect is SleepTimeEffect.NavigateBack) onBackClick()
         }
     }
 
-    BedtimeContent(
+    SleepTimeContent(
         state = state,
         onEvent = viewModel::onEvent
     )
@@ -60,9 +60,9 @@ fun BedtimeScreen(
 
 // --- 2. STATELESS CONTENT ---
 @Composable
-fun BedtimeContent(
-    state: BedtimeState,
-    onEvent: (BedtimeEvent) -> Unit
+fun SleepTimeContent(
+    state: SleepTimeState,
+    onEvent: (SleepTimeEvent) -> Unit
 ) {
     val colors = LocalCustomColors.current
 
@@ -76,7 +76,7 @@ fun BedtimeContent(
 
             SimpleFlatHeader(
                 title = "برنامه خواب",
-                onBackClick = { onEvent(BedtimeEvent.BackClicked) }
+                onBackClick = { onEvent(SleepTimeEvent.BackClicked) }
             )
 
             Column(modifier = Modifier.padding(20.dp)) {
@@ -85,8 +85,8 @@ fun BedtimeContent(
                 FeatureToggleCard(
                     title = "فعال‌سازی برنامه خواب",
                     description = "در این ساعات، گوشی به حالت استراحت می‌رود و دسترسی به برنامه‌ها مسدود می‌شود تا فرزندتان خواب راحتی داشته باشد.",
-                    isActive = state.isBedtimeActive,
-                    onToggle = { onEvent(BedtimeEvent.ToggleActive(it)) }
+                    isActive = state.isSleepTimeActive,
+                    onToggle = { onEvent(SleepTimeEvent.ToggleActive(it)) }
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -96,8 +96,8 @@ fun BedtimeContent(
                     headerTitle = "زمان شروع خواب",
                     headerIcon = AppIcons.Moon, // PRO TIP: Replace with a Moon Icon if you have one!
                     valueText = formatTime(state.startTime.hour, state.startTime.minute),
-                    isEnabled = state.isBedtimeActive,
-                    onClick = { onEvent(BedtimeEvent.OpenPicker(TimeEditMode.START)) }
+                    isEnabled = state.isSleepTimeActive,
+                    onClick = { onEvent(SleepTimeEvent.OpenPicker(TimeEditMode.START)) }
                 )
 
                 // End Time Card (When to wake up)
@@ -105,8 +105,8 @@ fun BedtimeContent(
                     headerTitle = "زمان بیداری",
                     headerIcon = AppIcons.Sun, // PRO TIP: Replace with a Sun/Alarm Icon if you have one!
                     valueText = formatTime(state.endTime.hour, state.endTime.minute),
-                    isEnabled = state.isBedtimeActive,
-                    onClick = { onEvent(BedtimeEvent.OpenPicker(TimeEditMode.END)) }
+                    isEnabled = state.isSleepTimeActive,
+                    onClick = { onEvent(SleepTimeEvent.OpenPicker(TimeEditMode.END)) }
                 )
             }
         }
@@ -119,10 +119,10 @@ fun BedtimeContent(
                 title = if (isStart) "انتخاب زمان شروع خواب" else "انتخاب زمان بیداری",
                 initialHours = if (isStart) state.startTime.hour else state.endTime.hour,
                 initialMinutes = if (isStart) state.startTime.minute else state.endTime.minute,
-                hoursRange = 0..23, // PRO FIX: Bedtime needs a 24-hour clock range!
+                hoursRange = 0..23, // PRO FIX: SleepTime needs a 24-hour clock range!
                 minutesRange = 0..59,
-                onDismiss = { onEvent(BedtimeEvent.ClosePicker) },
-                onConfirm = { h, m -> onEvent(BedtimeEvent.ConfirmTime(h, m)) }
+                onDismiss = { onEvent(SleepTimeEvent.ClosePicker) },
+                onConfirm = { h, m -> onEvent(SleepTimeEvent.ConfirmTime(h, m)) }
             )
         }
     }
@@ -132,13 +132,13 @@ fun BedtimeContent(
 // PREVIEWS
 // ==========================================
 
-@Preview(showBackground = true, name = "1. Bedtime (Active)", locale = "fa")
+@Preview(showBackground = true, name = "1. SleepTime (Active)", locale = "fa")
 @Composable
-fun BedtimeActivePreview() {
+fun SleepTimeActivePreview() {
     ParentControlTheme {
-        BedtimeContent(
-            state = BedtimeState(
-                isBedtimeActive = true,
+        SleepTimeContent(
+            state = SleepTimeState(
+                isSleepTimeActive = true,
                 startTime = LocalTime.of(22, 30),
                 endTime = LocalTime.of(7, 0),
             ),
@@ -147,13 +147,13 @@ fun BedtimeActivePreview() {
     }
 }
 
-@Preview(showBackground = true, name = "2. Bedtime (Disabled)", locale = "fa")
+@Preview(showBackground = true, name = "2. SleepTime (Disabled)", locale = "fa")
 @Composable
-fun BedtimeDisabledPreview() {
+fun SleepTimeDisabledPreview() {
     ParentControlTheme {
-        BedtimeContent(
-            state = BedtimeState(
-                isBedtimeActive = false,
+        SleepTimeContent(
+            state = SleepTimeState(
+                isSleepTimeActive = false,
                 startTime = LocalTime.of(22, 30),
                 endTime = LocalTime.of(7, 0),
             ),

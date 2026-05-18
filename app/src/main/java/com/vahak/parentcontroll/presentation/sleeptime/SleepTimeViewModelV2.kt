@@ -1,4 +1,4 @@
-package com.vahak.parentcontroll.presentation.bedtime
+package com.vahak.parentcontroll.presentation.sleeptime
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -14,8 +14,8 @@ import javax.inject.Inject
 
 enum class TimeEditModeV2 { NONE, START, END }
 
-data class BedtimeStateV2(
-    val isBedtimeActive: Boolean = false,
+data class SleepTimeStateV2(
+    val isSleepTimeActive: Boolean = false,
     val startTime: LocalTime = LocalTime.of(21, 30),
     val endTime: LocalTime = LocalTime.of(7, 0),
     val currentEditMode: TimeEditModeV2 = TimeEditModeV2.NONE,
@@ -24,38 +24,38 @@ data class BedtimeStateV2(
     val isDndEnabled: Boolean = true,
     val isEmergencyCallsEnabled: Boolean = true,
     val isBlueLightFilterEnabled: Boolean = false,
-    
+
     val isSaving: Boolean = false
 ) {
     val isPickerVisible: Boolean get() = currentEditMode != TimeEditModeV2.NONE
 }
 
-sealed class BedtimeEventV2 {
-    object BackClicked : BedtimeEventV2()
-    data class ToggleActive(val isActive: Boolean) : BedtimeEventV2()
+sealed class SleepTimeEventV2 {
+    object BackClicked : SleepTimeEventV2()
+    data class ToggleActive(val isActive: Boolean) : SleepTimeEventV2()
     
     // New Toggles
-    data class ToggleDnd(val isActive: Boolean) : BedtimeEventV2()
-    data class ToggleEmergencyCalls(val isActive: Boolean) : BedtimeEventV2()
-    data class ToggleBlueLight(val isActive: Boolean) : BedtimeEventV2()
+    data class ToggleDnd(val isActive: Boolean) : SleepTimeEventV2()
+    data class ToggleEmergencyCalls(val isActive: Boolean) : SleepTimeEventV2()
+    data class ToggleBlueLight(val isActive: Boolean) : SleepTimeEventV2()
 
-    data class OpenPicker(val mode: TimeEditModeV2) : BedtimeEventV2()
-    object ClosePicker : BedtimeEventV2()
-    data class ConfirmTime(val hours: Int, val minutes: Int) : BedtimeEventV2()
+    data class OpenPicker(val mode: TimeEditModeV2) : SleepTimeEventV2()
+    object ClosePicker : SleepTimeEventV2()
+    data class ConfirmTime(val hours: Int, val minutes: Int) : SleepTimeEventV2()
     
-    object SaveClicked : BedtimeEventV2()
+    object SaveClicked : SleepTimeEventV2()
 }
 
-sealed class BedtimeEffectV2 {
-    object NavigateBack : BedtimeEffectV2()
-    data class ShowToast(val message: String) : BedtimeEffectV2()
+sealed class SleepTimeEffectV2 {
+    object NavigateBack : SleepTimeEffectV2()
+    data class ShowToast(val message: String) : SleepTimeEffectV2()
 }
 
 @HiltViewModel
-class BedtimeViewModelV2 @Inject constructor(
+class SleepTimeViewModelV2 @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val settingsRepository: SettingsRepository
-) : BaseViewModel<BedtimeStateV2, BedtimeEventV2, BedtimeEffectV2>(BedtimeStateV2()) {
+) : BaseViewModel<SleepTimeStateV2, SleepTimeEventV2, SleepTimeEffectV2>(SleepTimeStateV2()) {
 
     private val childId: String = checkNotNull(savedStateHandle["childId"])
 
@@ -65,9 +65,9 @@ class BedtimeViewModelV2 @Inject constructor(
                 if (settings != null) {
                     updateState {
                         copy(
-                            isBedtimeActive = settings.isBedtimeActive,
-                            startTime = settings.bedtimeStart,
-                            endTime = settings.bedtimeEnd
+                            isSleepTimeActive = settings.isSleepTimeActive,
+                            startTime = settings.sleepTimeStart,
+                            endTime = settings.sleepTimeEnd
                             // Note: Hook up DND, Emergency, and BlueLight to DB when available
                         )
                     }
@@ -76,18 +76,18 @@ class BedtimeViewModelV2 @Inject constructor(
         }
     }
 
-    override fun onEvent(event: BedtimeEventV2) {
+    override fun onEvent(event: SleepTimeEventV2) {
         when (event) {
-            is BedtimeEventV2.BackClicked -> sendEffect(BedtimeEffectV2.NavigateBack)
-            is BedtimeEventV2.ToggleActive -> updateState { copy(isBedtimeActive = event.isActive) }
-            is BedtimeEventV2.ToggleDnd -> updateState { copy(isDndEnabled = event.isActive) }
-            is BedtimeEventV2.ToggleEmergencyCalls -> updateState { copy(isEmergencyCallsEnabled = event.isActive) }
-            is BedtimeEventV2.ToggleBlueLight -> updateState { copy(isBlueLightFilterEnabled = event.isActive) }
+            is SleepTimeEventV2.BackClicked -> sendEffect(SleepTimeEffectV2.NavigateBack)
+            is SleepTimeEventV2.ToggleActive -> updateState { copy(isSleepTimeActive = event.isActive) }
+            is SleepTimeEventV2.ToggleDnd -> updateState { copy(isDndEnabled = event.isActive) }
+            is SleepTimeEventV2.ToggleEmergencyCalls -> updateState { copy(isEmergencyCallsEnabled = event.isActive) }
+            is SleepTimeEventV2.ToggleBlueLight -> updateState { copy(isBlueLightFilterEnabled = event.isActive) }
 
-            is BedtimeEventV2.OpenPicker -> updateState { copy(currentEditMode = event.mode) }
-            is BedtimeEventV2.ClosePicker -> updateState { copy(currentEditMode = TimeEditModeV2.NONE) }
+            is SleepTimeEventV2.OpenPicker -> updateState { copy(currentEditMode = event.mode) }
+            is SleepTimeEventV2.ClosePicker -> updateState { copy(currentEditMode = TimeEditModeV2.NONE) }
 
-            is BedtimeEventV2.ConfirmTime -> {
+            is SleepTimeEventV2.ConfirmTime -> {
                 val newTime = LocalTime.of(event.hours, event.minutes)
                 val isStart = state.value.currentEditMode == TimeEditModeV2.START
 
@@ -100,15 +100,15 @@ class BedtimeViewModelV2 @Inject constructor(
                 }
             }
 
-            is BedtimeEventV2.SaveClicked -> saveSettings()
+            is SleepTimeEventV2.SaveClicked -> saveSettings()
         }
     }
 
     private fun saveSettings() {
         updateState { copy(isSaving = true) }
         viewModelScope.launch(Dispatchers.IO) {
-            settingsRepository.updateBedtimeToggle(childId, state.value.isBedtimeActive)
-            settingsRepository.updateBedtimeSchedule(
+            settingsRepository.updateSleepTimeToggle(childId, state.value.isSleepTimeActive)
+            settingsRepository.updateSleepTimeSchedule(
                 childId = childId,
                 startTime = state.value.startTime,
                 endTime = state.value.endTime
@@ -117,8 +117,8 @@ class BedtimeViewModelV2 @Inject constructor(
             delay(500) // Smooth UX delay
             
             updateState { copy(isSaving = false) }
-            sendEffect(BedtimeEffectV2.ShowToast("تنظیمات خواب ذخیره شد"))
-            sendEffect(BedtimeEffectV2.NavigateBack)
+            sendEffect(SleepTimeEffectV2.ShowToast("تنظیمات خواب ذخیره شد"))
+            sendEffect(SleepTimeEffectV2.NavigateBack)
         }
     }
 }

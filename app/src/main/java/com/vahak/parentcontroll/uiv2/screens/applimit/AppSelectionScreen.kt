@@ -1,5 +1,6 @@
 package com.vahak.parentcontroll.uiv2.screens.applimit
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,13 +13,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,7 +43,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -49,7 +57,7 @@ import com.vahak.parentcontroll.presentation.appselection.AppSelectionEffectV2
 import com.vahak.parentcontroll.presentation.appselection.AppSelectionEventV2
 import com.vahak.parentcontroll.presentation.appselection.AppSelectionStateV2
 import com.vahak.parentcontroll.presentation.appselection.AppSelectionViewModelV2
-import com.vahak.parentcontroll.ui.theme.AppIcons
+import com.vahak.parentcontroll.uiv2.theme.AppIcons
 import com.vahak.parentcontroll.uiv2.theme.AppTheme
 import com.vahak.parentcontroll.uiv2.theme.LocalCustomColors
 import com.vahak.parentcontroll.uiv2.theme.ParentControlTheme
@@ -60,10 +68,18 @@ fun AppSelectionScreen(
     onBackClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
-            if (effect is AppSelectionEffectV2.NavigateBack) onBackClick()
+            when (effect) {
+                is AppSelectionEffectV2.NavigateBack -> onBackClick()
+                is AppSelectionEffectV2.ShowToast -> Toast.makeText(
+                    context,
+                    effect.message,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 
@@ -80,124 +96,161 @@ fun AppSelectionContent(
 ) {
     val colors = LocalCustomColors.current
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
     ) {
-        // --- Modal Style Header ---
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 40.dp, bottom = 20.dp, start = 20.dp, end = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "🔒 قفل برنامه‌ها",
-                style = MaterialTheme.typography.titleLarge,
-                color = colors.textPrimary,
-                fontWeight = FontWeight.Black
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            // --- HARMONIZED HEADER ---
+            AppSelectionHeaderV2(
+                title = "قفل برنامه‌ها",
+                subtitle = "تنظیمات دسترسی",
+                iconEmoji = "🔒",
+                onBackClick = { onEvent(AppSelectionEventV2.BackClicked) }
             )
-            Box(
+
+            // --- HARMONIZED CARD ---
+            Card(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(colors.surface, CircleShape)
-                    .shadow(4.dp, CircleShape)
-                    .clickable { onEvent(AppSelectionEventV2.BackClicked) },
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .offset(y = (-30).dp)
+                    .weight(1f), // Critical: lets the list scroll inside the card
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                elevation = CardDefaults.cardElevation(8.dp)
             ) {
-                Icon(AppIcons.Close, contentDescription = "Close", tint = colors.textPrimary)
-            }
-        }
-
-        // --- Search Bar ---
-        Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-            OutlinedTextField(
-                value = state.searchQuery,
-                onValueChange = { onEvent(AppSelectionEventV2.UpdateSearchQuery(it)) },
-                placeholder = {
-                    Text(
-                        "جستجوی برنامه...",
-                        color = colors.textHint,
-                        fontSize = 13.sp
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = colors.textPrimary,
-                    unfocusedTextColor = colors.textPrimary,
-                    focusedContainerColor = colors.surface,
-                    unfocusedContainerColor = colors.surface,
-                    focusedBorderColor = colors.primary,
-                    unfocusedBorderColor = colors.divider,
-                ),
-                singleLine = true
-            )
-        }
-
-        // --- Tabs ---
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            FilterTabItemV2(
-                title = "مسدود شده",
-                isSelected = state.selectedTab == AppFilterTab.BLOCKED,
-                modifier = Modifier.weight(1f),
-                onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.BLOCKED)) }
-            )
-            FilterTabItemV2(
-                title = "مجاز",
-                isSelected = state.selectedTab == AppFilterTab.ALLOWED,
-                modifier = Modifier.weight(1f),
-                onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.ALLOWED)) }
-            )
-            FilterTabItemV2(
-                title = "همه برنامه‌ها",
-                isSelected = state.selectedTab == AppFilterTab.ALL,
-                modifier = Modifier.weight(1f),
-                onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.ALL)) }
-            )
-        }
-
-        // --- App List Container ---
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                .background(colors.surface)
-                .shadow(4.dp, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-        ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = colors.primary
-                )
-            } else if (state.filteredApps.isEmpty()) {
-                Text(
-                    text = "برنامه‌ای یافت نشد.",
-                    color = colors.textHint,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    modifier = Modifier.fillMaxSize()
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 20.dp, bottom = 20.dp)
                 ) {
-                    val apps = state.filteredApps
-                    itemsIndexed(apps, key = { _, it -> it.packageName }) { index, app ->
-                        AppListItemV2(
-                            app = app,
-                            isLastItem = index == apps.lastIndex,
-                            onToggle = { isAllowed ->
-                                onEvent(AppSelectionEventV2.ToggleApp(app.packageName, isAllowed))
-                            }
+                    // --- Search Bar ---
+                    Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+                        OutlinedTextField(
+                            value = state.searchQuery,
+                            onValueChange = { onEvent(AppSelectionEventV2.UpdateSearchQuery(it)) },
+                            placeholder = {
+                                Text("جستجوی برنامه...", color = colors.textHint, fontSize = 13.sp)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = colors.textPrimary,
+                                unfocusedTextColor = colors.textPrimary,
+                                focusedContainerColor = colors.background,
+                                unfocusedContainerColor = colors.background,
+                                focusedBorderColor = colors.primary,
+                                unfocusedBorderColor = colors.divider,
+                            ),
+                            singleLine = true
                         )
+                    }
+
+                    // --- Tabs ---
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterTabItemV2(
+                            title = "مسدود شده",
+                            isSelected = state.selectedTab == AppFilterTab.BLOCKED,
+                            modifier = Modifier.weight(1f),
+                            onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.BLOCKED)) }
+                        )
+                        FilterTabItemV2(
+                            title = "مجاز",
+                            isSelected = state.selectedTab == AppFilterTab.ALLOWED,
+                            modifier = Modifier.weight(1f),
+                            onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.ALLOWED)) }
+                        )
+                        FilterTabItemV2(
+                            title = "همه برنامه‌ها",
+                            isSelected = state.selectedTab == AppFilterTab.ALL,
+                            modifier = Modifier.weight(1f),
+                            onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.ALL)) }
+                        )
+                    }
+
+                    // --- Scrollable App List ---
+                    Box(modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()) {
+                        if (state.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = colors.primary
+                            )
+                        } else if (state.filteredApps.isEmpty()) {
+                            Text(
+                                text = "برنامه‌ای یافت نشد.",
+                                color = colors.textHint,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        } else {
+                            LazyColumn(
+                                contentPadding = PaddingValues(vertical = 8.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                val apps = state.filteredApps
+                                itemsIndexed(
+                                    apps,
+                                    key = { _, it -> it.packageName }) { index, app ->
+                                    AppListItemV2(
+                                        app = app,
+                                        isLastItem = index == apps.lastIndex,
+                                        onToggle = { isAllowed ->
+                                            onEvent(
+                                                AppSelectionEventV2.ToggleApp(
+                                                    app.packageName,
+                                                    isAllowed
+                                                )
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // --- NEW: Harmonized Save Button ---
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = { onEvent(AppSelectionEventV2.SaveClicked) },
+                        enabled = !state.isSaving,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .height(56.dp)
+                            .shadow(
+                                8.dp,
+                                RoundedCornerShape(14.dp),
+                                spotColor = colors.primary.copy(alpha = 0.4f)
+                            ),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.primary,
+                            disabledContainerColor = colors.backgroundButtonDisable
+                        )
+                    ) {
+                        if (state.isSaving) {
+                            CircularProgressIndicator(
+                                color = colors.textOnPrimaryVariant,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                "ذخیره تنظیمات",
+                                color = colors.textOnPrimaryVariant,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -206,6 +259,66 @@ fun AppSelectionContent(
 }
 
 // --- SUB COMPONENTS ---
+
+@Composable
+fun AppSelectionHeaderV2(
+    title: String,
+    subtitle: String? = null,
+    iconEmoji: String? = null,
+    onBackClick: () -> Unit
+) {
+    val colors = LocalCustomColors.current
+    val headerGradient = Brush.linearGradient(listOf(colors.primary, colors.primaryVariant))
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                brush = headerGradient,
+                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+            )
+            .padding(top = 40.dp, bottom = 60.dp, start = 20.dp, end = 20.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (iconEmoji != null) {
+                    Text(iconEmoji, fontSize = 28.sp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+                Column {
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 13.sp
+                        )
+                    }
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onBackClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(AppIcons.Back, contentDescription = "Back", tint = Color.White)
+            }
+        }
+    }
+}
 
 @Composable
 fun FilterTabItemV2(
@@ -217,12 +330,12 @@ fun FilterTabItemV2(
     val colors = LocalCustomColors.current
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (isSelected) colors.primary else colors.surface)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isSelected) colors.primary.copy(alpha = 0.08f) else colors.background)
             .border(
-                2.dp,
+                1.dp,
                 if (isSelected) colors.primary else colors.divider,
-                RoundedCornerShape(20.dp)
+                RoundedCornerShape(12.dp)
             )
             .clickable { onClick() }
             .padding(vertical = 10.dp),
@@ -230,7 +343,7 @@ fun FilterTabItemV2(
     ) {
         Text(
             text = title,
-            color = if (isSelected) Color.White else colors.textSecondary,
+            color = if (isSelected) colors.primary else colors.textSecondary,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold
         )
@@ -245,7 +358,6 @@ fun AppListItemV2(
 ) {
     val colors = LocalCustomColors.current
 
-    // Simulate the alternating pastel colors from the HTML prototype
     val bgColors =
         listOf(Color(0xFFE3F2FD), Color(0xFFFFF3E0), Color(0xFFE8F5E9), Color(0xFFF3E5F5))
     val randomBg = remember(app.packageName) { bgColors.random() }
@@ -254,12 +366,11 @@ fun AppListItemV2(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 20.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // App Icon Box
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -270,10 +381,9 @@ fun AppListItemV2(
                         Image(
                             bitmap = app.iconBitmap,
                             contentDescription = app.appName,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(40.dp)
                         )
                     } else {
-                        // Fallback emoji
                         Text("📱", fontSize = 20.sp)
                     }
                 }
@@ -296,7 +406,6 @@ fun AppListItemV2(
                 }
             }
 
-            // V2 Toggle Switch (Matches Custom HTML CSS Toggle)
             Switch(
                 checked = app.isAllowed,
                 onCheckedChange = { onToggle(it) },
@@ -310,7 +419,11 @@ fun AppListItemV2(
         }
 
         if (!isLastItem) {
-            HorizontalDivider(color = colors.divider, thickness = 1.dp)
+            HorizontalDivider(
+                color = colors.divider,
+                thickness = 1.dp,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
         }
     }
 }

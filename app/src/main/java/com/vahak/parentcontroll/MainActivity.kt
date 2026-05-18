@@ -18,8 +18,9 @@ import com.vahak.parentcontroll.core.service.RestrictionEnforcerService
 import com.vahak.parentcontroll.core.service.WebFilterVpnService
 import com.vahak.parentcontroll.core.util.LauncherManager
 import com.vahak.parentcontroll.ui.navigation.ParentControlNavGraph
-import com.vahak.parentcontroll.ui.screens.launcher.ChildLauncherScreen // 🚀 ADD THIS IMPORT
-import com.vahak.parentcontroll.ui.theme.ParentControlTheme
+import com.vahak.parentcontroll.uiv2.screens.launcher.ChildLauncherScreen
+import com.vahak.parentcontroll.uiv2.theme.AppTheme
+import com.vahak.parentcontroll.uiv2.theme.ParentControlTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -31,14 +32,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
+            // Collect the theme from SessionManager as a State
+            val currentTheme by mainViewModel.appTheme.collectAsState(initial = AppTheme.SYSTEM)
             val startDestination by mainViewModel.startDestination.collectAsState()
-
-            // 🚀 PRO FIX: Observe the Master Switch
             val activeChildId by mainViewModel.activeChildId.collectAsState()
 
             val navController = rememberNavController()
 
-            com.vahak.parentcontroll.uiv2.theme.ParentControlTheme() {
+            // Pass the collected theme into the Theme component
+            ParentControlTheme(themeMode = currentTheme) {
                 if (startDestination == null) {
                     // Splash / Loading State
                     Box(
@@ -50,26 +52,37 @@ class MainActivity : ComponentActivity() {
                 // 🚀 THE UI FORTRESS: If a child is active, ONLY draw the Launcher.
                 else if (activeChildId != null) {
                     ChildLauncherScreen(
-                        // If you have the child's name in the DB, you can fetch it here later
-                        childName = "حالت کودک",
                         onExitLauncherClick = {
-                            // 1. Flip the Master Switch (This instantly redraws the NavGraph!)
-                            mainViewModel.clearActiveLauncherSession()
-
-                            // 2. Disable OS Launcher
+                            // 1. Disable OS Launcher FIRST
                             LauncherManager.disableLauncherMode(this@MainActivity)
 
-                            // 3. Stop the Enforcer
-                            val stopIntent = Intent(this@MainActivity, RestrictionEnforcerService::class.java).apply {
+                            // 2. Stop the Enforcer
+                            val stopIntent = Intent(
+                                this@MainActivity,
+                                RestrictionEnforcerService::class.java
+                            ).apply {
                                 action = RestrictionEnforcerService.ACTION_STOP
                             }
                             startService(stopIntent)
 
-                            // 4. Stop the VPN
-                            val stopVpnIntent = Intent(this@MainActivity, WebFilterVpnService::class.java).apply {
-                                action = WebFilterVpnService.ACTION_STOP
-                            }
+                            // 3. Stop the VPN
+                            val stopVpnIntent =
+                                Intent(this@MainActivity, WebFilterVpnService::class.java).apply {
+                                    action = WebFilterVpnService.ACTION_STOP
+                                }
                             startService(stopVpnIntent)
+
+                            // 4. Force navigation to the actual OS Home Screen
+                            // This guarantees the phone leaves your app and proves the default launcher is back
+                            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                                addCategory(Intent.CATEGORY_HOME)
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(homeIntent)
+
+                            // 5. Flip the Master Switch LAST
+                            // Doing this last prevents the Compose UI from vanishing before the intents are fired
+                            mainViewModel.clearActiveLauncherSession()
                         }
                     )
                 }

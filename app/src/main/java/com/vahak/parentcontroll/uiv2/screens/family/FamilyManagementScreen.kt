@@ -44,11 +44,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.parentcontroll.core.data.local.entity.ChildEntity
 import com.vahak.parentcontroll.core.data.local.entity.Gender
+import com.vahak.parentcontroll.presentation.family.FamilyChildUi
 import com.vahak.parentcontroll.presentation.family.FamilyEffect
 import com.vahak.parentcontroll.presentation.family.FamilyEvent
 import com.vahak.parentcontroll.presentation.family.FamilyState
 import com.vahak.parentcontroll.presentation.family.FamilyViewModel
-import com.vahak.parentcontroll.ui.theme.AppIcons
+import com.vahak.parentcontroll.uiv2.theme.AppIcons
 import com.vahak.parentcontroll.uiv2.theme.AppTheme
 import com.vahak.parentcontroll.uiv2.theme.LocalCustomColors
 import com.vahak.parentcontroll.uiv2.theme.ParentControlTheme
@@ -88,11 +89,10 @@ fun FamilyManagementContent(
 
     Scaffold(
         containerColor = colors.background,
-    ) { paddingValues ->
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
         ) {
             // 1. Header Section
             FamilyScreenHeaderV2(
@@ -127,10 +127,10 @@ fun FamilyManagementContent(
                         modifier = Modifier.padding(vertical = 20.dp)
                     )
                 } else {
-                    state.children.forEach { child ->
+                    state.children.forEach { childUi ->
                         ChildCardV2(
-                            child = child,
-                            onClick = { onEvent(FamilyEvent.ChildClicked(child.id)) }
+                            childUi = childUi,
+                            onClick = { onEvent(FamilyEvent.ChildClicked(childUi.child.id)) }
                         )
                     }
                 }
@@ -175,7 +175,7 @@ fun FamilyScreenHeaderV2(onAddChildClick: () -> Unit) {
                 Text("مدیریت فرزندان", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
                 Text("فرزندان شما", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
             }
-            
+
             // Header Add Button
             Box(
                 modifier = Modifier
@@ -194,10 +194,14 @@ fun FamilyScreenHeaderV2(onAddChildClick: () -> Unit) {
 
 @Composable
 fun ChildCardV2(
-    child: ChildEntity,
+    childUi: FamilyChildUi,
     onClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
+
+    val hours = childUi.usageSecondsToday / 3600
+    val mins = (childUi.usageSecondsToday % 3600) / 60
+    val ageText = if (childUi.ageYears > 0) "${childUi.ageYears} ساله" else "کمتر از یک سال"
 
     Card(
         modifier = Modifier
@@ -214,53 +218,45 @@ fun ChildCardV2(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar 
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .background(colors.cardInnerBG, RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(if (child.gender == Gender.BOY) "👦" else "👧", fontSize = 28.sp)
+                Text(if (childUi.child.gender == Gender.BOY) "👦" else "👧", fontSize = 28.sp)
             }
 
             Spacer(modifier = Modifier.width(14.dp))
 
-            // Info Column
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = child.name,
+                    text = childUi.child.name,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Status Dot (Assume online for UI purposes, or pass from real state)
-                    Box(modifier = Modifier.size(8.dp).background(colors.green, CircleShape))
-                    Spacer(modifier = Modifier.width(6.dp))
+//                    Box(modifier = Modifier.size(8.dp).background(colors.green, CircleShape))
+//                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "آنلاین • ۱۰ ساله", // Age formatting omitted for simplicity; add calc logic if needed
+                        text = ageText,
                         fontSize = 12.sp,
                         color = colors.textSecondary
                     )
                 }
             }
 
-            // Usage Column
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "۱:۴۵", // Dummy data matching HTML prototype
+                    text = String.format("%d:%02d", hours, mins),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Black,
                     color = colors.primary
                 )
-                Text(
-                    text = "امروز",
-                    fontSize = 10.sp,
-                    color = colors.textSecondary
-                )
+                Text("امروز", fontSize = 10.sp, color = colors.textSecondary)
             }
         }
     }
@@ -316,8 +312,12 @@ fun AddChildDashedCardV2(onClick: () -> Unit) {
 // PREVIEWS
 // ----------------------------------------------------------------------------
 
-private val mockChild1 = ChildEntity(id = "1", name = "علی", dob = LocalDate.now(), gender = Gender.BOY)
-private val mockChild2 = ChildEntity(id = "2", name = "سارا", dob = LocalDate.now(), gender = Gender.GIRL)
+private val mockChild1 = ChildEntity(id = "1", name = "علی", dob = LocalDate.now().minusYears(10), gender = Gender.BOY)
+private val mockChild2 = ChildEntity(id = "2", name = "سارا", dob = LocalDate.now().minusYears(8), gender = Gender.GIRL)
+
+// FIXED: Wrapped the mock ChildEntities into the required FamilyChildUi class
+private val mockChildUi1 = FamilyChildUi(child = mockChild1, ageYears = 10, usageSecondsToday = 6300)
+private val mockChildUi2 = FamilyChildUi(child = mockChild2, ageYears = 8, usageSecondsToday = 3600)
 
 @Preview(showBackground = true, name = "1. Family Management Light", locale = "fa")
 @Composable
@@ -325,7 +325,7 @@ fun FamilyManagementPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         FamilyManagementContent(
             state = FamilyState(
-                children = listOf(mockChild1, mockChild2),
+                children = listOf(mockChildUi1, mockChildUi2),
                 isLoading = false
             ),
             onEvent = {}
@@ -339,7 +339,7 @@ fun FamilyManagementPreviewDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         FamilyManagementContent(
             state = FamilyState(
-                children = listOf(mockChild1),
+                children = listOf(mockChildUi1),
                 isLoading = false
             ),
             onEvent = {}

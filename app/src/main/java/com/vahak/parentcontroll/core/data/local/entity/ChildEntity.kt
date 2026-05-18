@@ -27,6 +27,13 @@ data class ChildEntity(
     @ColumnInfo(name = "phone")
     val phone: String? = null,
 
+    // --- OFFLINE SYNC FLAGS ---
+    @ColumnInfo(name = "is_synced")
+    val isSynced: Boolean = false, // False when created locally, True when server confirms
+
+    @ColumnInfo(name = "is_deleted")
+    val isDeleted: Boolean = false, // Soft delete flag
+
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
 

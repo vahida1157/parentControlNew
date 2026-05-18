@@ -24,4 +24,17 @@ interface AppRuleDao {
     // Batch insert for when the parent first sets up the phone
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertRules(rules: List<AppRuleEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertRule(rule: AppRuleEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertRules(rules: List<AppRuleEntity>)
+
+    // --- PRO OFFLINE FIX ---
+    @Query("SELECT * FROM app_rules WHERE child_id = :childId AND is_synced = 0")
+    suspend fun getUnsyncedRules(childId: String): List<AppRuleEntity>
+
+    @Query("UPDATE app_rules SET is_synced = 1 WHERE child_id = :childId AND package_name IN (:packageNames)")
+    suspend fun markRulesAsSynced(childId: String, packageNames: List<String>)
 }

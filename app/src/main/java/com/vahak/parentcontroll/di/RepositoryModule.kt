@@ -1,5 +1,7 @@
 package com.vahak.parentcontroll.di
 
+import com.vahak.parentcontroll.domain.repository.AppRuleRepository
+import com.vahak.parentcontroll.domain.repository.AppRuleRepositoryImpl
 import com.vahak.parentcontroll.domain.repository.AuthRepository
 import com.vahak.parentcontroll.domain.repository.AuthRepositoryImpl
 import com.vahak.parentcontroll.domain.repository.ChildRepository
@@ -8,6 +10,10 @@ import com.vahak.parentcontroll.domain.repository.ProfileRepository
 import com.vahak.parentcontroll.domain.repository.ProfileRepositoryImpl
 import com.vahak.parentcontroll.domain.repository.SettingsRepository
 import com.vahak.parentcontroll.domain.repository.SettingsRepositoryImpl
+import com.vahak.parentcontroll.domain.repository.UsageRepository
+import com.vahak.parentcontroll.domain.repository.UsageRepositoryImpl
+import com.vahak.parentcontroll.domain.repository.WebRepository
+import com.vahak.parentcontroll.domain.repository.WebRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -41,4 +47,22 @@ abstract class RepositoryModule {
     abstract fun bindProfileRepository(
         profileRepositoryImpl: ProfileRepositoryImpl
     ): ProfileRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAppRuleRepository(
+        appRuleRepositoryImpl: AppRuleRepositoryImpl
+    ): AppRuleRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindWebRepository(
+        webRepositoryImpl: WebRepositoryImpl
+    ): WebRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUsageRepository(
+        usageRepositoryImpl: UsageRepositoryImpl
+    ): UsageRepository
 }

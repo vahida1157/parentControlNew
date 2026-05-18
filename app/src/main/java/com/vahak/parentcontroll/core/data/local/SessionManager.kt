@@ -7,9 +7,11 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.vahak.parentcontroll.uiv2.theme.AppTheme
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,7 +31,7 @@ class SessionManager @Inject constructor(
         private val PARENT_PIN = stringPreferencesKey("parent_pin")
         private val SECURITY_QUESTION = stringPreferencesKey("security_question")
         private val SECURITY_ANSWER = stringPreferencesKey("security_answer")
-        private val HAS_PIN_SETUP = booleanPreferencesKey("has_pin_setup")
+        private val DEVICE_ID = stringPreferencesKey("device_id")
     }
 
     val appThemeFlow: Flow<AppTheme> = context.dataStore.data.map {
@@ -42,6 +44,17 @@ class SessionManager @Inject constructor(
     val parentPinFlow: Flow<String?> = context.dataStore.data.map { it[PARENT_PIN] }
     val securityQuestionFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_QUESTION] }
     val securityAnswerFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_ANSWER] }
+    val deviceIdFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        var currentId = prefs[DEVICE_ID]
+        if (currentId.isNullOrEmpty()) {
+            currentId = java.util.UUID.randomUUID().toString()
+            // Save it asynchronously so it's cached permanently
+            CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                context.dataStore.edit { it[DEVICE_ID] = currentId }
+            }
+        }
+        currentId
+    }
 
     suspend fun saveSession(
         token: String,
@@ -103,5 +116,23 @@ class SessionManager @Inject constructor(
             prefs[SECURITY_QUESTION] = question
             prefs[SECURITY_ANSWER] = answer
         }
+    }
+
+    suspend fun getOrCreateDeviceId(): String {
+        val prefs = context.dataStore.data.first()
+        val currentId = prefs[DEVICE_ID]
+
+        if (!currentId.isNullOrEmpty()) {
+            return currentId
+        }
+
+        // Generate a new UUID if one doesn't exist
+        val newId = java.util.UUID.randomUUID().toString()
+        context.dataStore.edit { it[DEVICE_ID] = newId }
+        return newId
+    }
+
+    suspend fun getDeviceName(): String {
+        return android.os.Build.MODEL ?: "Unknown Android Device"
     }
 }
