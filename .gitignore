@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+keystore.properties
+parental_control_release.jks
+/app/release

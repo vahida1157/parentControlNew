@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ParentControll"
+rootProject.name = "mehrban"
 include(":app")
  

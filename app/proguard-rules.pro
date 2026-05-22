@@ -19,3 +19,26 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep Retrofit interfaces and their generic signatures
+-keep interface com.vahak.mehrban.data.remote.** { *; }
+-keep interface com.vahak.mehrban.domain.repository.** { *; }
+-keep interface com.vahak.mehrban.**Api { *; }
+-keep interface com.vahak.mehrban.**Service { *; }
+
+
+# Keep generic type info (needed for ParameterizedType)
+-keepattributes Signature, Exceptions, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+
+# Keep Retrofit core classes
+-keep class retrofit2.** { *; }
+-dontwarn retrofit2.**
+
+# Keep OkHttp/Okio if used
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
+# Keep Kotlin metadata for suspend functions
+-keepclassmembers class kotlin.Metadata { *; }
+-keep class kotlinx.coroutines.** { *; }
+-dontwarn kotlinx.coroutines.**
