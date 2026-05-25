@@ -81,6 +81,7 @@ import com.vahak.mehrban.presentation.dashboard.DashboardEffect
 import com.vahak.mehrban.presentation.dashboard.DashboardEvent
 import com.vahak.mehrban.presentation.dashboard.DashboardState
 import com.vahak.mehrban.presentation.dashboard.DashboardViewModel
+import com.vahak.mehrban.ui.component.SwipeToActivateButton
 import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
@@ -211,15 +212,25 @@ fun DashboardScreenContent(
                 )
             }
 
-            LauncherCTAButtonV2(
-                childName = state.activeChild?.name ?: "فرزند", onClick = {
-                    if (state.activeChild != null) {
-                        showLauncherConfirmSheet = true
-                    } else {
-                        onEvent(DashboardEvent.OpenChildSheet)
+            Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp , bottom = 16.dp)) {
+                SwipeToActivateButton(
+                    isActive = state.isProtectionActive,
+                    onActivate = {
+                        if (state.activeChild != null) {
+                            // Trigger the V2 confirmation bottom sheet
+                            showLauncherConfirmSheet = true
+                        } else {
+                            onEvent(DashboardEvent.OpenChildSheet)
+                        }
+                    },
+                    onDeactivate = {
+                        // Uncomment if you want to handle deactivation directly from the swipe
+                        // if (state.activeChild != null) {
+                        //     onEvent(DashboardEvent.DeactivateProtection(state.activeChild.id))
+                        // }
                     }
-                }, isProtectionActive = state.isProtectionActive
-            )
+                )
+            }
 
             ActionGridV2(
                 onSettingsClick = { state.activeChild?.let { onSettingsClick(it.id) } },
@@ -995,7 +1006,7 @@ private val mockChild1 =
 private val mockChild2 =
     ChildEntity(id = "2", name = "سارا", dob = LocalDate.now(), gender = Gender.GIRL)
 
-@Preview(showBackground = true, locale = "fa", name = "1. Dashboard V2 - Empty")
+@Preview(showBackground = true, locale = "fa", name = "1. Dashboard V2 - Empty", apiLevel = 34)
 @Composable
 fun DashboardScreenPreviewEmpty() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {

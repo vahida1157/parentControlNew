@@ -50,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -129,14 +130,20 @@ fun ModernFamilyDashboardContent(
 
     // Dynamic Permission State
     var missingSecurityPermissions by remember { mutableStateOf(emptyList<PermissionType>()) }
-
+    val isPreview = LocalInspectionMode.current
     // This checks the permissions every time the Dashboard becomes visible on the screen
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                val missing = listOf(PermissionType.ACCESSIBILITY, PermissionType.DEVICE_ADMIN)
-                    .filter { !PermissionChecker.hasPermission(context, it) }
-                missingSecurityPermissions = missing
+                if (!isPreview) {
+                    val missing = listOf(PermissionType.ACCESSIBILITY, PermissionType.DEVICE_ADMIN)
+                        .filter { !PermissionChecker.hasPermission(context, it) }
+                    missingSecurityPermissions = missing
+                } else {
+                    // In preview mode, pretend all permissions are granted
+                    missingSecurityPermissions = emptyList()
+                }
+
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

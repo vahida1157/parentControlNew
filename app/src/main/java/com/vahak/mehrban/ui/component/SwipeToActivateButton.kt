@@ -1,6 +1,7 @@
 package com.vahak.mehrban.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -27,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -36,9 +38,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.vahak.mehrban.R
-import com.vahak.mehrban.ui.theme.AppIcons
-import com.vahak.mehrban.ui.theme.LocalCustomColors
-import com.vahak.mehrban.ui.theme.ParentControlTheme
+import com.vahak.mehrban.uiv2.theme.AppIcons
+import com.vahak.mehrban.uiv2.theme.LocalCustomColors
+import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 import kotlin.math.roundToInt
 
 @Composable
@@ -66,7 +68,8 @@ fun SwipeToActivateButton(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .background(Color(0xFFE8ECEF), RoundedCornerShape(32.dp))
+            .background(colors.surface, RoundedCornerShape(32.dp)) // Theme Surface
+            .border(1.dp, colors.divider, RoundedCornerShape(32.dp)) // Theme Border
             .padding(padding)
     ) {
         // Background Text
@@ -74,7 +77,7 @@ fun SwipeToActivateButton(
             Text(
                 text = stringResource(R.string.slider_instruction),
                 modifier = Modifier.align(Alignment.Center),
-                color = colors.textSecondary,
+                color = colors.textHint, // Theme text color
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -85,10 +88,19 @@ fun SwipeToActivateButton(
             modifier = Modifier
                 .offset { IntOffset(if (isActive) 0 else offsetX.roundToInt(), 0) }
                 .then(if (isActive) Modifier.fillMaxSize() else Modifier.size(thumbSize))
+                .shadow(
+                    elevation = if (isActive) 8.dp else 2.dp,
+                    shape = RoundedCornerShape(32.dp),
+                    spotColor = if (isActive) colors.green.copy(alpha = 0.5f) else colors.primary.copy(alpha = 0.3f)
+                )
                 .clip(RoundedCornerShape(32.dp))
                 .background(
                     brush = Brush.linearGradient(
-                        colors = listOf(colors.primary, colors.secondary)
+                        colors = if (isActive) {
+                            listOf(colors.green, Color(0xFF0D9488)) // Active Green Gradient
+                        } else {
+                            listOf(colors.primary, colors.primaryVariant) // Inactive Primary Gradient
+                        }
                     )
                 )
                 .then(
@@ -148,7 +160,8 @@ fun SwipeToActivateButton(
 @Composable
 fun SwipeSliderDeactivatedPreview() {
     ParentControlTheme {
-        Box(modifier = Modifier.padding(16.dp).background(Color.White)) {
+        val colors = LocalCustomColors.current // Grab colors for the preview
+        Box(modifier = Modifier.padding(16.dp).background(colors.background)) { // Use theme background!
             SwipeToActivateButton(
                 isActive = false,
                 onActivate = {},
@@ -162,7 +175,8 @@ fun SwipeSliderDeactivatedPreview() {
 @Composable
 fun SwipeSliderActivatedPreview() {
     ParentControlTheme {
-        Box(modifier = Modifier.padding(16.dp).background(Color.White)) {
+        val colors = LocalCustomColors.current
+        Box(modifier = Modifier.padding(16.dp).background(colors.background)) {
             SwipeToActivateButton(
                 isActive = true,
                 onActivate = {},
