@@ -72,7 +72,7 @@ android {
             // Link to the signing config created above
             signingConfig = signingConfigs.getByName("release")
 
-            buildConfigField("String", "BASE_URL", "\"http://mehr-banan.ir/\"") // todo 1: We need to change this to real domain for release.
+            buildConfigField("String", "BASE_URL", "\"https://mehr-banan.ir/\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

@@ -65,6 +65,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -86,6 +87,7 @@ import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 import java.time.LocalDate
 import java.time.Period
+import kotlin.math.roundToInt
 
 @Composable
 fun DashboardScreen(
@@ -148,10 +150,11 @@ fun DashboardScreenContent(
                 if (isPreview) {
                     missingSecurityPermissions = emptyList() // Mock state for previews
                 } else {
-                    val missing = listOf(
-                        PermissionType.ACCESSIBILITY, PermissionType.DEVICE_ADMIN
-                    ).filter { !PermissionChecker.hasPermission(context, it) }
-                    missingSecurityPermissions = missing
+                    // FIXME: Currently we commented out the permission for accessibility and device admin for publish issues,
+//                    val missing = listOf(
+//                        PermissionType.ACCESSIBILITY, PermissionType.DEVICE_ADMIN
+//                    ).filter { !PermissionChecker.hasPermission(context, it) }
+                    missingSecurityPermissions = listOf()
                 }
             }
         }

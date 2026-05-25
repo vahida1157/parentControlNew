@@ -235,6 +235,9 @@ class RestrictionEnforcerService : LifecycleService() {
 
                     if (currentApp == "com.android.settings") {
                         Log.w(TAG, "🚨 BLOCKING PRIORITY 0: Child attempted to open Android Settings.")
+                        // FIXME: We need to check settings page using accessibility(cuz this not working on samsung devices), currently we commented it cuz publish issue for sensitive permissions
+                        hideAllOverlaysExcept(appLockOverlay)
+                        appLockOverlay.show()
                     } else if (isScreenOn && currentApp.isNotEmpty() && !isOurLauncher) {
 
                         val isCriticalSystem = criticalSystemPackages.contains(currentApp)

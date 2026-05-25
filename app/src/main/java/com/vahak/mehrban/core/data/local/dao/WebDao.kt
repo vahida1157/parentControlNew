@@ -50,4 +50,7 @@ interface WebDao {
     // Clear all for a child (used if the child profile is deleted)
     @Query("DELETE FROM blocked_domains WHERE child_id = :childId")
     suspend fun deleteAllForChild(childId: String)
+
+    @Query("SELECT domain FROM blocked_domains WHERE child_id = :childId AND is_active = 1 AND is_deleted = 0")
+    fun observeActiveBlockedDomainsForVpn(childId: String): Flow<List<String>>
 }
