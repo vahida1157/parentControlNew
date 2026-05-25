@@ -34,7 +34,7 @@ android {
         applicationId = "com.vahak.mehrban"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -61,7 +61,7 @@ android {
             // Allows installing Debug and Release apps simultaneously on the same device
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
-            buildConfigField("String", "BASE_URL", "\"http://62.60.191.233/\"")
+            buildConfigField("String", "BASE_URL", "\"http://194.5.195.47/\"")
         }
 
         release {
