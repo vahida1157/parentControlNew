@@ -12,11 +12,14 @@ object LauncherManager {
 
     fun enableLauncherMode(context: Context) {
         val packageManager = context.packageManager
-        val componentName = ComponentName(context, "${context.packageName}.ChildLauncherAlias")
+        val aliasComponent = ComponentName(
+            context.packageName,
+            "com.vahak.mehrban.ChildLauncherAlias",
+        )
 
         // 1. Enable the Alias
         packageManager.setComponentEnabledSetting(
-            componentName,
+            aliasComponent,
             PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
             PackageManager.DONT_KILL_APP
         )
@@ -30,7 +33,7 @@ object LauncherManager {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
                 context.startActivity(intent)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Absolute fallback just in case the device lacks this specific settings menu
                 val fallbackIntent = Intent(Intent.ACTION_MAIN).apply {
                     addCategory(Intent.CATEGORY_HOME)
@@ -43,11 +46,14 @@ object LauncherManager {
 
     fun disableLauncherMode(context: Context) {
         val packageManager = context.packageManager
-        val componentName = ComponentName(context, "${context.packageName}.ChildLauncherAlias")
+        val aliasComponent = ComponentName(
+            context.packageName,
+            "com.vahak.mehrban.ChildLauncherAlias",
+        )
 
         // Turn the alias off. The phone will instantly drop back to the system launcher.
         packageManager.setComponentEnabledSetting(
-            componentName,
+            aliasComponent,
             PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
             PackageManager.DONT_KILL_APP
         )
