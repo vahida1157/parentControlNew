@@ -99,7 +99,8 @@ fun DashboardScreen(
     onReportClick: (String) -> Unit,
     onNavigateToPasswordSetup: () -> Unit,
     onLogoutComplete: () -> Unit,
-    onSecurityFabClick: (String) -> Unit
+    onSecurityFabClick: (String) -> Unit,
+    onProfileClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -119,7 +120,8 @@ fun DashboardScreen(
         onManageFamilyClick = onManageFamilyClick,
         onSettingsClick = onSettingsClick,
         onReportClick = onReportClick,
-        onSecurityFabClick = onSecurityFabClick
+        onSecurityFabClick = onSecurityFabClick,
+        onProfileClick = onProfileClick
     )
 }
 
@@ -133,7 +135,8 @@ fun DashboardScreenContent(
     onManageFamilyClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
     onReportClick: (String) -> Unit,
-    onSecurityFabClick: (String) -> Unit
+    onSecurityFabClick: (String) -> Unit,
+    onProfileClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
     val context = LocalContext.current
@@ -193,7 +196,7 @@ fun DashboardScreenContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            DashboardHeaderV2()
+            DashboardHeaderV2(onProfileClick = onProfileClick)
 
             HomeChildSelectorV2(
                 children = state.children,
@@ -210,26 +213,26 @@ fun DashboardScreenContent(
                     usageSeconds = state.activeChildUsageSeconds,
                     onSettingsClick = { onSettingsClick(child.id) }
                 )
-            }
 
-            Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp , bottom = 16.dp)) {
-                SwipeToActivateButton(
-                    isActive = state.isProtectionActive,
-                    onActivate = {
-                        if (state.activeChild != null) {
-                            // Trigger the V2 confirmation bottom sheet
-                            showLauncherConfirmSheet = true
-                        } else {
-                            onEvent(DashboardEvent.OpenChildSheet)
+                Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
+                    SwipeToActivateButton(
+                        isActive = state.isProtectionActive,
+                        onActivate = {
+                            if (state.activeChild != null) {
+                                // Trigger the V2 confirmation bottom sheet
+                                showLauncherConfirmSheet = true
+                            } else {
+                                onEvent(DashboardEvent.OpenChildSheet)
+                            }
+                        },
+                        onDeactivate = {
+                            // Uncomment if you want to handle deactivation directly from the swipe
+                            // if (state.activeChild != null) {
+                            //     onEvent(DashboardEvent.DeactivateProtection(state.activeChild.id))
+                            // }
                         }
-                    },
-                    onDeactivate = {
-                        // Uncomment if you want to handle deactivation directly from the swipe
-                        // if (state.activeChild != null) {
-                        //     onEvent(DashboardEvent.DeactivateProtection(state.activeChild.id))
-                        // }
-                    }
-                )
+                    )
+                }
             }
 
             ActionGridV2(
@@ -487,7 +490,7 @@ fun DashboardScreenContent(
 // ----------------------------------------------------------------------------
 
 @Composable
-fun DashboardHeaderV2() {
+fun DashboardHeaderV2(onProfileClick: () -> Unit) {
     val colors = LocalCustomColors.current
     val headerGradient = Brush.linearGradient(listOf(colors.primary, colors.primaryVariant))
     val avatarGradient = Brush.linearGradient(listOf(colors.yellow, colors.orange))
@@ -508,19 +511,14 @@ fun DashboardHeaderV2() {
         ) {
             Column {
                 Text("سلام 👋", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
-                Text(
-                    "والد گرامی",
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 20.sp
-                )
+                Text("والد گرامی", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
             }
             Box(
                 modifier = Modifier
                     .size(44.dp)
                     .background(avatarGradient, CircleShape)
                     .border(2.dp, Color.White.copy(alpha = 0.3f), CircleShape)
-                    .clickable { /* Profile Click Placeholder */ },
+                    .clickable { onProfileClick() }, // <-- 2. Call it here
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -1017,7 +1015,8 @@ fun DashboardScreenPreviewEmpty() {
             onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
-            onSecurityFabClick = {})
+            onSecurityFabClick = {},
+            onProfileClick = {})
     }
 }
 
@@ -1035,7 +1034,8 @@ fun DashboardScreenPreviewPopulatedLight() {
             onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
-            onSecurityFabClick = {})
+            onSecurityFabClick = {},
+            onProfileClick = {})
     }
 }
 
@@ -1052,7 +1052,8 @@ fun DashboardScreenPreviewPopulatedDark() {
             onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
-            onSecurityFabClick = {})
+            onSecurityFabClick = {},
+            onProfileClick = {})
     }
 }
 
@@ -1071,6 +1072,7 @@ fun DashboardScreenPreviewDialog() {
             onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
-            onSecurityFabClick = {})
+            onSecurityFabClick = {},
+            onProfileClick = {})
     }
 }

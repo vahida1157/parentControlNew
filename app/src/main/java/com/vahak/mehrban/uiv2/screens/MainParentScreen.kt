@@ -62,6 +62,14 @@ fun MainParentScreen(
                                     missingPermissions
                                 )
                             )
+                        },
+                        onProfileClick = {
+                            bottomNavController.navigate(BottomNavItem.Profile.route) {
+                                // This ensures we don't build up a massive backstack of tabs
+                                popUpTo(bottomNavController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     )
                 }
