@@ -120,7 +120,7 @@ class ChildRepositoryImpl @Inject constructor(
                     // Also clean up local settings/rules/web if CASCADE didn't catch it
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Log.e("SyncEngine", "Failed to push child deletions.")
         }
     }

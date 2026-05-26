@@ -1,5 +1,6 @@
 package com.vahak.mehrban.uiv2.screens.family
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,16 +19,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,13 +87,45 @@ fun FamilyManagementScreen(
     )
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun FamilyManagementContent(
     state: FamilyState,
     onEvent: (FamilyEvent) -> Unit
 ) {
     val colors = LocalCustomColors.current
+    var childIdToDelete by remember { mutableStateOf<String?>(null) }
 
+    if (childIdToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { childIdToDelete = null },
+            containerColor = colors.surface,
+            title = {
+                Text("حذف فرزند", fontWeight = FontWeight.Bold, color = colors.textPrimary)
+            },
+            text = {
+                Text(
+                    "آیا از حذف این پروفایل اطمینان دارید؟ تمام تنظیمات مربوط به این فرزند حذف خواهند شد.",
+                    color = colors.textSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onEvent(FamilyEvent.DeleteChildClicked(childIdToDelete!!))
+                        childIdToDelete = null
+                    }
+                ) {
+                    Text("حذف", color = colors.red, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { childIdToDelete = null }) {
+                    Text("انصراف", color = colors.textPrimary)
+                }
+            }
+        )
+    }
     Scaffold(
         containerColor = colors.background,
     ) { _ ->
@@ -117,7 +156,12 @@ fun FamilyManagementContent(
                 )
 
                 if (state.isLoading) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator(color = colors.primary)
                     }
                 } else if (state.children.isEmpty()) {
@@ -130,7 +174,8 @@ fun FamilyManagementContent(
                     state.children.forEach { childUi ->
                         ChildCardV2(
                             childUi = childUi,
-                            onClick = { onEvent(FamilyEvent.ChildClicked(childUi.child.id)) }
+                            onClick = { onEvent(FamilyEvent.ChildClicked(childUi.child.id)) },
+                            onDeleteClick = { childIdToDelete = childUi.child.id }
                         )
                     }
                 }
@@ -173,7 +218,12 @@ fun FamilyScreenHeaderV2(onAddChildClick: () -> Unit) {
         ) {
             Column {
                 Text("مدیریت فرزندان", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
-                Text("فرزندان شما", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                Text(
+                    "فرزندان شما",
+                    color = Color.White,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 20.sp
+                )
             }
 
             // Header Add Button
@@ -186,7 +236,12 @@ fun FamilyScreenHeaderV2(onAddChildClick: () -> Unit) {
                     .clickable { onAddChildClick() },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(AppIcons.Add, contentDescription = "Add Child", tint = Color.White, modifier = Modifier.size(24.dp))
+                Icon(
+                    AppIcons.Add,
+                    contentDescription = "Add Child",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
@@ -195,7 +250,8 @@ fun FamilyScreenHeaderV2(onAddChildClick: () -> Unit) {
 @Composable
 fun ChildCardV2(
     childUi: FamilyChildUi,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
 
@@ -258,6 +314,17 @@ fun ChildCardV2(
                 )
                 Text("امروز", fontSize = 10.sp, color = colors.textSecondary)
             }
+
+            IconButton(
+                onClick = { onDeleteClick() },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Icon(
+                    painter = AppIcons.DeleteForever,
+                    contentDescription = "Delete Child",
+                    tint = colors.red.copy(alpha = 0.8f)
+                )
+            }
         }
     }
 }
@@ -292,10 +359,18 @@ fun AddChildDashedCardV2(onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(Brush.linearGradient(listOf(colors.primary, colors.primaryVariant)), CircleShape),
+                    .background(
+                        Brush.linearGradient(listOf(colors.primary, colors.primaryVariant)),
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(AppIcons.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                Icon(
+                    AppIcons.Add,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
@@ -312,11 +387,14 @@ fun AddChildDashedCardV2(onClick: () -> Unit) {
 // PREVIEWS
 // ----------------------------------------------------------------------------
 
-private val mockChild1 = ChildEntity(id = "1", name = "علی", dob = LocalDate.now().minusYears(10), gender = Gender.BOY)
-private val mockChild2 = ChildEntity(id = "2", name = "سارا", dob = LocalDate.now().minusYears(8), gender = Gender.GIRL)
+private val mockChild1 =
+    ChildEntity(id = "1", name = "علی", dob = LocalDate.now().minusYears(10), gender = Gender.BOY)
+private val mockChild2 =
+    ChildEntity(id = "2", name = "سارا", dob = LocalDate.now().minusYears(8), gender = Gender.GIRL)
 
 // FIXED: Wrapped the mock ChildEntities into the required FamilyChildUi class
-private val mockChildUi1 = FamilyChildUi(child = mockChild1, ageYears = 10, usageSecondsToday = 6300)
+private val mockChildUi1 =
+    FamilyChildUi(child = mockChild1, ageYears = 10, usageSecondsToday = 6300)
 private val mockChildUi2 = FamilyChildUi(child = mockChild2, ageYears = 8, usageSecondsToday = 3600)
 
 @Preview(showBackground = true, name = "1. Family Management Light", locale = "fa")
