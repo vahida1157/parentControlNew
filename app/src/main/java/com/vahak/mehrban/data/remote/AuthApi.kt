@@ -1,20 +1,28 @@
 package com.vahak.mehrban.data.remote
 
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 
 // These data classes match the JSON expected and returned by Spring Boot
-data class OtpRequestDto(val phoneNumber: String)
-data class VerifyRequestDto(val phoneNumber: String, val code: String)
+data class OtpRequestDto(
+    @SerializedName("phoneNumber") val phoneNumber: String
+)
+
+data class VerifyRequestDto(
+    @SerializedName("phoneNumber") val phoneNumber: String,
+    @SerializedName("code") val code: String
+)
+
 data class AuthResponseDto(
-    val message: String,
-    val parentId: String?,
-    val accessToken: String?,
-    val expiresInSeconds: Int?,
-    val pinPassword: String? = null,
-    val securityQuestion: String? = null,
-    val securityAnswer: String? = null,
+    @SerializedName("message") val message: String,
+    @SerializedName("parentId") val parentId: String?,
+    @SerializedName("accessToken") val accessToken: String?,
+    @SerializedName("expiresInSeconds") val expiresInSeconds: Int?,
+    @SerializedName("pinPassword") val pinPassword: String? = null,
+    @SerializedName("securityQuestion") val securityQuestion: String? = null,
+    @SerializedName("securityAnswer") val securityAnswer: String? = null
 )
 
 interface AuthApi {

@@ -1,5 +1,6 @@
 package com.vahak.mehrban.data.remote
 
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -8,36 +9,45 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 data class UsageSyncPayload(
-    val deviceId: String,
-    val deviceName: String,
-    val activeChildId: String?,
-    val dailyUsages: List<DailyUsageDto>,
-    val appUsages: List<AppUsageDto>
+    @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("deviceName") val deviceName: String,
+    @SerializedName("activeChildId") val activeChildId: String?,
+    @SerializedName("dailyUsages") val dailyUsages: List<DailyUsageDto>,
+    @SerializedName("appUsages") val appUsages: List<AppUsageDto>
 )
 
-data class DailyUsageDto(val childId: String, val date: String, val usedSeconds: Int)
+data class DailyUsageDto(
+    @SerializedName("childId") val childId: String,
+    @SerializedName("date") val date: String,
+    @SerializedName("usedSeconds") val usedSeconds: Int
+)
 
 data class AppUsageDto(
-    val childId: String, val date: String, val packageName: String, val usedSeconds: Int
+    @SerializedName("childId") val childId: String,
+    @SerializedName("date") val date: String,
+    @SerializedName("packageName") val packageName: String,
+    @SerializedName("usedSeconds") val usedSeconds: Int
 )
 
-// 🚀 NEW: The response contract from Spring Boot pushing the real-time aggregated metrics
 data class GlobalUsageResponse(
-    val globalDailySeconds: Map<String, Int>, // Key: childId, Value: Sum of all their devices combined
-    val globalAppSeconds: Map<String, Map<String, Int>> // Key: childId -> Map(packageName -> totalSeconds)
+    @SerializedName("globalDailySeconds") val globalDailySeconds: Map<String, Int>,
+    @SerializedName("globalAppSeconds") val globalAppSeconds: Map<String, Map<String, Int>>
 )
 
-// 🚀 NEW: The Drill-Down Report Contracts
 data class AppReportResponse(
-    val totalDailySeconds: Int, val apps: List<AppUsageBreakdown>
+    @SerializedName("totalDailySeconds") val totalDailySeconds: Int,
+    @SerializedName("apps") val apps: List<AppUsageBreakdown>
 )
 
 data class AppUsageBreakdown(
-    val packageName: String, val totalSeconds: Int, val devices: List<DeviceUsageDetail>
+    @SerializedName("packageName") val packageName: String,
+    @SerializedName("totalSeconds") val totalSeconds: Int,
+    @SerializedName("devices") val devices: List<DeviceUsageDetail>
 )
 
 data class DeviceUsageDetail(
-    val deviceName: String, val usedSeconds: Int
+    @SerializedName("deviceName") val deviceName: String,
+    @SerializedName("usedSeconds") val usedSeconds: Int
 )
 
 interface UsageApi {

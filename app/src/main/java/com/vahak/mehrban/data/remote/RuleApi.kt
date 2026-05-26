@@ -1,5 +1,6 @@
 package com.vahak.mehrban.data.remote
 
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -7,13 +8,13 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 
 data class AppRuleDto(
-    val packageName: String,
-    val isAllowed: Boolean,
-    val updatedAt: Long,
+    @SerializedName("packageName") val packageName: String,
+    @SerializedName("isAllowed") val isAllowed: Boolean,
+    @SerializedName("updatedAt") val updatedAt: Long
 )
 
 data class BulkRuleRequestDto(
-    val rules: List<AppRuleDto>
+    @SerializedName("rules") val rules: List<AppRuleDto>
 )
 
 interface RuleApi {

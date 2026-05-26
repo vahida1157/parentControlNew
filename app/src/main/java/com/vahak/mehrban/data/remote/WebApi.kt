@@ -1,5 +1,6 @@
 package com.vahak.mehrban.data.remote
 
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -8,14 +9,15 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 
 data class BlockedDomainDto(
-    val id: String,
-    val domain: String,
-    val isActive: Boolean
+    @SerializedName("id") val id: String,
+    @SerializedName("domain") val domain: String,
+    @SerializedName("isActive") val isActive: Boolean
 )
 
 data class BulkDomainRequestDto(
-    val domains: List<BlockedDomainDto>
+    @SerializedName("domains") val domains: List<BlockedDomainDto>
 )
+
 
 interface WebApi {
     @GET("api/policy/v1/domains/{childId}")

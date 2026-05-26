@@ -66,8 +66,8 @@ android {
 
         release {
             // PRO SETUP: Shrink code and resources for smaller, secure APKs
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
 
             // Link to the signing config created above
             signingConfig = signingConfigs.getByName("release")
@@ -92,6 +92,25 @@ android {
     }
 }
 
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+
+            // AGP 8+ exposes version info ONLY on the output object
+            val versionName = output.versionName.get()
+            val versionCode = output.versionCode.get()
+            val fileName = when (val buildType = variant.buildType!!) {
+                "debug" -> "Mehrban-Debug-v$versionName($versionCode).apk"
+                "release" -> "Mehrban-Release-v$versionName($versionCode).apk"
+                else -> "Mehrban-$buildType-v$versionName($versionCode).apk"
+            }
+
+            output.outputFileName.set(fileName)
+        }
+    }
+}
+
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -110,11 +129,11 @@ dependencies {
     implementation(libs.room.ktx)
 
     // Retrofit & Network
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp3.logging.interceptor)
 
-    implementation("com.google.android.gms:play-services-auth-api-phone:18.0.2")
+    implementation(libs.play.services.auth.api.phone)
 
     ksp(libs.room.compiler)
     ksp(libs.hilt.compiler)

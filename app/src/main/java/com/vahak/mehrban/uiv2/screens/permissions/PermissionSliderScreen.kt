@@ -4,7 +4,6 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.net.VpnService
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -44,7 +43,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +68,7 @@ import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
+import androidx.core.net.toUri
 
 @Composable
 fun PermissionSliderScreen(
@@ -117,7 +116,7 @@ fun PermissionSliderScreen(
                     val intent = Intent(effect.action).apply {
                         when (effect.permission) {
                             PermissionType.OVERLAY -> {
-                                data = Uri.parse("package:${context.packageName}")
+                                data = "package:${context.packageName}".toUri()
                             }
 
                             PermissionType.DEVICE_ADMIN -> {
@@ -162,7 +161,6 @@ fun PermissionSliderContent(
 ) {
     val colors = LocalCustomColors.current
     val pagerState = rememberPagerState(pageCount = { permissions.size })
-    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val isPreview = LocalInspectionMode.current
 
@@ -185,7 +183,6 @@ fun PermissionSliderContent(
         modifier = Modifier.systemBarsPadding(),
         containerColor = colors.background,
         bottomBar = {
-            val isLastPage = pagerState.currentPage == permissions.lastIndex
             PermissionFooterV2(
                 buttonText = "اعطای دسترسی",
                 onGrantClick = { onGrantClick(permissions[pagerState.currentPage]) },
@@ -238,7 +235,6 @@ fun PermissionSliderContent(
                             PermissionType.VPN -> "🌐"
                             PermissionType.OVERLAY -> "📱"
                             PermissionType.LOCATION -> "📍"
-                            else -> "⚙️"
                         }
                         Text(iconEmoji, fontSize = 32.sp)
                     }
@@ -511,10 +507,6 @@ fun PermissionFooterV2(buttonText: String, onGrantClick: () -> Unit) {
 @Preview(showBackground = true, name = "1. Permission Slider Light", locale = "fa")
 @Composable
 fun PermissionSliderPreviewLight() {
-    // Mocked PermissionType instructions just for the preview rendering
-    val mockInstruction =
-        listOf("به تنظیمات بروید", "بخش دسترسی‌ها را انتخاب کنید", "مهربان را فعال کنید")
-
     val mockPermissions = listOf(
         PermissionType.USAGE_STATS.apply { /* Mock logic */ },
         PermissionType.DEVICE_ADMIN,

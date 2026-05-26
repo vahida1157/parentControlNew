@@ -7,7 +7,7 @@ import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import javax.inject.Inject
@@ -19,7 +19,7 @@ data class SleepTimeStateV2(
     val startTime: LocalTime = LocalTime.of(21, 30),
     val endTime: LocalTime = LocalTime.of(7, 0),
     val currentEditMode: TimeEditModeV2 = TimeEditModeV2.NONE,
-    
+
     // New features from HTML
     val isDndEnabled: Boolean = true,
     val isEmergencyCallsEnabled: Boolean = true,
@@ -33,7 +33,7 @@ data class SleepTimeStateV2(
 sealed class SleepTimeEventV2 {
     object BackClicked : SleepTimeEventV2()
     data class ToggleActive(val isActive: Boolean) : SleepTimeEventV2()
-    
+
     // New Toggles
     data class ToggleDnd(val isActive: Boolean) : SleepTimeEventV2()
     data class ToggleEmergencyCalls(val isActive: Boolean) : SleepTimeEventV2()
@@ -42,7 +42,7 @@ sealed class SleepTimeEventV2 {
     data class OpenPicker(val mode: TimeEditModeV2) : SleepTimeEventV2()
     object ClosePicker : SleepTimeEventV2()
     data class ConfirmTime(val hours: Int, val minutes: Int) : SleepTimeEventV2()
-    
+
     object SaveClicked : SleepTimeEventV2()
 }
 
@@ -61,16 +61,16 @@ class SleepTimeViewModelV2 @Inject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            settingsRepository.getGlobalSettings(childId).collectLatest { settings ->
-                if (settings != null) {
-                    updateState {
-                        copy(
-                            isSleepTimeActive = settings.isSleepTimeActive,
-                            startTime = settings.sleepTimeStart,
-                            endTime = settings.sleepTimeEnd
-                            // Note: Hook up DND, Emergency, and BlueLight to DB when available
-                        )
-                    }
+            // 🚀 FIX: Use firstOrNull() instead of collectLatest
+            // This ensures we only load the initial state ONCE and don't overwrite user edits!
+            val settings = settingsRepository.getGlobalSettings(childId).firstOrNull()
+            if (settings != null) {
+                updateState {
+                    copy(
+                        isSleepTimeActive = settings.isSleepTimeActive,
+                        startTime = settings.sleepTimeStart,
+                        endTime = settings.sleepTimeEnd
+                    )
                 }
             }
         }
@@ -88,15 +88,16 @@ class SleepTimeViewModelV2 @Inject constructor(
             is SleepTimeEventV2.ClosePicker -> updateState { copy(currentEditMode = TimeEditModeV2.NONE) }
 
             is SleepTimeEventV2.ConfirmTime -> {
-                val newTime = LocalTime.of(event.hours, event.minutes)
-                val isStart = state.value.currentEditMode == TimeEditModeV2.START
+                updateState {
+                    // 🚀 FIX: Read currentEditMode from 'this' inside the update block to prevent race conditions
+                    val isStart = this.currentEditMode == TimeEditModeV2.START
+                    val newTime = LocalTime.of(event.hours, event.minutes)
 
-                updateState { 
                     copy(
                         currentEditMode = TimeEditModeV2.NONE,
                         startTime = if (isStart) newTime else startTime,
                         endTime = if (!isStart) newTime else endTime
-                    ) 
+                    )
                 }
             }
 
@@ -113,9 +114,9 @@ class SleepTimeViewModelV2 @Inject constructor(
                 startTime = state.value.startTime,
                 endTime = state.value.endTime
             )
-            
+
             delay(500) // Smooth UX delay
-            
+
             updateState { copy(isSaving = false) }
             sendEffect(SleepTimeEffectV2.ShowToast("تنظیمات خواب ذخیره شد"))
             sendEffect(SleepTimeEffectV2.NavigateBack)

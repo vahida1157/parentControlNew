@@ -1,5 +1,6 @@
 package com.vahak.mehrban.data.remote
 
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -7,26 +8,27 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 
 data class UpdateSettingsRequestDto(
-    val isChildThemeActive: Boolean,
-    val isTimeLimitActive: Boolean,
-    val dailyTimeLimitMins: Int,
-    val isSleepTimeActive: Boolean,
-    val sleepTimeStart: String, // LocalTime sent as String "22:00"
-    val sleepTimeEnd: String,   // LocalTime sent as String "07:00"
-    val isSiteManagementActive: Boolean,
-    val updatedAt: Long         // MANDATORY: Triggers Last-Write-Wins on backend
+    @SerializedName("isChildThemeActive") val isChildThemeActive: Boolean,
+    @SerializedName("isTimeLimitActive") val isTimeLimitActive: Boolean,
+    @SerializedName("dailyTimeLimitMins") val dailyTimeLimitMins: Int,
+    @SerializedName("isSleepTimeActive") val isSleepTimeActive: Boolean,
+    @SerializedName("sleepTimeStart") val sleepTimeStart: String,
+    @SerializedName("sleepTimeEnd") val sleepTimeEnd: String,
+    @SerializedName("isSiteManagementActive") val isSiteManagementActive: Boolean,
+    @SerializedName("updatedAt") val updatedAt: Long
 )
 
 data class GlobalSettingsResponseDto(
-    val childId: String,
-    val isChildThemeActive: Boolean,
-    val isTimeLimitActive: Boolean,
-    val dailyTimeLimitMins: Int,
-    val isSleepTimeActive: Boolean,
-    val sleepTimeStart: String,
-    val sleepTimeEnd: String,
-    val isSiteManagementActive: Boolean
+    @SerializedName("childId") val childId: String,
+    @SerializedName("isChildThemeActive") val isChildThemeActive: Boolean,
+    @SerializedName("isTimeLimitActive") val isTimeLimitActive: Boolean,
+    @SerializedName("dailyTimeLimitMins") val dailyTimeLimitMins: Int,
+    @SerializedName("isSleepTimeActive") val isSleepTimeActive: Boolean,
+    @SerializedName("sleepTimeStart") val sleepTimeStart: String,
+    @SerializedName("sleepTimeEnd") val sleepTimeEnd: String,
+    @SerializedName("isSiteManagementActive") val isSiteManagementActive: Boolean
 )
+
 
 interface SettingsApi {
     @GET("api/policy/v1/settings/{childId}")

@@ -1,5 +1,6 @@
 package com.vahak.mehrban.data.remote
 
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -8,22 +9,23 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 
 data class CreateChildRequestDto(
-    val id: String,
-    val name: String,
-    val dob: String,
-    val gender: String,
-    val avatarId: Int,
-    val phone: String?
+    @SerializedName("id") val id: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("dob") val dob: String,
+    @SerializedName("gender") val gender: String,
+    @SerializedName("avatarId") val avatarId: Int,
+    @SerializedName("phone") val phone: String?
 )
 
 data class ChildResponseDto(
-    val id: String,
-    val name: String,
-    val dob: String,
-    val gender: String,
-    val avatarId: Int,
-    val phone: String?
+    @SerializedName("id") val id: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("dob") val dob: String,
+    @SerializedName("gender") val gender: String,
+    @SerializedName("avatarId") val avatarId: Int,
+    @SerializedName("phone") val phone: String?
 )
+
 
 interface ChildApi {
     @GET("api/identity/v1/children")

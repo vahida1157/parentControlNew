@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.mehrban.presentation.launcher.LauncherEffect
 import com.vahak.mehrban.presentation.launcher.LauncherEvent
 import com.vahak.mehrban.presentation.launcher.LauncherState
