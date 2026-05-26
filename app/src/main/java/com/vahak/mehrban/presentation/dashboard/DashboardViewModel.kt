@@ -80,7 +80,14 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             childRepository.getAllChildren().collectLatest { childList ->
                 updateState {
-                    copy(children = childList, activeChild = activeChild ?: childList.firstOrNull())
+                    // 🚀 FIXED: Check if the currently active child is still in the database list
+                    val updatedActiveChild = childList.find { it.id == activeChild?.id }
+
+                    copy(
+                        children = childList,
+                        // If they were deleted, updatedActiveChild is null, so we safely fall back to the first available child
+                        activeChild = updatedActiveChild ?: childList.firstOrNull()
+                    )
                 }
             }
         }

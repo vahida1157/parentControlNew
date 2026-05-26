@@ -41,4 +41,5 @@ object AppIcons {
     val Notification: Painter @Composable get() = painterResource(R.drawable.ic_notification)
     val Logout: Painter @Composable get() = painterResource(R.drawable.ic_logout)
     val Smartphone: Painter @Composable get() = painterResource(R.drawable.ic_smartphone)
+    val DeleteForever: Painter @Composable get() = painterResource(R.drawable.ic_delete_forever)
 }

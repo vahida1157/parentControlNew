@@ -58,14 +58,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -75,7 +78,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.Gender
-import com.vahak.mehrban.core.util.PermissionChecker
 import com.vahak.mehrban.core.util.PermissionType
 import com.vahak.mehrban.presentation.dashboard.DashboardEffect
 import com.vahak.mehrban.presentation.dashboard.DashboardEvent
@@ -88,7 +90,6 @@ import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 import java.time.LocalDate
 import java.time.Period
-import kotlin.math.roundToInt
 
 @Composable
 fun DashboardScreen(
@@ -198,48 +199,41 @@ fun DashboardScreenContent(
         ) {
             DashboardHeaderV2(onProfileClick = onProfileClick)
 
-            HomeChildSelectorV2(
-                children = state.children,
-                activeChild = state.activeChild,
-                onSelect = { onEvent(DashboardEvent.SelectChild(it)) },
-                onAddClick = onAddChildClick
-            )
+            if (state.children.isEmpty() || state.activeChild == null) {
+                // Show massive CTA when no child exists
+                EmptyDashboardStateV2(onAddClick = onAddChildClick)
+            } else {
+                // Show normal dashboard when children exist
+                HomeChildSelectorV2(
+                    children = state.children,
+                    activeChild = state.activeChild,
+                    onSelect = { onEvent(DashboardEvent.SelectChild(it)) },
+                    onAddClick = onAddChildClick
+                )
 
-            state.activeChild?.let { child ->
                 ActiveChildSummaryCardV2(
-                    child = child,
+                    child = state.activeChild,
                     timeLimitMins = state.activeChildTimeLimitMins,
-                    isTimeLimitActive = state.isTimeLimitActive, // FIXED: Pass it to the UI
+                    isTimeLimitActive = state.isTimeLimitActive,
                     usageSeconds = state.activeChildUsageSeconds,
-                    onSettingsClick = { onSettingsClick(child.id) }
+                    onSettingsClick = { onSettingsClick(state.activeChild.id) }
                 )
 
                 Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
                     SwipeToActivateButton(
                         isActive = state.isProtectionActive,
-                        onActivate = {
-                            if (state.activeChild != null) {
-                                // Trigger the V2 confirmation bottom sheet
-                                showLauncherConfirmSheet = true
-                            } else {
-                                onEvent(DashboardEvent.OpenChildSheet)
-                            }
-                        },
-                        onDeactivate = {
-                            // Uncomment if you want to handle deactivation directly from the swipe
-                            // if (state.activeChild != null) {
-                            //     onEvent(DashboardEvent.DeactivateProtection(state.activeChild.id))
-                            // }
-                        }
+                        onActivate = { showLauncherConfirmSheet = true },
+                        onDeactivate = { /* Handle deactivation */ }
                     )
                 }
-            }
 
-            ActionGridV2(
-                onSettingsClick = { state.activeChild?.let { onSettingsClick(it.id) } },
-                onReportClick = { state.activeChild?.let { onReportClick(it.id) } },
-                onTimeLockClick = { /* Implement Immediate Lock */ },
-                onLocationClick = { /* Implement Live Location */ })
+                ActionGridV2(
+                    onSettingsClick = { onSettingsClick(state.activeChild.id) },
+                    onReportClick = { onReportClick(state.activeChild.id) },
+                    onTimeLockClick = { /* Implement Immediate Lock */ },
+                    onLocationClick = { /* Implement Live Location */ }
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -511,7 +505,12 @@ fun DashboardHeaderV2(onProfileClick: () -> Unit) {
         ) {
             Column {
                 Text("سلام 👋", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
-                Text("والد گرامی", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                Text(
+                    "والد گرامی",
+                    color = Color.White,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 20.sp
+                )
             }
             Box(
                 modifier = Modifier
@@ -595,6 +594,98 @@ fun HomeChildSelectorV2(
                 ) {
                     Text(
                         "+", color = colors.primary, fontSize = 22.sp, fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyDashboardStateV2(onAddClick: () -> Unit) {
+    val colors = LocalCustomColors.current
+    val strokeColor = colors.primary
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.primary.copy(alpha = 0.04f), RoundedCornerShape(24.dp))
+                .drawBehind {
+                    val stroke = Stroke(
+                        width = 5f,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(25f, 20f), 0f)
+                    )
+                    drawRoundRect(
+                        color = strokeColor.copy(alpha = 0.3f),
+                        style = stroke,
+                        cornerRadius = CornerRadius(24.dp.toPx())
+                    )
+                }
+                .clip(RoundedCornerShape(24.dp))
+                .clickable { onAddClick() }
+                .padding(vertical = 48.dp, horizontal = 24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Big Floating Plus Icon
+                Box(
+                    modifier = Modifier
+                        .size(76.dp)
+                        .background(
+                            Brush.linearGradient(listOf(colors.primary, colors.primaryVariant)),
+                            CircleShape
+                        )
+                        .shadow(12.dp, CircleShape, spotColor = colors.primary.copy(alpha = 0.6f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        AppIcons.Add,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "اولین فرزند خود را اضافه کنید",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = colors.primary
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "برای دسترسی به تنظیمات، گزارش‌ها و ابزارهای محافظتی، ابتدا پروفایل فرزندتان را بسازید.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textSecondary,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = onAddClick,
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text(
+                        "افزودن فرزند",
+                        color = colors.textOnPrimaryVariant,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
                     )
                 }
             }

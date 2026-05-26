@@ -34,6 +34,7 @@ sealed class FamilyEvent {
     object BackClicked : FamilyEvent()
     object AddChildClicked : FamilyEvent()
     data class ChildClicked(val childId: String) : FamilyEvent()
+    data class DeleteChildClicked(val childId: String) : FamilyEvent()
 }
 
 sealed class FamilyEffect {
@@ -79,6 +80,12 @@ class FamilyViewModel @Inject constructor(
             is FamilyEvent.BackClicked -> sendEffect(FamilyEffect.NavigateBack)
             is FamilyEvent.AddChildClicked -> sendEffect(FamilyEffect.NavigateToAddChild)
             is FamilyEvent.ChildClicked -> sendEffect(FamilyEffect.NavigateToChildSettings(event.childId))
+            is FamilyEvent.DeleteChildClicked -> {
+                viewModelScope.launch(Dispatchers.IO) {
+                    // This calls your already-perfect offline-first delete logic!
+                    childRepository.deleteChildLocally(event.childId)
+                }
+            }
         }
     }
 }

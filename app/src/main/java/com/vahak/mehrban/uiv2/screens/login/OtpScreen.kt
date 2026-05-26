@@ -17,12 +17,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -72,7 +76,6 @@ fun OtpScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
-    // 🚀 NEW: SMS Retriever Setup
     DisposableEffect(context) {
         val smsReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -80,25 +83,14 @@ fun OtpScreen(
                     val extras = intent.extras
                     val status = extras?.get(SmsRetriever.EXTRA_STATUS) as? Status
 
-                    // 🚀 ADD THIS LOG
-                    android.util.Log.d("SMS_RETRIEVER", "Received status code: ${status?.statusCode}")
-
                     when (status?.statusCode) {
                         CommonStatusCodes.SUCCESS -> {
                             val message = extras.getString(SmsRetriever.EXTRA_SMS_MESSAGE)
-                            android.util.Log.d("SMS_RETRIEVER", "Raw SMS: $message")
-
-                            // Relaxed the regex slightly just in case
                             val code = message?.let { Regex("\\d{4}").find(it)?.value }
-                            android.util.Log.d("SMS_RETRIEVER", "Extracted Code: $code")
-
                             if (code != null) {
                                 viewModel.onEvent(OtpEvent.OtpChanged(code))
                                 viewModel.onEvent(OtpEvent.VerifyClicked(phoneNumber))
                             }
-                        }
-                        CommonStatusCodes.TIMEOUT -> {
-                            android.util.Log.w("SMS_RETRIEVER", "Timeout: Did not receive matching SMS within 5 minutes.")
                         }
                     }
                 }
@@ -113,7 +105,6 @@ fun OtpScreen(
             ContextCompat.RECEIVER_EXPORTED
         )
 
-        // Start listening for the SMS
         SmsRetriever.getClient(context).startSmsRetriever()
 
         onDispose {
@@ -153,255 +144,265 @@ fun OtpScreenContent(
     val colors = LocalCustomColors.current
     val otpLength = 4
 
-    // Background Teal Gradient (Constant for Light/Dark)
     val backgroundGradient = Brush.linearGradient(
         colors = listOf(colors.primary, colors.primaryVariant, Color(0xFF0A4F46))
     )
 
-    // Button & Active element Gold Gradient
     val goldGradient = Brush.linearGradient(
         colors = listOf(colors.yellow, colors.orange)
     )
 
+    // 🚀 ROOT BOX: Handles background and keyboard padding
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundGradient)
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
+            .imePadding()
     ) {
-        // Absolute top back button
+        // 🚀 LAYER 1: SCROLLABLE CONTENT
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 16.dp),
-            contentAlignment = Alignment.TopStart
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    horizontal = 24.dp,
+                    vertical = 80.dp
+                ), // Extra vertical padding to avoid the back button
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                    .clickable { onBackClick() },
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    painter = AppIcons.Back,
-                    contentDescription = "Back",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
+                // Gold Logo Mini
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(goldGradient, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = AppIcons.LockBadge,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
 
-        // Foreground Content (Directly on gradient, no card)
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Gold Logo Mini
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(goldGradient, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = AppIcons.LockBadge,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(40.dp)
-                )
-            }
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "تأیید شماره تلفن",
-                style = MaterialTheme.typography.headlineMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Black
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
                 Text(
-                    text = "کد ارسال شده به ",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.8f)
+                    text = "تأیید شماره تلفن",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Black
                 )
-                Text(
-                    text = phoneNumber,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = colors.yellow,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-                Text(
-                    text = " را وارد کنید",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.8f)
-                )
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            if (state.errorMessage != null) {
-                Text(
-                    text = state.errorMessage,
-                    color = colors.redLight, // Better visibility on dark teal
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
-
-            // OTP Input Field Wrapper
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                BasicTextField(
-                    value = state.otpCode,
-                    onValueChange = { newValue ->
-                        val filtered = newValue.filter { it.isDigit() }
-                        if (filtered.length <= otpLength) {
-                            onEvent(OtpEvent.OtpChanged(filtered))
-                            if (filtered.length == otpLength && !state.isVerifying) {
-                                onEvent(OtpEvent.VerifyClicked(phoneNumber))
-                            }
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    cursorBrush = SolidColor(Color.Transparent),
-                    decorationBox = {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(
-                                12.dp,
-                                Alignment.CenterHorizontally
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            repeat(otpLength) { index ->
-                                val char = state.otpCode.getOrNull(index)?.toString() ?: ""
-                                val isFilled = state.otpCode.length > index
-                                val isFocused = state.otpCode.length == index
-                                val isError = state.errorMessage != null
-
-                                // HTML Logic: filled/focused turns gold, else white/translucent
-                                val borderColor = when {
-                                    isError -> colors.red
-                                    isFocused || isFilled -> colors.yellow
-                                    else -> Color.White.copy(alpha = 0.3f)
-                                }
-                                val bgColor = when {
-                                    isFocused || isFilled -> colors.yellow.copy(alpha = 0.2f)
-                                    else -> Color.White.copy(alpha = 0.1f)
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(52.dp, 60.dp)
-                                        .background(bgColor, RoundedCornerShape(12.dp))
-                                        .border(2.dp, borderColor, RoundedCornerShape(12.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = char,
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                }
-                            }
-                        }
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Timer & Resend
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                val seconds = state.timerSeconds.toString()
-
-                if (!state.canResend) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "ارسال مجدد تا ",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                        Text(
-                            text = "$seconds ثانیه",
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = colors.yellow
-                        )
-                    }
-                } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
                     Text(
-                        text = "ارسال مجدد کد",
-                        style = MaterialTheme.typography.labelLarge,
+                        text = "کد ارسال شده به ",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                    Text(
+                        text = phoneNumber,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = colors.yellow,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable {
-                            onEvent(OtpEvent.ResendClicked(phoneNumber))
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                    Text(
+                        text = " را وارد کنید",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                if (state.errorMessage != null) {
+                    Text(
+                        text = state.errorMessage,
+                        color = colors.redLight,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+
+                // OTP Input Field Wrapper
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    BasicTextField(
+                        value = state.otpCode,
+                        onValueChange = { newValue ->
+                            val filtered = newValue.filter { it.isDigit() }
+                            if (filtered.length <= otpLength) {
+                                onEvent(OtpEvent.OtpChanged(filtered))
+                                if (filtered.length == otpLength && !state.isVerifying) {
+                                    onEvent(OtpEvent.VerifyClicked(phoneNumber))
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        cursorBrush = SolidColor(Color.Transparent),
+                        textStyle = TextStyle(color = Color.Transparent), // 🚀 Prevents native text artifacts
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    12.dp,
+                                    Alignment.CenterHorizontally
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                repeat(otpLength) { index ->
+                                    val char = state.otpCode.getOrNull(index)?.toString() ?: ""
+                                    val isFilled = state.otpCode.length > index
+                                    val isFocused = state.otpCode.length == index
+                                    val isError = state.errorMessage != null
+
+                                    val borderColor = when {
+                                        isError -> colors.red
+                                        isFocused || isFilled -> colors.yellow
+                                        else -> Color.White.copy(alpha = 0.3f)
+                                    }
+                                    val bgColor = when {
+                                        isFocused || isFilled -> colors.yellow.copy(alpha = 0.2f)
+                                        else -> Color.White.copy(alpha = 0.1f)
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp, 60.dp)
+                                            .background(bgColor, RoundedCornerShape(12.dp))
+                                            .border(2.dp, borderColor, RoundedCornerShape(12.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = char,
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
+                                }
+                            }
                         }
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-            // Submit Button
-            val isEnabled = state.otpCode.length == otpLength && !state.isVerifying
-            Button(
-                onClick = { onEvent(OtpEvent.VerifyClicked(phoneNumber)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .shadow(
-                        8.dp,
-                        RoundedCornerShape(12.dp),
-                        spotColor = colors.yellow.copy(alpha = 0.3f)
-                    ),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    disabledContainerColor = colors.divider.copy(alpha = 0.3f)
-                ),
-                contentPadding = PaddingValues(),
-                enabled = isEnabled
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            if (isEnabled) goldGradient
-                            else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (state.isVerifying) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp
-                        )
+                // Timer & Resend
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val seconds = state.timerSeconds.toString()
+
+                    if (!state.canResend) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "ارسال مجدد تا ",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = "$seconds ثانیه",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = colors.yellow
+                            )
+                        }
                     } else {
                         Text(
-                            text = "تأیید کد",
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            text = "ارسال مجدد کد",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = colors.yellow,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable {
+                                onEvent(OtpEvent.ResendClicked(phoneNumber))
+                            }
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Submit Button
+                val isEnabled = state.otpCode.length == otpLength && !state.isVerifying
+                Button(
+                    onClick = { onEvent(OtpEvent.VerifyClicked(phoneNumber)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .shadow(
+                            8.dp,
+                            RoundedCornerShape(12.dp),
+                            spotColor = colors.yellow.copy(alpha = 0.3f)
+                        ),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        disabledContainerColor = colors.divider.copy(alpha = 0.3f)
+                    ),
+                    contentPadding = PaddingValues(),
+                    enabled = isEnabled
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                if (isEnabled) goldGradient
+                                else Brush.linearGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        Color.Transparent
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (state.isVerifying) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "تأیید کد",
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
+        }
+
+        // 🚀 LAYER 2: FIXED BACK BUTTON
+        // This is outside the scrollable Box, so it is permanently pinned to the Top Start!
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 32.dp, start = 24.dp)
+                .size(44.dp)
+                .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                .clickable { onBackClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = AppIcons.Back,
+                contentDescription = "Back",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
 
-// 3. SAFE PREVIEWS
 @Preview(showBackground = true, locale = "fa", name = "1. OTP Light Mode")
 @Composable
 fun OtpScreenPreview() {

@@ -1,5 +1,6 @@
 package com.vahak.mehrban.uiv2.screens.password
 
+
 import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -15,12 +16,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -47,11 +50,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -86,9 +92,7 @@ fun PasswordManagementScreen(
                     context, effect.message, Toast.LENGTH_SHORT
                 ).show()
 
-                PasswordEffectV2.NavigateBack -> {
-
-                }
+                PasswordEffectV2.NavigateBack -> {}
             }
         }
     }
@@ -104,6 +108,7 @@ fun PasswordManagementScreenContent(
 ) {
     val colors = LocalCustomColors.current
     val isDark = isSystemInDarkTheme()
+    val focusManager = LocalFocusManager.current // 🚀 Added Focus Manager
 
     val backgroundGradient = Brush.linearGradient(
         colors = listOf(colors.primary, colors.primaryVariant, Color(0xFF0A4F46))
@@ -121,8 +126,9 @@ fun PasswordManagementScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
+                .imePadding() // 🚀 Pushes UI up when keyboard opens
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(30.dp))
@@ -136,7 +142,7 @@ fun PasswordManagementScreenContent(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = AppIcons.LockBadge, // Replace with your appropriate vector
+                    painter = AppIcons.LockBadge,
                     contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp)
                 )
             }
@@ -234,6 +240,10 @@ fun PasswordManagementScreenContent(
                         value = state.securityAnswer,
                         onValueChange = { onEvent(PasswordEventV2.AnswerChanged(it.trim())) },
                         placeholder = { Text("پاسخ شما", color = colors.textHint) },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), // 🚀 Jump Next
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 24.dp),
@@ -257,7 +267,7 @@ fun PasswordManagementScreenContent(
                     )
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // --- 2. PASSWORD INPUT (FIXED DESIGN) ---
+                    // --- 2. PASSWORD INPUT ---
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = "رمز عبور (۴ تا ۸ رقم)",
@@ -275,7 +285,13 @@ fun PasswordManagementScreenContent(
                                         PasswordEventV2.PasswordChanged(filtered)
                                     )
                                 },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.NumberPassword,
+                                    imeAction = ImeAction.Next // 🚀 Jump Next
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                                ),
                                 visualTransformation = if (state.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
@@ -381,7 +397,18 @@ fun PasswordManagementScreenContent(
                                         )
                                     )
                                 },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.NumberPassword,
+                                    imeAction = ImeAction.Done // 🚀 Done Action
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = {
+                                        focusManager.clearFocus()
+                                        if (state.isFormValid && !state.isLoading) {
+                                            onEvent(PasswordEventV2.SubmitClicked) // 🚀 Auto Submit
+                                        }
+                                    }
+                                ),
                                 visualTransformation = if (state.isConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
@@ -444,7 +471,10 @@ fun PasswordManagementScreenContent(
 
                     // --- 4. SUBMIT BUTTON ---
                     Button(
-                        onClick = { onEvent(PasswordEventV2.SubmitClicked) },
+                        onClick = {
+                            focusManager.clearFocus()
+                            onEvent(PasswordEventV2.SubmitClicked)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
