@@ -62,6 +62,7 @@ import com.vahak.mehrban.presentation.login.OtpEvent
 import com.vahak.mehrban.presentation.login.OtpState
 import com.vahak.mehrban.presentation.login.OtpViewModel
 import com.vahak.mehrban.ui.theme.AppIcons
+import com.vahak.mehrban.uiv2.components.AppBackground
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 
@@ -152,253 +153,263 @@ fun OtpScreenContent(
         colors = listOf(colors.yellow, colors.orange)
     )
 
-    // 🚀 ROOT BOX: Handles background and keyboard padding
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundGradient)
-            .imePadding()
+    AppBackground(
+        patternAlpha = 0.06f,
+        patternScale = 2.5f,
+        patternRepeatScale = 0.5f
     ) {
-        // 🚀 LAYER 1: SCROLLABLE CONTENT
+
+        // 🚀 ROOT BOX: Handles background and keyboard padding
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    horizontal = 24.dp,
-                    vertical = 80.dp
-                ), // Extra vertical padding to avoid the back button
-            contentAlignment = Alignment.Center
+                .imePadding()
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+            // 🚀 LAYER 1: SCROLLABLE CONTENT
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        horizontal = 24.dp,
+                        vertical = 80.dp
+                    ), // Extra vertical padding to avoid the back button
+                contentAlignment = Alignment.Center
             ) {
-                // Gold Logo Mini
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .background(goldGradient, CircleShape),
-                    contentAlignment = Alignment.Center
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        painter = AppIcons.LockBadge,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
+                    // Gold Logo Mini
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(goldGradient, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = AppIcons.LockBadge,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                Text(
-                    text = "تأیید شماره تلفن",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.Black
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
                     Text(
-                        text = "کد ارسال شده به ",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f)
+                        text = "تأیید شماره تلفن",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Black
                     )
-                    Text(
-                        text = phoneNumber,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = colors.yellow,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
-                    Text(
-                        text = " را وارد کنید",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                if (state.errorMessage != null) {
-                    Text(
-                        text = state.errorMessage,
-                        color = colors.redLight,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                }
-
-                // OTP Input Field Wrapper
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    BasicTextField(
-                        value = state.otpCode,
-                        onValueChange = { newValue ->
-                            val filtered = newValue.filter { it.isDigit() }
-                            if (filtered.length <= otpLength) {
-                                onEvent(OtpEvent.OtpChanged(filtered))
-                                if (filtered.length == otpLength && !state.isVerifying) {
-                                    onEvent(OtpEvent.VerifyClicked(phoneNumber))
-                                }
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        cursorBrush = SolidColor(Color.Transparent),
-                        textStyle = TextStyle(color = Color.Transparent), // 🚀 Prevents native text artifacts
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(
-                                    12.dp,
-                                    Alignment.CenterHorizontally
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                repeat(otpLength) { index ->
-                                    val char = state.otpCode.getOrNull(index)?.toString() ?: ""
-                                    val isFilled = state.otpCode.length > index
-                                    val isFocused = state.otpCode.length == index
-                                    val isError = state.errorMessage != null
-
-                                    val borderColor = when {
-                                        isError -> colors.red
-                                        isFocused || isFilled -> colors.yellow
-                                        else -> Color.White.copy(alpha = 0.3f)
-                                    }
-                                    val bgColor = when {
-                                        isFocused || isFilled -> colors.yellow.copy(alpha = 0.2f)
-                                        else -> Color.White.copy(alpha = 0.1f)
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(52.dp, 60.dp)
-                                            .background(bgColor, RoundedCornerShape(12.dp))
-                                            .border(2.dp, borderColor, RoundedCornerShape(12.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = char,
-                                            style = MaterialTheme.typography.headlineSmall,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Black
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Timer & Resend
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val seconds = state.timerSeconds.toString()
-
-                    if (!state.canResend) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "ارسال مجدد تا ",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = "$seconds ثانیه",
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                color = colors.yellow
-                            )
-                        }
-                    } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
                         Text(
-                            text = "ارسال مجدد کد",
-                            style = MaterialTheme.typography.labelLarge,
+                            text = "کد ارسال شده به ",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                        Text(
+                            text = phoneNumber,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                             color = colors.yellow,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable {
-                                onEvent(OtpEvent.ResendClicked(phoneNumber))
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                        Text(
+                            text = " را وارد کنید",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    if (state.errorMessage != null) {
+                        Text(
+                            text = state.errorMessage,
+                            color = colors.redLight,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                    }
+
+                    // OTP Input Field Wrapper
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        BasicTextField(
+                            value = state.otpCode,
+                            onValueChange = { newValue ->
+                                val filtered = newValue.filter { it.isDigit() }
+                                if (filtered.length <= otpLength) {
+                                    onEvent(OtpEvent.OtpChanged(filtered))
+                                    if (filtered.length == otpLength && !state.isVerifying) {
+                                        onEvent(OtpEvent.VerifyClicked(phoneNumber))
+                                    }
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            cursorBrush = SolidColor(Color.Transparent),
+                            textStyle = TextStyle(color = Color.Transparent), // 🚀 Prevents native text artifacts
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(
+                                        12.dp,
+                                        Alignment.CenterHorizontally
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    repeat(otpLength) { index ->
+                                        val char = state.otpCode.getOrNull(index)?.toString() ?: ""
+                                        val isFilled = state.otpCode.length > index
+                                        val isFocused = state.otpCode.length == index
+                                        val isError = state.errorMessage != null
+
+                                        val borderColor = when {
+                                            isError -> colors.red
+                                            isFocused || isFilled -> colors.yellow
+                                            else -> Color.White.copy(alpha = 0.3f)
+                                        }
+                                        val bgColor = when {
+                                            isFocused || isFilled -> colors.yellow.copy(alpha = 0.2f)
+                                            else -> Color.White.copy(alpha = 0.1f)
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(52.dp, 60.dp)
+                                                .background(bgColor, RoundedCornerShape(12.dp))
+                                                .border(
+                                                    2.dp,
+                                                    borderColor,
+                                                    RoundedCornerShape(12.dp)
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = char,
+                                                style = MaterialTheme.typography.headlineSmall,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Black
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                // Submit Button
-                val isEnabled = state.otpCode.length == otpLength && !state.isVerifying
-                Button(
-                    onClick = { onEvent(OtpEvent.VerifyClicked(phoneNumber)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .shadow(
-                            8.dp,
-                            RoundedCornerShape(12.dp),
-                            spotColor = colors.yellow.copy(alpha = 0.3f)
-                        ),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                        disabledContainerColor = colors.divider.copy(alpha = 0.3f)
-                    ),
-                    contentPadding = PaddingValues(),
-                    enabled = isEnabled
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                if (isEnabled) goldGradient
-                                else Brush.linearGradient(
-                                    listOf(
-                                        Color.Transparent,
-                                        Color.Transparent
-                                    )
+                    // Timer & Resend
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val seconds = state.timerSeconds.toString()
+
+                        if (!state.canResend) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "ارسال مجدد تا ",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = Color.White.copy(alpha = 0.7f)
                                 )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (state.isVerifying) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp
-                            )
+                                Text(
+                                    text = "$seconds ثانیه",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = colors.yellow
+                                )
+                            }
                         } else {
                             Text(
-                                text = "تأیید کد",
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                text = "ارسال مجدد کد",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = colors.yellow,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable {
+                                    onEvent(OtpEvent.ResendClicked(phoneNumber))
+                                }
                             )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Submit Button
+                    val isEnabled = state.otpCode.length == otpLength && !state.isVerifying
+                    Button(
+                        onClick = { onEvent(OtpEvent.VerifyClicked(phoneNumber)) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .shadow(
+                                8.dp,
+                                RoundedCornerShape(12.dp),
+                                spotColor = colors.yellow.copy(alpha = 0.3f)
+                            ),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent,
+                            disabledContainerColor = colors.divider.copy(alpha = 0.3f)
+                        ),
+                        contentPadding = PaddingValues(),
+                        enabled = isEnabled
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    if (isEnabled) goldGradient
+                                    else Brush.linearGradient(
+                                        listOf(
+                                            Color.Transparent,
+                                            Color.Transparent
+                                        )
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (state.isVerifying) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "تأیید کد",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // 🚀 LAYER 2: FIXED BACK BUTTON
-        // This is outside the scrollable Box, so it is permanently pinned to the Top Start!
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 32.dp, start = 24.dp)
-                .size(44.dp)
-                .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                .clickable { onBackClick() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = AppIcons.Back,
-                contentDescription = "Back",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
+            // 🚀 LAYER 2: FIXED BACK BUTTON
+            // This is outside the scrollable Box, so it is permanently pinned to the Top Start!
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 32.dp, start = 24.dp)
+                    .size(44.dp)
+                    .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                    .clickable { onBackClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = AppIcons.Back,
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }

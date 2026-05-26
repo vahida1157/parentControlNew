@@ -52,6 +52,9 @@ fun MainParentScreen(
                         onReportClick = { childId ->
                             rootNavController.navigate(Screen.UsageReport.createRoute(childId))
                         },
+                        onTimeLockClick = { childId ->
+                            rootNavController.navigate(Screen.TimeLimit.createRoute(childId))
+                        },
                         onNavigateToPasswordSetup = { rootNavController.navigate(Screen.PasswordManagement.route) },
                         onLogoutComplete = onLogoutComplete,
                         onSecurityFabClick = { missingPermissions ->
@@ -66,7 +69,9 @@ fun MainParentScreen(
                         onProfileClick = {
                             bottomNavController.navigate(BottomNavItem.Profile.route) {
                                 // This ensures we don't build up a massive backstack of tabs
-                                popUpTo(bottomNavController.graph.startDestinationId) { saveState = true }
+                                popUpTo(bottomNavController.graph.startDestinationId) {
+                                    saveState = true
+                                }
                                 launchSingleTop = true
                                 restoreState = true
                             }

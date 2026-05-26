@@ -1,6 +1,7 @@
 package com.vahak.mehrban.uiv2.screens.dashboard
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -98,6 +99,7 @@ fun DashboardScreen(
     onManageFamilyClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
     onReportClick: (String) -> Unit,
+    onTimeLockClick: (String) -> Unit,
     onNavigateToPasswordSetup: () -> Unit,
     onLogoutComplete: () -> Unit,
     onSecurityFabClick: (String) -> Unit,
@@ -121,8 +123,9 @@ fun DashboardScreen(
         onManageFamilyClick = onManageFamilyClick,
         onSettingsClick = onSettingsClick,
         onReportClick = onReportClick,
+        onTimeLockClick = onTimeLockClick,
         onSecurityFabClick = onSecurityFabClick,
-        onProfileClick = onProfileClick
+        onProfileClick = onProfileClick,
     )
 }
 
@@ -136,6 +139,7 @@ fun DashboardScreenContent(
     onManageFamilyClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
     onReportClick: (String) -> Unit,
+    onTimeLockClick: (String) -> Unit,
     onSecurityFabClick: (String) -> Unit,
     onProfileClick: () -> Unit
 ) {
@@ -230,8 +234,10 @@ fun DashboardScreenContent(
                 ActionGridV2(
                     onSettingsClick = { onSettingsClick(state.activeChild.id) },
                     onReportClick = { onReportClick(state.activeChild.id) },
-                    onTimeLockClick = { /* Implement Immediate Lock */ },
-                    onLocationClick = { /* Implement Live Location */ }
+                    onTimeLockClick = { onTimeLockClick(state.activeChild.id) },
+                    onLocationClick = {
+                        Toast.makeText(context, "به زودی در دسترس خواهد بود", Toast.LENGTH_SHORT).show()
+                    }
                 )
             }
 
@@ -1106,6 +1112,7 @@ fun DashboardScreenPreviewEmpty() {
             onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
+            onTimeLockClick = {},
             onSecurityFabClick = {},
             onProfileClick = {})
     }
@@ -1125,6 +1132,7 @@ fun DashboardScreenPreviewPopulatedLight() {
             onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
+            onTimeLockClick = {},
             onSecurityFabClick = {},
             onProfileClick = {})
     }
@@ -1143,6 +1151,7 @@ fun DashboardScreenPreviewPopulatedDark() {
             onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
+            onTimeLockClick = {},
             onSecurityFabClick = {},
             onProfileClick = {})
     }
@@ -1163,6 +1172,7 @@ fun DashboardScreenPreviewDialog() {
             onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
+            onTimeLockClick = {},
             onSecurityFabClick = {},
             onProfileClick = {})
     }

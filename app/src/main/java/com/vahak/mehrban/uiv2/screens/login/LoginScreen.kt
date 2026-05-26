@@ -1,5 +1,6 @@
 package com.vahak.mehrban.uiv2.screens.login
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -40,13 +41,25 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -55,13 +68,16 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.transform
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.util.AppSignatureHelper
 import com.vahak.mehrban.presentation.login.LoginEffect
 import com.vahak.mehrban.presentation.login.LoginEvent
 import com.vahak.mehrban.presentation.login.LoginState
 import com.vahak.mehrban.presentation.login.LoginViewModel
 import com.vahak.mehrban.ui.theme.AppIcons
+import com.vahak.mehrban.uiv2.components.AppBackground
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 
@@ -93,7 +109,7 @@ fun LoginScreenContent(
 ) {
     val colors = LocalCustomColors.current
 
-    // Background Teal Gradient (Constant for both Light/Dark as per HTML design)
+    // Background Teal Gradient
     val backgroundGradient = Brush.linearGradient(
         colors = listOf(colors.primary, colors.primaryVariant, Color(0xFF0A4F46))
     )
@@ -114,203 +130,246 @@ fun LoginScreenContent(
         ),
         label = "float_offset"
     )
+
+    // 🚀 NEW: Infinite Rotation for Background (120 seconds, linear)
+    val backgroundRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(120000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "bg_spin"
+    )
+
+    // 🚀 NEW: Create a repeating shader brush from the local image
+    val patternBitmap = ImageBitmap.imageResource(id = R.drawable.bg_pattern)
+    val repeatScale = 0.5f
+    val patternBrush = remember(patternBitmap) {
+        ShaderBrush(
+            ImageShader(
+                image = patternBitmap,
+                tileModeX = TileMode.Repeated,
+                tileModeY = TileMode.Repeated
+            )
+        )
+    }
+    val moreRepeatsBrush = remember(patternBrush) {
+        object : ShaderBrush() {
+            override fun createShader(size: Size): Shader {
+                val original = patternBrush.createShader(size)
+                val matrix = android.graphics.Matrix().apply {
+                    setScale(repeatScale, repeatScale)
+                }
+                original.setLocalMatrix(matrix)
+                return original
+            }
+        }
+    }
+
     AppSignatureHelper(LocalContext.current).getAppSignatures()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundGradient)
-            .imePadding() // 🚀 THIS pushes the UI up when keyboard opens
-            .verticalScroll(rememberScrollState()) // 🚀 THIS allows scrolling if the screen is small
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
+    AppBackground(
+        patternAlpha = 0.06f,
+        patternScale = 2.5f,
+        patternRepeatScale = 0.5f
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+
+        // 🚀 LAYER 2: The Scrollable Foreground
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
         ) {
-            // Animated Gold Logo
-            Box(
-                modifier = Modifier
-                    .offset(offset = { IntOffset(0, floatOffset.toInt()) })
-                    .size(120.dp)
-                    .background(goldGradient, CircleShape)
-                    .shadow(16.dp, CircleShape, spotColor = colors.yellow.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    painter = AppIcons.LockBadge, // Replace with your Shield/Lock icon
-                    contentDescription = "App Logo",
-                    tint = Color.White,
-                    modifier = Modifier.size(50.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Title & Subtitle (Always white due to dark teal background)
-            Text(
-                text = "مهربان",
-                style = MaterialTheme.typography.headlineLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Black,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "محافظ خانواده شما 💚",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f),
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Main Input Card
-            Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
+                // Animated Gold Logo
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 32.dp),
-                    horizontalAlignment = Alignment.Start
+                        .offset(offset = { IntOffset(0, floatOffset.toInt()) })
+                        .size(120.dp)
+                        .background(goldGradient, CircleShape)
+                        .shadow(16.dp, CircleShape, spotColor = colors.yellow.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    if (state.errorMessage != null) {
-                        Text(
-                            text = state.errorMessage,
-                            color = colors.red,
-                            style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
-                    }
-
-                    Text(
-                        text = "شماره تلفن همراه",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = colors.textSecondary,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                    Icon(
+                        painter = AppIcons.LockBadge,
+                        contentDescription = "App Logo",
+                        tint = Color.White,
+                        modifier = Modifier.size(50.dp)
                     )
+                }
 
-                    // Phone Input Structure (LTR Forced)
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // +98 Prefix Box
-                            Box(
-                                modifier = Modifier
-                                    .height(56.dp)
-                                    .background(colors.cardInnerBG, RoundedCornerShape(10.dp))
-                                    .border(2.dp, colors.divider, RoundedCornerShape(10.dp))
-                                    .padding(horizontal = 16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "+98",
-                                    color = colors.primary,
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                            }
+                Spacer(modifier = Modifier.height(20.dp))
 
-                            // Phone Number Input
-                            OutlinedTextField(
-                                value = state.phoneNumber,
-                                onValueChange = {
-                                    val filtered = it.filter { char -> char.isDigit() }
-                                    if (filtered.length <= 10) onEvent(
-                                        LoginEvent.PhoneChanged(
-                                            filtered
-                                        )
-                                    )
-                                },
-                                placeholder = {
-                                    Text(
-                                        text = "912 345 6789",
-                                        color = colors.textHint,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                    )
-                                },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                                shape = RoundedCornerShape(10.dp),
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    color = colors.textPrimary,
-                                    textAlign = TextAlign.Start,
-                                    letterSpacing = 2.sp
-                                ),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = colors.textPrimary,
-                                    unfocusedTextColor = colors.textPrimary,
-                                    unfocusedContainerColor = colors.cardInnerBG,
-                                    focusedContainerColor = colors.surface,
-                                    unfocusedBorderColor = colors.divider,
-                                    focusedBorderColor = colors.primary,
-                                    cursorColor = colors.primary,
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp)
-                            )
-                        }
-                    }
+                Text(
+                    text = "مهربان",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Black,
+                )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                    // Submit Button
-                    Button(
-                        onClick = { onEvent(LoginEvent.SubmitClicked) },
+                Text(
+                    text = "محافظ خانواده شما 💚",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.8f),
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Main Input Card
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .shadow(
-                                8.dp,
-                                RoundedCornerShape(12.dp),
-                                spotColor = colors.primary.copy(alpha = 0.3f)
-                            ),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent,
-                            disabledContainerColor = colors.divider
-                        ),
-                        contentPadding = PaddingValues(),
-                        enabled = !state.isLoading && state.phoneNumber.length == 10
+                            .padding(horizontal = 24.dp, vertical = 32.dp),
+                        horizontalAlignment = Alignment.Start
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    if (!state.isLoading && state.phoneNumber.length == 10)
-                                        Brush.linearGradient(
-                                            listOf(
-                                                colors.primary,
-                                                colors.primaryVariant
+                        if (state.errorMessage != null) {
+                            Text(
+                                text = state.errorMessage,
+                                color = colors.red,
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "شماره تلفن همراه",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = colors.textSecondary,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        // Phone Input Structure (LTR Forced)
+                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // +98 Prefix Box
+                                Box(
+                                    modifier = Modifier
+                                        .height(56.dp)
+                                        .background(colors.cardInnerBG, RoundedCornerShape(10.dp))
+                                        .border(2.dp, colors.divider, RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "+98",
+                                        color = colors.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+
+                                // Phone Number Input
+                                OutlinedTextField(
+                                    value = state.phoneNumber,
+                                    onValueChange = {
+                                        val filtered = it.filter { char -> char.isDigit() }
+                                        if (filtered.length <= 10) onEvent(
+                                            LoginEvent.PhoneChanged(
+                                                filtered
                                             )
                                         )
-                                    else
-                                        Brush.linearGradient(listOf(colors.divider, colors.divider))
+                                    },
+                                    placeholder = {
+                                        Text(
+                                            text = "912 345 6789",
+                                            color = colors.textHint,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                        )
+                                    },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(10.dp),
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                        color = colors.textPrimary,
+                                        textAlign = TextAlign.Start,
+                                        letterSpacing = 2.sp
+                                    ),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = colors.textPrimary,
+                                        unfocusedTextColor = colors.textPrimary,
+                                        unfocusedContainerColor = colors.cardInnerBG,
+                                        focusedContainerColor = colors.surface,
+                                        unfocusedBorderColor = colors.divider,
+                                        focusedBorderColor = colors.primary,
+                                        cursorColor = colors.primary,
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Submit Button
+                        Button(
+                            onClick = { onEvent(LoginEvent.SubmitClicked) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .shadow(
+                                    8.dp,
+                                    RoundedCornerShape(12.dp),
+                                    spotColor = colors.primary.copy(alpha = 0.3f)
                                 ),
-                            contentAlignment = Alignment.Center
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Transparent,
+                                disabledContainerColor = colors.divider
+                            ),
+                            contentPadding = PaddingValues(),
+                            enabled = !state.isLoading && state.phoneNumber.length == 10
                         ) {
-                            if (state.isLoading) {
-                                CircularProgressIndicator(
-                                    color = colors.textOnPrimaryVariant,
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(
-                                    text = "دریافت کد تأیید",
-                                    color = colors.textOnPrimaryVariant,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        if (!state.isLoading && state.phoneNumber.length == 10)
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    colors.primary,
+                                                    colors.primaryVariant
+                                                )
+                                            )
+                                        else
+                                            Brush.linearGradient(listOf(colors.divider, colors.divider))
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (state.isLoading) {
+                                    CircularProgressIndicator(
+                                        color = colors.textOnPrimaryVariant,
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Text(
+                                        text = "دریافت کد تأیید",
+                                        color = colors.textOnPrimaryVariant,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
@@ -320,7 +379,6 @@ fun LoginScreenContent(
     }
 }
 
-// 3. SAFE PREVIEWS
 @Preview(showBackground = true, locale = "fa", name = "1. Normal State")
 @Composable
 fun LoginScreenPreview() {
