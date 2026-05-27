@@ -48,6 +48,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -91,6 +92,7 @@ import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.Period
@@ -302,15 +304,18 @@ fun DashboardScreenContent(
     }
 
     // --- LAUNCHER CONFIRMATION BOTTOM SHEET (Matches HTML #modal-launcher) ---
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // --- LAUNCHER CONFIRMATION BOTTOM SHEET (Matches HTML #modal-launcher) ---
     if (showLauncherConfirmSheet && state.activeChild != null) {
         ModalBottomSheet(
             onDismissRequest = { showLauncherConfirmSheet = false },
+            sheetState = sheetState,
             containerColor = colors.background,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .padding(horizontal = 24.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -1054,10 +1059,31 @@ fun BannerSliderV2() {
     // Move pageCount to use the dynamic size of your list
     val pagerState = rememberPagerState(pageCount = { banners.size })
 
-    LaunchedEffect(pagerState.currentPage) {
-        delay(10_000L)
-        val nextPage = (pagerState.currentPage + 1) % banners.size
-        pagerState.animateScrollToPage(nextPage)
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5_000L) // Wait for 10 seconds
+
+            // Only auto-scroll if the user isn't actively swiping
+            if (!pagerState.isScrollInProgress) {
+                try {
+                    // 1. Use settledPage (the last page it fully stopped on) instead of currentPage
+                    val nextPage = (pagerState.settledPage + 1) % banners.size
+
+                    // 2. Use a strict tween animation to override the default Spring physics
+                    pagerState.animateScrollToPage(
+                        page = nextPage,
+                        animationSpec = tween(
+                            durationMillis = 800,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                } catch (_: CancellationException) {
+                    // 3. IMPORTANT: If the user touches the banner while it's auto-scrolling,
+                    // Compose throws a CancellationException. If we don't catch it,
+                    // the while(true) loop dies permanently!
+                }
+            }
+        }
     }
 
 
