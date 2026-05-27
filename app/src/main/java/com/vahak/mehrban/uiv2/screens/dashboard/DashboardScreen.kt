@@ -60,6 +60,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
@@ -77,7 +78,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.vahak.mehrban.MainViewModel
 import com.vahak.mehrban.UpdateState
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.Gender
@@ -110,6 +110,10 @@ fun DashboardScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
+    // 🚀 HOIST STATES HERE
+    val updateState by viewModel.updateState.collectAsState()
+    val isUpdateIgnored by viewModel.isUpdateIgnored.collectAsState()
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
@@ -121,7 +125,10 @@ fun DashboardScreen(
 
     DashboardScreenContent(
         state = state,
+        updateState = updateState, // Pass state
+        isUpdateIgnored = isUpdateIgnored, // Pass state
         onEvent = viewModel::onEvent,
+        onShowUpdateDialogAgain = viewModel::showUpdateDialogAgain, // Pass callback
         onAddChildClick = onAddChildClick,
         onManageFamilyClick = onManageFamilyClick,
         onSettingsClick = onSettingsClick,
@@ -137,7 +144,10 @@ fun DashboardScreen(
 @Composable
 fun DashboardScreenContent(
     state: DashboardState,
+    updateState: UpdateState, // 🚀 Added
+    isUpdateIgnored: Boolean, // 🚀 Added
     onEvent: (DashboardEvent) -> Unit,
+    onShowUpdateDialogAgain: () -> Unit, // 🚀 Added
     onAddChildClick: () -> Unit,
     onManageFamilyClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
@@ -204,23 +214,33 @@ fun DashboardScreenContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            DashboardHeaderV2(onProfileClick = onProfileClick)
-
-            val rootViewModel: MainViewModel = hiltViewModel()
-            val updateState by rootViewModel.updateState.collectAsState()
-            val isUpdateIgnored by rootViewModel.isUpdateIgnored.collectAsState()
-
             if (isUpdateIgnored && updateState is UpdateState.UpdateAvailable) {
+                // Animation for the sparkle emoji
+                val infiniteTransition = rememberInfiniteTransition(label = "sparkle_pulse")
+                val scale by infiniteTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 1.3f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(600, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "sparkle_scale"
+                )
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(colors.orangeLight)
-                        .clickable { rootViewModel.showUpdateDialogAgain() }
+                        .clickable { onShowUpdateDialogAgain() }
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    Text("✨", fontSize = 16.sp)
+                    Text(
+                        "✨",
+                        fontSize = 16.sp,
+                        modifier = Modifier.scale(scale)   // 🔁 animated scale
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "نسخه جدید مهربان در دسترس است. برای مشاهده و بروزرسانی کلیک کنید.",
@@ -231,6 +251,8 @@ fun DashboardScreenContent(
                     )
                 }
             }
+
+            DashboardHeaderV2(onProfileClick = onProfileClick)
 
             if (state.children.isEmpty() || state.activeChild == null) {
                 // Show massive CTA when no child exists
@@ -1032,32 +1054,10 @@ fun BannerSliderV2() {
     // Move pageCount to use the dynamic size of your list
     val pagerState = rememberPagerState(pageCount = { banners.size })
 
-    // --- BULLETPROOF Auto-scroll logic ---
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(5_000L) // Wait for 10 seconds
-
-            // Only auto-scroll if the user isn't actively swiping
-            if (!pagerState.isScrollInProgress) {
-                try {
-                    // 1. Use settledPage (the last page it fully stopped on) instead of currentPage
-                    val nextPage = (pagerState.settledPage + 1) % banners.size
-
-                    // 2. Use a strict tween animation to override the default Spring physics
-                    pagerState.animateScrollToPage(
-                        page = nextPage,
-                        animationSpec = tween(
-                            durationMillis = 800,
-                            easing = FastOutSlowInEasing
-                        )
-                    )
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    // 3. IMPORTANT: If the user touches the banner while it's auto-scrolling,
-                    // Compose throws a CancellationException. If we don't catch it,
-                    // the while(true) loop dies permanently!
-                }
-            }
-        }
+    LaunchedEffect(pagerState.currentPage) {
+        delay(10_000L)
+        val nextPage = (pagerState.currentPage + 1) % banners.size
+        pagerState.animateScrollToPage(nextPage)
     }
 
 
@@ -1165,6 +1165,9 @@ fun DashboardScreenPreviewEmpty() {
             onReportClick = {},
             onTimeLockClick = {},
             onSecurityFabClick = {},
+            updateState = UpdateState.UpToDate, // 🚀 Mock
+            isUpdateIgnored = false,
+            onShowUpdateDialogAgain = {},
             onProfileClick = {})
     }
 }
@@ -1185,6 +1188,9 @@ fun DashboardScreenPreviewPopulatedLight() {
             onReportClick = {},
             onTimeLockClick = {},
             onSecurityFabClick = {},
+            updateState = UpdateState.UpToDate, // 🚀 Mock
+            isUpdateIgnored = false,
+            onShowUpdateDialogAgain = {},
             onProfileClick = {})
     }
 }
@@ -1204,6 +1210,9 @@ fun DashboardScreenPreviewPopulatedDark() {
             onReportClick = {},
             onTimeLockClick = {},
             onSecurityFabClick = {},
+            updateState = UpdateState.Checking, // 🚀 Mock
+            isUpdateIgnored = false,
+            onShowUpdateDialogAgain = {},
             onProfileClick = {})
     }
 }
@@ -1225,6 +1234,9 @@ fun DashboardScreenPreviewDialog() {
             onReportClick = {},
             onTimeLockClick = {},
             onSecurityFabClick = {},
+            updateState = UpdateState.UpToDate, // 🚀 Mock
+            isUpdateIgnored = false,
+            onShowUpdateDialogAgain = {},
             onProfileClick = {})
     }
 }

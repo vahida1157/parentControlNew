@@ -2,6 +2,7 @@ package com.vahak.mehrban.presentation.setting
 
 import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.data.local.SessionManager
+import com.vahak.mehrban.core.util.AppUpdateManager
 import com.vahak.mehrban.domain.repository.AuthRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import com.vahak.mehrban.uiv2.theme.AppTheme
@@ -22,14 +23,17 @@ sealed class AppSettingsEvent {
 
 sealed class AppSettingsEffect {
     object NavigateToLogin : AppSettingsEffect()
+    data class ShowToast(val message: String) : AppSettingsEffect()
 }
 
 @HiltViewModel
 class ApplicationSettingsViewModel @Inject constructor(
     private val sessionManager: SessionManager,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val appUpdateManager: AppUpdateManager,
 ) : BaseViewModel<AppSettingsState, AppSettingsEvent, AppSettingsEffect>(AppSettingsState()) {
 
+    val updateState = appUpdateManager.updateState
     init {
         // Observe Phone Number
         viewModelScope.launch {
@@ -63,4 +67,16 @@ class ApplicationSettingsViewModel @Inject constructor(
             }
         }
     }
+
+    fun checkForUpdates() {
+        appUpdateManager.checkForUpdates(forceNetworkCall = true) { updateFound ->
+            if (!updateFound) {
+                // Send an effect to show a Toast
+                viewModelScope.launch {
+                    sendEffect(AppSettingsEffect.ShowToast("شما از آخرین نسخه استفاده می‌کنید."))
+                }
+            }
+        }
+    }
+    fun openUpdateDialog() = appUpdateManager.unignoreUpdate()
 }

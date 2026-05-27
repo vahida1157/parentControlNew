@@ -1,5 +1,6 @@
 package com.vahak.mehrban.uiv2.screens.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.UpdateState
 import com.vahak.mehrban.core.util.LogExporter
 import com.vahak.mehrban.presentation.setting.AppSettingsEffect
 import com.vahak.mehrban.presentation.setting.AppSettingsEvent
@@ -58,33 +60,45 @@ fun ApplicationSettingsScreen(
     onLogoutComplete: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+
+    // 🚀 HOIST THE STATE HERE
+    val updateState by viewModel.updateState.collectAsState()
+
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
-            if (effect is AppSettingsEffect.NavigateToLogin) {
-                onLogoutComplete()
+            when (effect) {
+                is AppSettingsEffect.NavigateToLogin -> onLogoutComplete()
+                is AppSettingsEffect.ShowToast -> Toast.makeText(
+                    context, effect.message, Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
 
     ApplicationSettingsContent(
         state = state,
+        updateState = updateState, // Pass state
         onEvent = viewModel::onEvent,
+        onCheckForUpdates = viewModel::checkForUpdates, // Pass callback
+        onOpenUpdateDialog = viewModel::openUpdateDialog, // Pass callback
         onNavigateToPasswordManagement = onNavigateToPasswordManagement,
         onExportLogsClick = {
             coroutineScope.launch {
                 LogExporter.exportLogsAndShare(context)
             }
-        }
-    )
+        })
 }
 
 @Composable
 fun ApplicationSettingsContent(
     state: AppSettingsState,
+    updateState: UpdateState, // 🚀 Now it only needs the raw state
     onEvent: (AppSettingsEvent) -> Unit,
+    onCheckForUpdates: () -> Unit,
+    onOpenUpdateDialog: () -> Unit,
     onNavigateToPasswordManagement: () -> Unit,
     onExportLogsClick: () -> Unit
 ) {
@@ -117,8 +131,7 @@ fun ApplicationSettingsContent(
                         brush = headerGradient,
                         shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
                     )
-                    .padding(top = 40.dp, bottom = 40.dp),
-                contentAlignment = Alignment.Center
+                    .padding(top = 40.dp, bottom = 40.dp), contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(
@@ -157,14 +170,12 @@ fun ApplicationSettingsContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .padding(top = 16.dp, bottom = 40.dp) // Adjusted padding
+                    .padding(top = 16.dp, bottom = 40.dp)
             ) {
 
-                // Theme Switcher Card now wired to ViewModel
                 ThemeSwitcherCard(
                     currentTheme = state.currentTheme,
-                    onThemeChange = { newTheme -> onEvent(AppSettingsEvent.ThemeSelected(newTheme)) }
-                )
+                    onThemeChange = { newTheme -> onEvent(AppSettingsEvent.ThemeSelected(newTheme)) })
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -181,24 +192,57 @@ fun ApplicationSettingsContent(
                     iconBgColor = colors.green.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.green,
                     title = "اعلان‌ها",
-                    onClick = { /* TODO */ }
-                )
+                    onClick = { /* TODO */ })
 
                 ProfileMenuItemV2(
                     icon = AppIcons.ShieldCheck,
                     iconBgColor = colors.primary.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.primary,
                     title = "حریم خصوصی",
-                    onClick = { /* TODO */ }
-                )
+                    onClick = { /* TODO */ })
+
+                // 🚀 DYNAMIC UPDATE MENU ITEM
+                when (updateState) {
+                    is UpdateState.UpdateAvailable -> {
+                        ProfileMenuItemV2(
+                            icon = AppIcons.Notification,
+                            iconBgColor = colors.orangeLight,
+                            iconTintColor = colors.orange,
+                            title = "نسخه جدید در دسترس است!",
+                            titleColor = colors.orange,
+                            modifier = Modifier.border(
+                                1.dp, colors.orange.copy(alpha = 0.5f), RoundedCornerShape(12.dp)
+                            ),
+                            onClick = onOpenUpdateDialog // 🚀 Use callback
+                        )
+                    }
+
+                    is UpdateState.Checking -> {
+                        ProfileMenuItemV2(
+                            icon = AppIcons.Info,
+                            iconBgColor = colors.textSecondary.copy(alpha = 0.1f),
+                            iconTintColor = colors.textSecondary,
+                            title = "در حال بررسی بروزرسانی...",
+                            onClick = { })
+                    }
+
+                    else -> {
+                        ProfileMenuItemV2(
+                            icon = AppIcons.Info,
+                            iconBgColor = colors.primary.copy(alpha = if (isDark) 0.15f else 0.1f),
+                            iconTintColor = colors.primary,
+                            title = "بررسی بروزرسانی برنامه",
+                            onClick = onCheckForUpdates // 🚀 Use callback
+                        )
+                    }
+                }
 
                 ProfileMenuItemV2(
                     icon = AppIcons.Info,
                     iconBgColor = colors.orange.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.orange,
                     title = "راهنما و پشتیبانی",
-                    onClick = { /* TODO */ }
-                )
+                    onClick = { /* TODO */ })
 
                 ProfileMenuItemV2(
                     icon = AppIcons.ChartBar,
@@ -217,8 +261,7 @@ fun ApplicationSettingsContent(
                     title = "خروج از حساب کاربری",
                     titleColor = colors.red,
                     modifier = Modifier.border(2.dp, colors.redLight, RoundedCornerShape(12.dp)),
-                    onClick = { onEvent(AppSettingsEvent.LogoutClicked) }
-                )
+                    onClick = { onEvent(AppSettingsEvent.LogoutClicked) })
             }
         }
     }
@@ -249,9 +292,7 @@ fun ProfileMenuItemV2(
             .background(colors.surface, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+            .padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
                 .size(36.dp)
@@ -287,8 +328,7 @@ fun ProfileMenuItemV2(
 
 @Composable
 fun ThemeSwitcherCard(
-    currentTheme: AppTheme,
-    onThemeChange: (AppTheme) -> Unit
+    currentTheme: AppTheme, onThemeChange: (AppTheme) -> Unit
 ) {
     val colors = LocalCustomColors.current
     val isDark = isSystemInDarkTheme()
@@ -372,9 +412,7 @@ fun ThemeOptionButton(
             .clip(RoundedCornerShape(8.dp))
             .background(if (isSelected) colors.primary else Color.Transparent)
             .clickable { onClick() }
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
+            .padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
@@ -405,9 +443,12 @@ fun ApplicationSettingsScreenPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         ApplicationSettingsContent(
             state = AppSettingsState("9368630582", AppTheme.LIGHT),
+            updateState = UpdateState.UpToDate, // 🚀 Mock State
             onEvent = {},
+            onCheckForUpdates = {},
+            onOpenUpdateDialog = {},
             onNavigateToPasswordManagement = {},
-            onExportLogsClick = {}
+            onExportLogsClick = {},
         )
     }
 }
@@ -418,9 +459,12 @@ fun ApplicationSettingsScreenPreviewDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         ApplicationSettingsContent(
             state = AppSettingsState("9368630582", AppTheme.DARK),
+            updateState = UpdateState.UpToDate,
             onEvent = {},
+            onCheckForUpdates = {},
+            onOpenUpdateDialog = {},
             onNavigateToPasswordManagement = {},
-            onExportLogsClick = {}
+            onExportLogsClick = {},
         )
     }
 }

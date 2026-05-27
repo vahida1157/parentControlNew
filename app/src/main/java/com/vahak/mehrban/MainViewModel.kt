@@ -10,6 +10,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.vahak.mehrban.core.data.local.SessionManager
+import com.vahak.mehrban.core.util.AppUpdateManager
 import com.vahak.mehrban.data.remote.AppUpdateApi
 import com.vahak.mehrban.data.remote.AppVersionDto
 import com.vahak.mehrban.uiv2.navigation.Screen
@@ -42,136 +43,27 @@ sealed class AppDownloadState {
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val sessionManager: SessionManager,
-    private val appUpdateApi: AppUpdateApi
+    private val appUpdateManager: AppUpdateManager // 🚀 Inject the Brain
 ) : ViewModel() {
 
-    // --- EXISTING FLOWS ---
-    val appTheme: StateFlow<AppTheme> = sessionManager.appThemeFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = AppTheme.SYSTEM
-        )
-
-    val activeChildId: StateFlow<String?> = sessionManager.activeChildIdFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
-        )
-
-    val startDestination: StateFlow<String?> = sessionManager.isLoggedIn.map { isLoggedIn ->
-        if (isLoggedIn) Screen.Dashboard.route else Screen.Login.route
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = null
-    )
-
-    // --- NEW: SOLID STATE UPDATE FLOWS ---
-    private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Checking)
-    val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
-
-    private val _isUpdateIgnored = MutableStateFlow(false)
-    val isUpdateIgnored: StateFlow<Boolean> = _isUpdateIgnored.asStateFlow()
-
-    private val _appDownloadState = MutableStateFlow<AppDownloadState>(AppDownloadState.Idle)
-    val appDownloadState: StateFlow<AppDownloadState> = _appDownloadState.asStateFlow()
-
-    private val _downloadedFilePath = MutableStateFlow<String?>(null)
-    val downloadedFilePath: StateFlow<String?> = _downloadedFilePath.asStateFlow()
-
-    init {
-        checkForUpdates()
-    }
+    // --- Session Flows remain unchanged ---
+    val appTheme = sessionManager.appThemeFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.SYSTEM)
+    val startDestination = sessionManager.isLoggedIn.map { if (it) Screen.Dashboard.route else Screen.Login.route }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val activeChildId = sessionManager.activeChildIdFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun clearActiveLauncherSession() {
-        viewModelScope.launch {
-            sessionManager.clearActiveChildId()
-        }
+        viewModelScope.launch { sessionManager.clearActiveChildId() }
     }
 
-    private fun checkForUpdates() {
-        viewModelScope.launch {
-            try {
-                val response = appUpdateApi.getAppVersion()
-                if (response.isSuccessful && response.body() != null) {
-                    val serverInfo = response.body()!!
-                    val currentVersionCode = BuildConfig.VERSION_CODE
+    // --- Update Flows just pass through from the Manager ---
+    val updateState = appUpdateManager.updateState
+    val isUpdateIgnored = appUpdateManager.isUpdateIgnored
+    val appDownloadState = appUpdateManager.appDownloadState
+    val downloadedFilePath = appUpdateManager.downloadedFilePath
 
-                    if (serverInfo.latestVersionCode > currentVersionCode) {
-                        _updateState.value = UpdateState.UpdateAvailable(serverInfo, serverInfo.isForced)
-                    } else {
-                        _updateState.value = UpdateState.UpToDate
-                    }
-                } else {
-                    _updateState.value = UpdateState.UpToDate
-                }
-            } catch (_: Exception) {
-                _updateState.value = UpdateState.UpToDate
-            }
-        }
-    }
-
-    fun dismissOptionalUpdate() {
-        _isUpdateIgnored.value = true
-    }
-
-    fun showUpdateDialogAgain() {
-        _isUpdateIgnored.value = false
-    }
-
-    fun clearDownloadedFilePath() {
-        _downloadedFilePath.value = null
-        _appDownloadState.value = AppDownloadState.Idle
-    }
-
-    fun startDownload(url: String, versionName: String) {
-        val fileName = "mehrban-update-v$versionName.apk"
-        val inputData = workDataOf("url" to url, "fileName" to fileName)
-
-        val downloadRequest = OneTimeWorkRequestBuilder<UpdateDownloadWorker>()
-            .setInputData(inputData)
-            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-            .build()
-
-        val workManager = WorkManager.getInstance(context)
-        workManager.enqueueUniqueWork(
-            "app_update_download",
-            ExistingWorkPolicy.REPLACE,
-            downloadRequest
-        )
-
-        _appDownloadState.value = AppDownloadState.Connecting
-
-        viewModelScope.launch {
-            workManager.getWorkInfoByIdFlow(downloadRequest.id).collect { workInfo ->
-                if (workInfo != null) {
-                    when (workInfo.state) {
-                        WorkInfo.State.ENQUEUED -> {
-                            _appDownloadState.value = AppDownloadState.Connecting
-                        }
-                        WorkInfo.State.RUNNING -> {
-                            val progress = workInfo.progress.getInt("progress", -1)
-                            if (progress >= 0) {
-                                _appDownloadState.value = AppDownloadState.Downloading(progress)
-                            }
-                        }
-                        WorkInfo.State.SUCCEEDED -> {
-                            val path = workInfo.outputData.getString("filePath") ?: ""
-                            _appDownloadState.value = AppDownloadState.Success(path)
-                            _downloadedFilePath.value = path
-                        }
-                        WorkInfo.State.FAILED -> {
-                            val errorMsg = workInfo.outputData.getString("error") ?: "خطا در دانلود فایل بروزرسانی"
-                            _appDownloadState.value = AppDownloadState.Error(errorMsg)
-                        }
-                        else -> {}
-                    }
-                }
-            }
-        }
-    }
+    fun dismissOptionalUpdate() = appUpdateManager.dismissOptionalUpdate()
+    fun showUpdateDialogAgain() = appUpdateManager.unignoreUpdate()
+    fun startDownload(url: String, versionName: String) = appUpdateManager.startDownload(url, versionName)
+    fun clearDownloadedFilePath() = appUpdateManager.clearDownloadedFilePath()
 }

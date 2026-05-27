@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.service.RestrictionEnforcerService
+import com.vahak.mehrban.core.util.AppUpdateManager // 🚀 Added import
 import com.vahak.mehrban.core.util.LauncherManager
 import com.vahak.mehrban.domain.repository.AuthRepository
 import com.vahak.mehrban.domain.repository.ChildRepository
@@ -34,9 +35,7 @@ data class DashboardState(
     val activeChildTimeLimitMins: Int = 0,
     val isTimeLimitActive: Boolean = false,
 
-    // 🚀 FIXED: The UI binds to this, so we will manually update it with the max value
     val activeChildUsageSeconds: Int = 0,
-
     val activeChildLocalSeconds: Int = 0,
     val activeChildGlobalSeconds: Int = 0,
 ) {
@@ -67,8 +66,16 @@ class DashboardViewModel @Inject constructor(
     private val childRepository: ChildRepository,
     private val sessionManager: SessionManager,
     private val settingsRepository: SettingsRepository,
-    private val usageRepository: UsageRepository
+    private val usageRepository: UsageRepository,
+    private val appUpdateManager: AppUpdateManager,
 ) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState()) {
+
+    val updateState = appUpdateManager.updateState
+    val isUpdateIgnored = appUpdateManager.isUpdateIgnored
+
+    fun showUpdateDialogAgain() {
+        appUpdateManager.unignoreUpdate()
+    }
 
     init {
         viewModelScope.launch {
@@ -80,12 +87,9 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             childRepository.getAllChildren().collectLatest { childList ->
                 updateState {
-                    // 🚀 FIXED: Check if the currently active child is still in the database list
                     val updatedActiveChild = childList.find { it.id == activeChild?.id }
-
                     copy(
                         children = childList,
-                        // If they were deleted, updatedActiveChild is null, so we safely fall back to the first available child
                         activeChild = updatedActiveChild ?: childList.firstOrNull()
                     )
                 }
@@ -102,13 +106,10 @@ class DashboardViewModel @Inject constructor(
 
         val activeChildIdFlow = state.map { it.activeChild?.id }.distinctUntilChanged()
 
-        // A) Network Sync: Trigger server fetch when child changes
         viewModelScope.launch {
             activeChildIdFlow.collectLatest { childId ->
                 if (childId != null) {
                     settingsRepository.syncSettingsFromServer(childId)
-
-                    // 🚀 FIXED: Apply the fetched global time directly to activeChildUsageSeconds
                     val globalResponse = usageRepository.syncUnsyncedData(activeChildId = childId, forcePing = true)
                     if (globalResponse != null) {
                         val fetchedGlobal = globalResponse.globalDailySeconds[childId] ?: 0
@@ -124,7 +125,6 @@ class DashboardViewModel @Inject constructor(
             }
         }
 
-        // B) Observe Settings
         viewModelScope.launch {
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             activeChildIdFlow
@@ -142,7 +142,6 @@ class DashboardViewModel @Inject constructor(
                 }
         }
 
-        // C) Observe LOCAL Usage & Room Cache
         viewModelScope.launch {
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             activeChildIdFlow
@@ -153,13 +152,11 @@ class DashboardViewModel @Inject constructor(
                 .collectLatest { daily ->
                     val local = daily?.usedSeconds ?: 0
                     val cachedGlobal = daily?.globalUsedSeconds ?: 0
-
                     updateState {
                         val newGlobal = maxOf(activeChildGlobalSeconds, cachedGlobal)
                         copy(
                             activeChildLocalSeconds = local,
                             activeChildGlobalSeconds = newGlobal,
-                            // 🚀 FIXED: Instantly pushes the highest value directly to the UI card!
                             activeChildUsageSeconds = maxOf(local, newGlobal)
                         )
                     }
@@ -199,9 +196,7 @@ class DashboardViewModel @Inject constructor(
                 updateState { copy(showPinRequiredDialog = true) }
                 return@launch
             }
-
             sessionManager.setActiveChildId(childId)
-
             val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
                 action = RestrictionEnforcerService.ACTION_START
                 putExtra(RestrictionEnforcerService.EXTRA_CHILD_ID, childId)
@@ -223,7 +218,6 @@ class DashboardViewModel @Inject constructor(
     private fun stopProtectionService() {
         viewModelScope.launch {
             sessionManager.clearActiveChildId()
-
             val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
                 action = RestrictionEnforcerService.ACTION_START
             }
