@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- Maps to context.cacheDir where we will save the log -->
-    <cache-path name="app_logs" path="." />
+    <cache-path
+        name="app_logs"
+        path="." />
+    <external-files-path
+        name="downloaded_apks"
+        path="Download/" />
 </paths>

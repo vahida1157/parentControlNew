@@ -1,6 +1,7 @@
 package com.vahak.mehrban.di
 
 import com.vahak.mehrban.BuildConfig
+import com.vahak.mehrban.data.remote.AppUpdateApi
 import com.vahak.mehrban.data.remote.AuthApi
 import com.vahak.mehrban.data.remote.ChildApi
 import com.vahak.mehrban.data.remote.ProfileApi
@@ -82,4 +83,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideUsageApi(retrofit: Retrofit): UsageApi = retrofit.create(UsageApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAppUpdateApi(retrofit: Retrofit): AppUpdateApi = retrofit.create(AppUpdateApi::class.java)
 }

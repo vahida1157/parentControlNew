@@ -124,9 +124,9 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.hilt.android)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
 
     // Retrofit & Network
     implementation(libs.retrofit)
@@ -135,8 +135,13 @@ dependencies {
 
     implementation(libs.play.services.auth.api.phone)
 
+    // --- 🚀 HILT CONFIGURATION ---
+    implementation(libs.hilt.android)
+    implementation(libs.hilt.work)
+
     ksp(libs.room.compiler)
     ksp(libs.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

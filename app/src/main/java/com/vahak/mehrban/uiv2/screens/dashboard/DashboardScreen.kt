@@ -77,6 +77,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.vahak.mehrban.MainViewModel
+import com.vahak.mehrban.UpdateState
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.Gender
 import com.vahak.mehrban.core.util.PermissionType
@@ -204,6 +206,32 @@ fun DashboardScreenContent(
         ) {
             DashboardHeaderV2(onProfileClick = onProfileClick)
 
+            val rootViewModel: MainViewModel = hiltViewModel()
+            val updateState by rootViewModel.updateState.collectAsState()
+            val isUpdateIgnored by rootViewModel.isUpdateIgnored.collectAsState()
+
+            if (isUpdateIgnored && updateState is UpdateState.UpdateAvailable) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.orangeLight)
+                        .clickable { rootViewModel.showUpdateDialogAgain() }
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text("✨", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "نسخه جدید مهربان در دسترس است. برای مشاهده و بروزرسانی کلیک کنید.",
+                        color = colors.orange,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
             if (state.children.isEmpty() || state.activeChild == null) {
                 // Show massive CTA when no child exists
                 EmptyDashboardStateV2(onAddClick = onAddChildClick)
@@ -237,7 +265,8 @@ fun DashboardScreenContent(
                     onReportClick = { onReportClick(state.activeChild.id) },
                     onTimeLockClick = { onTimeLockClick(state.activeChild.id) },
                     onLocationClick = {
-                        Toast.makeText(context, "به زودی در دسترس خواهد بود", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "به زودی در دسترس خواهد بود", Toast.LENGTH_SHORT)
+                            .show()
                     }
                 )
             }
