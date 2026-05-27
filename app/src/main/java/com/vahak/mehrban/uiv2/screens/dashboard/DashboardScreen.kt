@@ -89,6 +89,7 @@ import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.Period
 
@@ -1002,13 +1003,34 @@ fun BannerSliderV2() {
     // Move pageCount to use the dynamic size of your list
     val pagerState = rememberPagerState(pageCount = { banners.size })
 
-    // --- NEW: Auto-scroll logic ---
-    LaunchedEffect(pagerState.currentPage) {
-        kotlinx.coroutines.delay(10_000L) // Wait for 10 seconds
-        // Calculate the next page, looping back to 0 when it reaches the end
-        val nextPage = (pagerState.currentPage + 1) % banners.size
-        pagerState.animateScrollToPage(nextPage)
+    // --- BULLETPROOF Auto-scroll logic ---
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5_000L) // Wait for 10 seconds
+
+            // Only auto-scroll if the user isn't actively swiping
+            if (!pagerState.isScrollInProgress) {
+                try {
+                    // 1. Use settledPage (the last page it fully stopped on) instead of currentPage
+                    val nextPage = (pagerState.settledPage + 1) % banners.size
+
+                    // 2. Use a strict tween animation to override the default Spring physics
+                    pagerState.animateScrollToPage(
+                        page = nextPage,
+                        animationSpec = tween(
+                            durationMillis = 800,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    // 3. IMPORTANT: If the user touches the banner while it's auto-scrolling,
+                    // Compose throws a CancellationException. If we don't catch it,
+                    // the while(true) loop dies permanently!
+                }
+            }
+        }
     }
+
 
     val bannerColors = listOf(
         Brush.linearGradient(listOf(colors.primary, colors.primaryVariant)),
