@@ -174,6 +174,18 @@ class AppUpdateManager @Inject constructor(
         scope.launch {
             workManager.getWorkInfosForUniqueWorkFlow("app_update_download").collect { workInfos ->
                 val workInfo = workInfos.firstOrNull() ?: return@collect
+
+                // 🚀 THE FIX: Check if the app is already running the updated version
+                val cachedInfo = updateCacheManager.getCachedUpdateInfo()
+                val isAlreadyUpdated = cachedInfo != null && BuildConfig.VERSION_CODE >= cachedInfo.latestVersionCode
+
+                // If we are already updated, ignore stale "SUCCEEDED" or "FAILED" states from the old version
+                if (isAlreadyUpdated && workInfo.state.isFinished) {
+                    // Optional but recommended: Clear the old finished work from the database
+                    workManager.pruneWork()
+                    return@collect
+                }
+
                 when (workInfo.state) {
                     WorkInfo.State.ENQUEUED -> _appDownloadState.value = AppDownloadState.Connecting
                     WorkInfo.State.RUNNING -> {
