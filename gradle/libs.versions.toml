@@ -1,5 +1,6 @@
 [versions]
 agp = "9.2.1"
+androidDeviceNames = "2.1.1"
 coreKtx = "1.18.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
@@ -22,6 +23,7 @@ lifecycleService = "2.10.0"
 workRuntimeKtx = "2.11.2"
 
 [libraries]
+android-device-names = { module = "com.jaredrummler:android-device-names", version.ref = "androidDeviceNames" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

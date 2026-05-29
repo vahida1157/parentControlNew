@@ -58,12 +58,6 @@ class TimeLimitViewModelV2 @Inject constructor(
     private val childId: String = checkNotNull(savedStateHandle["childId"])
 
     init {
-        // 1. Fire a background sync when the screen opens to get any changes from other devices
-        viewModelScope.launch {
-            settingsRepository.syncSettingsFromServer(childId)
-        }
-
-        // 2. Observe the local database via the Repository
         viewModelScope.launch {
             settingsRepository.getGlobalSettings(childId).collectLatest { settings ->
                 if (settings != null) {

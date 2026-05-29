@@ -139,6 +139,8 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.hilt.work)
 
+    implementation(libs.android.device.names)
+
     ksp(libs.room.compiler)
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.hilt.compiler)

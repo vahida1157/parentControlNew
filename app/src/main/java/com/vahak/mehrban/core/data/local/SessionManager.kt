@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.jaredrummler.android.device.DeviceName
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +33,7 @@ class SessionManager @Inject constructor(
         private val SECURITY_QUESTION = stringPreferencesKey("security_question")
         private val SECURITY_ANSWER = stringPreferencesKey("security_answer")
         private val DEVICE_ID = stringPreferencesKey("device_id")
+        private val VIEWED_CHILD_ID = stringPreferencesKey("viewed_child_id")
     }
 
     val appThemeFlow: Flow<AppTheme> = context.dataStore.data.map {
@@ -55,6 +57,8 @@ class SessionManager @Inject constructor(
         }
         currentId
     }
+
+    val viewedChildIdFlow: Flow<String?> = context.dataStore.data.map { it[VIEWED_CHILD_ID] }
 
     suspend fun saveSession(
         token: String,
@@ -132,7 +136,11 @@ class SessionManager @Inject constructor(
         return newId
     }
 
-    suspend fun getDeviceName(): String {
-        return android.os.Build.MODEL ?: "Unknown Android Device"
+    suspend fun getDeviceName(): String = DeviceName.getDeviceName()
+
+    suspend fun setViewedChildId(childId: String) {
+        context.dataStore.edit { prefs ->
+            prefs[VIEWED_CHILD_ID] = childId
+        }
     }
 }

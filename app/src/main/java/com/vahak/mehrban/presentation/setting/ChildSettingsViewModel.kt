@@ -3,6 +3,7 @@ package com.vahak.mehrban.presentation.setting
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.GlobalSettingsEntity
 import com.vahak.mehrban.core.util.PermissionChecker
@@ -50,6 +51,7 @@ class ChildSettingsViewModel @Inject constructor(
     private val childRepository: ChildRepository,
     private val settingsRepository: SettingsRepository,
     private val appRuleRepository: AppRuleRepository,
+    private val sessionManager: SessionManager,
 ) : BaseViewModel<ChildSettingsState, ChildSettingsEvent, ChildSettingsEffect>(ChildSettingsState()) {
 
     private val currentChildIdFlow =
@@ -64,29 +66,18 @@ class ChildSettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            // 1. Fetch all children independently for the Bottom Sheet
             launch {
                 childRepository.getAllChildren().collectLatest { allKids ->
                     updateState { copy(allChildren = allKids) }
                 }
             }
 
-            // 2. React to changes in the active child selection
             currentChildIdFlow.collectLatest { id ->
                 updateState { copy(isLoading = true) }
 
-                // ==========================================
-                // A) THE JUST-IN-TIME SYNC ENGINE
-                // Immediately pull the latest configs from Spring Boot in the background.
-                // If the local DB is newer (Last-Write-Wins), it safely ignores the server.
-                // ==========================================
-                launch { settingsRepository.syncSettingsFromServer(id) }
-                launch { appRuleRepository.syncRulesFromServer(id) }
+                // 🚀 PURE OBSERVATION: All network calls are deleted.
+                // We just listen to Room. If the DB updates, the UI recomposes automatically.
 
-
-                // ==========================================
-                // B) LOCAL DATABASE OBSERVATION (UI Updates Instantly)
-                // ==========================================
                 launch {
                     childRepository.observeChildById(id).collectLatest { child ->
                         updateState { copy(activeChild = child) }
@@ -127,6 +118,12 @@ class ChildSettingsViewModel @Inject constructor(
             is ChildSettingsEvent.SelectChild -> {
                 updateState { copy(isChildSheetOpen = false, isLoading = true) }
                 currentChildIdFlow.value = event.childId
+
+                // 🚀 Tell the SessionManager we switched children.
+                // The SessionSyncEngine will detect this and fetch the new child's rules.
+                viewModelScope.launch {
+                    sessionManager.setViewedChildId(event.childId)
+                }
             }
 
             is ChildSettingsEvent.GridItemClicked -> {
@@ -145,10 +142,7 @@ class ChildSettingsViewModel @Inject constructor(
 
                 val requiredPermissions = featurePermissionsMap[event.route] ?: emptyList()
                 val missingPermissions = requiredPermissions.filter {
-                    !PermissionChecker.hasPermission(
-                        event.context,
-                        it
-                    )
+                    !PermissionChecker.hasPermission(event.context, it)
                 }
 
                 if (missingPermissions.isEmpty()) {
@@ -156,8 +150,7 @@ class ChildSettingsViewModel @Inject constructor(
                 } else {
                     sendEffect(
                         ChildSettingsEffect.NavigateToPermissionSlider(
-                            event.route,
-                            missingPermissions.map { it.name })
+                            event.route, missingPermissions.map { it.name })
                     )
                 }
             }

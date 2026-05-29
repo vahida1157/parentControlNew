@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.service.RestrictionEnforcerService
-import com.vahak.mehrban.core.util.AppUpdateManager // 🚀 Added import
+import com.vahak.mehrban.core.util.AppUpdateManager
 import com.vahak.mehrban.core.util.LauncherManager
 import com.vahak.mehrban.domain.repository.AuthRepository
 import com.vahak.mehrban.domain.repository.ChildRepository
@@ -16,25 +16,25 @@ import com.vahak.mehrban.domain.repository.UsageRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
-// 1. Contract
+// Contract remains identical
 data class DashboardState(
     val children: List<ChildEntity> = emptyList(),
     val activeChild: ChildEntity? = null,
     val isChildSheetOpen: Boolean = false,
     val isProtectionActive: Boolean = false,
     val showPinRequiredDialog: Boolean = false,
-
     val activeChildTimeLimitMins: Int = 0,
     val isTimeLimitActive: Boolean = false,
-
     val activeChildUsageSeconds: Int = 0,
     val activeChildLocalSeconds: Int = 0,
     val activeChildGlobalSeconds: Int = 0,
@@ -86,12 +86,15 @@ class DashboardViewModel @Inject constructor(
 
         viewModelScope.launch {
             childRepository.getAllChildren().collectLatest { childList ->
+                val lastViewedId = sessionManager.viewedChildIdFlow.first()
+                val targetChild = childList.find { it.id == lastViewedId } ?: childList.firstOrNull()
+
+                if (targetChild != null && targetChild.id != lastViewedId) {
+                    sessionManager.setViewedChildId(targetChild.id)
+                }
+
                 updateState {
-                    val updatedActiveChild = childList.find { it.id == activeChild?.id }
-                    copy(
-                        children = childList,
-                        activeChild = updatedActiveChild ?: childList.firstOrNull()
-                    )
+                    copy(children = childList, activeChild = targetChild)
                 }
             }
         }
@@ -102,32 +105,12 @@ class DashboardViewModel @Inject constructor(
             }
         }
 
-        viewModelScope.launch { childRepository.syncChildrenFromServer() }
+        val viewedChildIdFlow = state.map { it.activeChild?.id }.distinctUntilChanged()
 
-        val activeChildIdFlow = state.map { it.activeChild?.id }.distinctUntilChanged()
-
+        // 🚀 PURE LOCAL OBSERVATION: The Engine handles the network sync in the background
         viewModelScope.launch {
-            activeChildIdFlow.collectLatest { childId ->
-                if (childId != null) {
-                    settingsRepository.syncSettingsFromServer(childId)
-                    val globalResponse = usageRepository.syncUnsyncedData(activeChildId = childId, forcePing = true)
-                    if (globalResponse != null) {
-                        val fetchedGlobal = globalResponse.globalDailySeconds[childId] ?: 0
-                        updateState {
-                            val newGlobal = maxOf(activeChildGlobalSeconds, fetchedGlobal)
-                            copy(
-                                activeChildGlobalSeconds = newGlobal,
-                                activeChildUsageSeconds = maxOf(activeChildLocalSeconds, newGlobal)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        viewModelScope.launch {
-            @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-            activeChildIdFlow
+            @OptIn(ExperimentalCoroutinesApi::class)
+            viewedChildIdFlow
                 .flatMapLatest { childId ->
                     if (childId != null) settingsRepository.getGlobalSettings(childId)
                     else kotlinx.coroutines.flow.flowOf(null)
@@ -143,8 +126,8 @@ class DashboardViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-            activeChildIdFlow
+            @OptIn(ExperimentalCoroutinesApi::class)
+            viewedChildIdFlow
                 .flatMapLatest { childId ->
                     if (childId != null) usageRepository.observeDailyUsage(childId, LocalDate.now())
                     else kotlinx.coroutines.flow.flowOf(null)
@@ -169,16 +152,21 @@ class DashboardViewModel @Inject constructor(
             is DashboardEvent.LockClicked -> performLogout()
             is DashboardEvent.OpenChildSheet -> updateState { copy(isChildSheetOpen = true) }
             is DashboardEvent.CloseChildSheet -> updateState { copy(isChildSheetOpen = false) }
-            is DashboardEvent.SelectChild -> updateState {
-                copy(
-                    activeChild = event.child,
-                    isChildSheetOpen = false,
-                    activeChildTimeLimitMins = 0,
-                    isTimeLimitActive = false,
-                    activeChildUsageSeconds = 0,
-                    activeChildLocalSeconds = 0,
-                    activeChildGlobalSeconds = 0
-                )
+            is DashboardEvent.SelectChild -> {
+                viewModelScope.launch {
+                    sessionManager.setViewedChildId(event.child.id)
+                }
+                updateState {
+                    copy(
+                        activeChild = event.child,
+                        isChildSheetOpen = false,
+                        activeChildTimeLimitMins = 0,
+                        isTimeLimitActive = false,
+                        activeChildUsageSeconds = 0,
+                        activeChildLocalSeconds = 0,
+                        activeChildGlobalSeconds = 0
+                    )
+                }
             }
             is DashboardEvent.ActivateProtection -> startProtectionService(event.childId)
             is DashboardEvent.DeactivateProtection -> stopProtectionService()
@@ -202,15 +190,6 @@ class DashboardViewModel @Inject constructor(
                 putExtra(RestrictionEnforcerService.EXTRA_CHILD_ID, childId)
             }
             ContextCompat.startForegroundService(context, intent)
-
-//            val settings = settingsRepository.getGlobalSettings(childId).first()
-//            if (settings?.isSiteManagementActive == true) {
-//                val vpnIntent = Intent(context, WebFilterVpnService::class.java).apply {
-//                    action = WebFilterVpnService.ACTION_START
-//                }
-//                ContextCompat.startForegroundService(context, vpnIntent)
-//            }
-
             LauncherManager.enableLauncherMode(context)
         }
     }
@@ -222,12 +201,6 @@ class DashboardViewModel @Inject constructor(
                 action = RestrictionEnforcerService.ACTION_START
             }
             context.startService(intent)
-
-//            val vpnIntent = Intent(context, WebFilterVpnService::class.java).apply {
-//                action = WebFilterVpnService.ACTION_STOP
-//            }
-//            context.startService(vpnIntent)
-
             LauncherManager.disableLauncherMode(context)
         }
     }

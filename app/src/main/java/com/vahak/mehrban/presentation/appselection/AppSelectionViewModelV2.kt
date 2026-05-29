@@ -69,9 +69,10 @@ class AppSelectionViewModelV2 @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             updateState { copy(isLoading = true) }
 
+            // 1. Get installed apps
             allInstalledAppsOnDevice = appFetchManager.getInstalledApps()
-            appRuleRepository.syncRulesFromServer(currentChildId)
 
+            // 2. Observe Room. When the Engine finishes syncing, this updates instantly.
             appRuleRepository.observeAllRules(currentChildId).collectLatest { dbRules ->
                 val dbRulesMap = dbRules.associateBy { it.packageName }
                 val mergedList = allInstalledAppsOnDevice.map { app ->

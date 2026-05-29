@@ -9,6 +9,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.vahak.mehrban.core.data.local.dao.CrashLogDao
+import com.vahak.mehrban.core.service.SessionSyncEngine
 import com.vahak.mehrban.core.util.GlobalCrashHandler
 import com.vahak.mehrban.worker.TelemetrySyncWorker
 import dagger.hilt.EntryPoint
@@ -24,7 +25,8 @@ class ModernFamilyApp : Application(), Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
-
+    @Inject
+    lateinit var sessionSyncEngine: SessionSyncEngine
     // 🚀 We use an EntryPoint to safely get the DAO without breaking Hilt's lifecycle
     @EntryPoint
     @InstallIn(SingletonComponent::class)
@@ -42,6 +44,7 @@ class ModernFamilyApp : Application(), Configuration.Provider {
 
         // 2. 🚀 ENQUEUE THE CRASH SYNC WORKER
         setupCrashSyncWorker()
+        sessionSyncEngine.start()
     }
     private fun setupCrashSyncWorker() {
         // Require any working internet connection (Wi-Fi or Cellular)
