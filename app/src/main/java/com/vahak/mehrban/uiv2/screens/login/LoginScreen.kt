@@ -1,6 +1,5 @@
 package com.vahak.mehrban.uiv2.screens.login
 
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -8,6 +7,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,51 +26,46 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.ImageShader
-import androidx.compose.ui.graphics.Matrix
-import androidx.compose.ui.graphics.Shader
-import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.transform
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.vahak.mehrban.R
 import com.vahak.mehrban.core.util.AppSignatureHelper
 import com.vahak.mehrban.presentation.login.LoginEffect
 import com.vahak.mehrban.presentation.login.LoginEvent
@@ -109,17 +104,10 @@ fun LoginScreenContent(
 ) {
     val colors = LocalCustomColors.current
 
-    // Background Teal Gradient
-    val backgroundGradient = Brush.linearGradient(
-        colors = listOf(colors.primary, colors.primaryVariant, Color(0xFF0A4F46))
-    )
-
-    // Logo Gold Gradient
     val goldGradient = Brush.linearGradient(
         colors = listOf(colors.yellow, colors.orange)
     )
 
-    // Floating Animation for the logo
     val infiniteTransition = rememberInfiniteTransition(label = "float")
     val floatOffset by infiniteTransition.animateFloat(
         initialValue = -10f,
@@ -131,42 +119,6 @@ fun LoginScreenContent(
         label = "float_offset"
     )
 
-    // 🚀 NEW: Infinite Rotation for Background (120 seconds, linear)
-    val backgroundRotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(120000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "bg_spin"
-    )
-
-    // 🚀 NEW: Create a repeating shader brush from the local image
-    val patternBitmap = ImageBitmap.imageResource(id = R.drawable.bg_pattern)
-    val repeatScale = 0.5f
-    val patternBrush = remember(patternBitmap) {
-        ShaderBrush(
-            ImageShader(
-                image = patternBitmap,
-                tileModeX = TileMode.Repeated,
-                tileModeY = TileMode.Repeated
-            )
-        )
-    }
-    val moreRepeatsBrush = remember(patternBrush) {
-        object : ShaderBrush() {
-            override fun createShader(size: Size): Shader {
-                val original = patternBrush.createShader(size)
-                val matrix = android.graphics.Matrix().apply {
-                    setScale(repeatScale, repeatScale)
-                }
-                original.setLocalMatrix(matrix)
-                return original
-            }
-        }
-    }
-
     AppSignatureHelper(LocalContext.current).getAppSignatures()
 
     AppBackground(
@@ -175,7 +127,6 @@ fun LoginScreenContent(
         patternRepeatScale = 0.5f
     ) {
 
-        // 🚀 LAYER 2: The Scrollable Foreground
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -260,7 +211,6 @@ fun LoginScreenContent(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // +98 Prefix Box
                                 Box(
                                     modifier = Modifier
                                         .height(56.dp)
@@ -277,7 +227,6 @@ fun LoginScreenContent(
                                     )
                                 }
 
-                                // Phone Number Input
                                 OutlinedTextField(
                                     value = state.phoneNumber,
                                     onValueChange = {
@@ -319,7 +268,48 @@ fun LoginScreenContent(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // 🚀 NEW: Privacy Policy Checkbox
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onEvent(LoginEvent.PrivacyAcceptedChanged(!state.isPrivacyAccepted)) }
+                                .padding(vertical = 8.dp)
+                        ) {
+                            Checkbox(
+                                checked = state.isPrivacyAccepted,
+                                onCheckedChange = { onEvent(LoginEvent.PrivacyAcceptedChanged(it)) },
+                                colors = CheckboxDefaults.colors(checkedColor = colors.primary)
+                            )
+
+                            val annotatedString = buildAnnotatedString {
+                                append("متن ")
+                                withStyle(
+                                    style = SpanStyle(
+                                        color = colors.primary,
+                                        textDecoration = TextDecoration.Underline,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                ) {
+                                    append("سیاست حفظ حریم خصوصی")
+                                }
+                                append(" را مطالعه کرده و می‌پذیرم.")
+                            }
+
+                            Text(
+                                text = annotatedString,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = colors.textPrimary,
+                                modifier = Modifier
+                                    .padding(start = 4.dp)
+                                    .clickable { onEvent(LoginEvent.ShowPrivacyDialog(true)) }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         // Submit Button
                         Button(
@@ -338,13 +328,14 @@ fun LoginScreenContent(
                                 disabledContainerColor = colors.divider
                             ),
                             contentPadding = PaddingValues(),
-                            enabled = !state.isLoading && state.phoneNumber.length == 10
+                            // 🚀 Button is only enabled if Phone is 10 digits AND Privacy is accepted
+                            enabled = !state.isLoading && state.phoneNumber.length == 10 && state.isPrivacyAccepted
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(
-                                        if (!state.isLoading && state.phoneNumber.length == 10)
+                                        if (!state.isLoading && state.phoneNumber.length == 10 && state.isPrivacyAccepted)
                                             Brush.linearGradient(
                                                 listOf(
                                                     colors.primary,
@@ -352,7 +343,12 @@ fun LoginScreenContent(
                                                 )
                                             )
                                         else
-                                            Brush.linearGradient(listOf(colors.divider, colors.divider))
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    colors.divider,
+                                                    colors.divider
+                                                )
+                                            )
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -376,6 +372,56 @@ fun LoginScreenContent(
                 }
             }
         }
+    }
+
+    // 🚀 NEW: Privacy Policy Dialog
+    if (state.showPrivacyDialog) {
+        AlertDialog(
+            onDismissRequest = { onEvent(LoginEvent.ShowPrivacyDialog(false)) },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "سیاست حفظ حریم خصوصی",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.textPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text(
+                        text = """
+                            اپلیکیشن «مهربان» به عنوان یک دستیار کنترل والدین، به حریم خصوصی شما و فرزندانتان احترام می‌گذارد. ما برای ارائه خدمات ایمن و پایدار، نیازمند دریافت اطلاعاتی از شما هستیم.
+                            
+                            ۱. چه اطلاعاتی جمع‌آوری می‌شود؟
+                            در فرآیند ثبت‌نام و استفاده از برنامه، اطلاعاتی شامل شماره تلفن همراه، نام و نام‌خانوادگی، کد ملی، ایمیل، آدرس و همچنین اطلاعات مربوط به میزان استفاده فرزندان از برنامه‌های دستگاه (Usage Stats) دریافت می‌گردد.
+                            
+                            ۲. علت استفاده از اطلاعات چیست؟
+                            شماره تماس و کد ملی صرفاً جهت احراز هویت دقیق والدین و جلوگیری از دسترسی افراد غیرمجاز به تنظیمات فرزندان استفاده می‌شود. اطلاعات کاربری و ایمیل برای پشتیبانی، بازیابی حساب کاربری و اطلاع‌رسانی‌ها کاربرد دارد. داده‌های مصرفی دستگاه نیز منحصراً برای اعمال محدودیت‌های تعیین‌شده توسط خود شما پردازش می‌شوند.
+                            
+                            ۳. تعهد به حفظ امنیت اطلاعات
+                            ما صراحتاً تعهد می‌دهیم که تمامی اطلاعات شخصی شما و فرزندانتان نزد توسعه‌دهنده کاملاً محرمانه و محفوظ است. این اطلاعات تحت هیچ شرایطی فروخته نخواهد شد، مورد سوءاستفاده قرار نخواهد گرفت و در اختیار هیچ شخص، سازمان یا نهاد ثالثی جهت مقاصد تبلیغاتی یا تجاری قرار نمی‌گیرد. تمامی داده‌ها با استفاده از پروتکل‌های امن (رمزنگاری) بین دستگاه شما و سرورهای ما منتقل می‌شوند.
+                        """.trimIndent(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textSecondary,
+                        lineHeight = 24.sp
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onEvent(LoginEvent.PrivacyAcceptedChanged(true))
+                    onEvent(LoginEvent.ShowPrivacyDialog(false))
+                }) {
+                    Text("می‌پذیرم", color = colors.primary, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onEvent(LoginEvent.ShowPrivacyDialog(false)) }) {
+                    Text("بستن", color = colors.textHint)
+                }
+            }
+        )
     }
 }
 

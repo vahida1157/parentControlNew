@@ -12,11 +12,17 @@ import javax.inject.Inject
 
 // 1. Contract Definition
 data class LoginState(
-    val phoneNumber: String = "", val isLoading: Boolean = false, val errorMessage: String? = null
+    val phoneNumber: String = "",
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
+    val isPrivacyAccepted: Boolean = false,
+    val showPrivacyDialog: Boolean = false,
 )
 
 sealed class LoginEvent {
     data class PhoneChanged(val phone: String) : LoginEvent()
+    data class PrivacyAcceptedChanged(val isAccepted: Boolean) : LoginEvent()
+    data class ShowPrivacyDialog(val show: Boolean) : LoginEvent()
     object SubmitClicked : LoginEvent()
 }
 
@@ -27,7 +33,7 @@ sealed class LoginEffect {
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val validatePhoneUseCase: ValidatePhoneUseCase,
-    private val authRepository: AuthRepository // INJECT THE REPOSITORY
+    private val authRepository: AuthRepository
 ) : BaseViewModel<LoginState, LoginEvent, LoginEffect>(LoginState()) {
 
     override fun onEvent(event: LoginEvent) {
@@ -38,7 +44,22 @@ class LoginViewModel @Inject constructor(
                 }
             }
 
-            is LoginEvent.SubmitClicked -> submitPhone()
+            // 🚀 Handle Privacy Events
+            is LoginEvent.PrivacyAcceptedChanged -> {
+                updateState { copy(isPrivacyAccepted = event.isAccepted) }
+            }
+            is LoginEvent.ShowPrivacyDialog -> {
+                updateState { copy(showPrivacyDialog = event.show) }
+            }
+
+            is LoginEvent.SubmitClicked -> {
+                // Double check before submitting
+                if (state.value.isPrivacyAccepted) {
+                    submitPhone()
+                } else {
+                    updateState { copy(errorMessage = "لطفاً قوانین و حریم خصوصی را تایید کنید.") }
+                }
+            }
         }
     }
 
@@ -50,7 +71,6 @@ class LoginViewModel @Inject constructor(
             }
 
             is PhoneValidationResult.Success -> {
-                // Call the Spring Boot Backend
                 viewModelScope.launch {
                     updateState { copy(isLoading = true, errorMessage = null) }
 
@@ -58,9 +78,7 @@ class LoginViewModel @Inject constructor(
                         is OtpValidationResult.Success -> {
                             updateState { copy(isLoading = false) }
                             sendEffect(
-                                LoginEffect.NavigateToOtp(
-                                    currentPhone, result.expiresInSeconds
-                                )
+                                LoginEffect.NavigateToOtp(currentPhone, result.expiresInSeconds)
                             )
                         }
 
