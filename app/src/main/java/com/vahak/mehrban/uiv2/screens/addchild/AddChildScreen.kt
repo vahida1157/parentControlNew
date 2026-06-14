@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -59,6 +60,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.presentation.addchild.AddChildEffect
 import com.vahak.mehrban.presentation.addchild.AddChildEvent
 import com.vahak.mehrban.presentation.addchild.AddChildState
@@ -118,14 +120,12 @@ fun AddChildScreenContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // --- NEW V2 DASHBOARD-STYLE HEADER ---
             ScreenHeaderV2(
-                title = "افزودن فرزند جدید",
-                subtitle = "مدیریت فرزندان",
+                title = stringResource(R.string.add_child_title),
+                subtitle = stringResource(R.string.add_child_subtitle),
                 onBackClick = onBackClick
             )
 
-            // --- FORM CARD ---
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,7 +142,7 @@ fun AddChildScreenContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "انتخاب آواتار",
+                        text = stringResource(R.string.avatar_selection),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = colors.textSecondary,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -155,15 +155,15 @@ fun AddChildScreenContent(
                             .padding(bottom = 16.dp),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        AvatarTabItem("پسرانه", selectedCategory == "boys") {
+                        AvatarTabItem(stringResource(R.string.tab_boys), selectedCategory == "boys") {
                             selectedCategory = "boys"
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        AvatarTabItem("دخترانه", selectedCategory == "girls") {
+                        AvatarTabItem(stringResource(R.string.tab_girls), selectedCategory == "girls") {
                             selectedCategory = "girls"
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        AvatarTabItem("نوجوان", selectedCategory == "teens") {
+                        AvatarTabItem(stringResource(R.string.tab_teens), selectedCategory == "teens") {
                             selectedCategory = "teens"
                         }
                     }
@@ -202,14 +202,14 @@ fun AddChildScreenContent(
 
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "📷 برای استفاده از عکس واقعی فرزند، روی + کلیک کنید",
+                        text = stringResource(R.string.avatar_tip),
                         fontSize = 11.sp,
                         color = colors.textHint,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Intentionally disabled photo upload button based on your request
+                    // Intentionally disabled photo upload button
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -223,12 +223,11 @@ fun AddChildScreenContent(
                                 color = colors.primary.copy(alpha = 0.5f),
                                 shape = RoundedCornerShape(12.dp)
                             )
-                            // .clickable { /* Open Image Picker */ }
                             .padding(10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "📷 آپلود عکس فرزند",
+                            text = stringResource(R.string.upload_photo_button),
                             color = colors.primary,
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                         )
@@ -247,13 +246,13 @@ fun AddChildScreenContent(
                         )
                     }
 
-                    FormInputGroup(label = "نام فرزند") {
+                    FormInputGroup(label = stringResource(R.string.field_name)) {
                         OutlinedTextField(
                             value = state.name,
                             onValueChange = { onEvent(AddChildEvent.NameChanged(it)) },
                             placeholder = {
                                 Text(
-                                    "نام کودک را وارد کنید",
+                                    stringResource(R.string.hint_child_name),
                                     color = colors.textHint
                                 )
                             },
@@ -275,7 +274,7 @@ fun AddChildScreenContent(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    FormInputGroup(label = "سن / تاریخ تولد") {
+                    FormInputGroup(label = stringResource(R.string.field_dob)) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -287,7 +286,7 @@ fun AddChildScreenContent(
                                 readOnly = true,
                                 placeholder = {
                                     Text(
-                                        "انتخاب تاریخ تولد",
+                                        stringResource(R.string.hint_dob),
                                         color = colors.textHint
                                     )
                                 },
@@ -304,20 +303,17 @@ fun AddChildScreenContent(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Added Phone Input Field (Optional based on HTML)
-                    FormInputGroup(label = "شماره تلفن (اختیاری)") {
+                    FormInputGroup(label = stringResource(R.string.field_phone_optional)) {
                         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                             OutlinedTextField(
                                 value = state.phone,
                                 onValueChange = {
                                     val filtered = it.filter { char -> char.isDigit() }
                                     if (filtered.length <= 11) onEvent(
-                                        AddChildEvent.PhoneChanged(
-                                            filtered
-                                        )
+                                        AddChildEvent.PhoneChanged(filtered)
                                     )
                                 },
-                                placeholder = { Text("شماره تلفن فرزند", color = colors.textHint) },
+                                placeholder = { Text(stringResource(R.string.hint_phone), color = colors.textHint) },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -347,7 +343,7 @@ fun AddChildScreenContent(
                     ) {
                         GenderChipV2(
                             isSelected = state.gender == Gender.Boy,
-                            title = "پسر",
+                            title = stringResource(R.string.gender_boy),
                             emoji = "👦",
                             activeColor = colors.blue,
                             modifier = Modifier.weight(1f)
@@ -355,7 +351,7 @@ fun AddChildScreenContent(
 
                         GenderChipV2(
                             isSelected = state.gender == Gender.Girl,
-                            title = "دختر",
+                            title = stringResource(R.string.gender_girl),
                             emoji = "👧",
                             activeColor = colors.red,
                             modifier = Modifier.weight(1f)
@@ -389,7 +385,7 @@ fun AddChildScreenContent(
                             )
                         } else {
                             Text(
-                                "افزودن فرزند ✅",
+                                stringResource(R.string.button_add_child),
                                 color = colors.textOnPrimaryVariant,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
@@ -408,7 +404,7 @@ fun AddChildScreenContent(
             val currentDay = dobParts.getOrNull(2)?.toIntOrNull() ?: 1
 
             DynamicDatePickerV2(
-                title = "تاریخ تولد فرزند",
+                title = stringResource(R.string.dob_picker_title),
                 mode = PickerPresentationMode.BOTTOM_SHEET,
                 yearRange = 1380..1405,
                 monthRange = 1..12,

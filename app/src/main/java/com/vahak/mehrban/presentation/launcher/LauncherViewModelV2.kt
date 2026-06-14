@@ -2,6 +2,7 @@ package com.vahak.mehrban.presentation.launcher
 
 import android.content.Context
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.dao.AppRuleDao
 import com.vahak.mehrban.core.data.local.dao.ChildSettingsDao
@@ -41,7 +42,7 @@ data class LauncherStateV2(
     val enteredPin: String = "",
     val pinError: Boolean = false,
 
-    // 🚀 NEW: Recovery Dialog State
+    // Recovery Dialog State
     val showRecoveryDialog: Boolean = false,
     val securityQuestion: String = "",
     val recoveryAnswerInput: String = "",
@@ -58,7 +59,7 @@ sealed class LauncherEventV2 {
     object PinBackspaceClicked : LauncherEventV2()
     data class SubmitExitPin(val pin: String) : LauncherEventV2()
 
-    // 🚀 NEW: Recovery Events
+    // Recovery Events
     object ForgotPinClicked : LauncherEventV2()
     object DismissRecoveryDialog : LauncherEventV2()
     data class RecoveryAnswerChanged(val answer: String) : LauncherEventV2()
@@ -142,7 +143,7 @@ class LauncherViewModelV2 @Inject constructor(
                 if (state.value.isTimeLimitActive && state.value.timeLimitMins > 0) {
                     val limitSecs = state.value.timeLimitMins * 60
                     if (state.value.usageSeconds >= limitSecs) {
-                        sendEffect(LauncherEffectV2.ShowToast("⏳", "زمان استفاده شما به پایان رسیده است"))
+                        sendEffect(LauncherEffectV2.ShowToast("⏳", context.getString(R.string.launcher_time_expired)))
                         return
                     }
                 }
@@ -172,11 +173,11 @@ class LauncherViewModelV2 @Inject constructor(
                 verifyPin(event.pin)
             }
 
-            // 🚀 NEW: Recovery Events
+            // Recovery Events
             is LauncherEventV2.ForgotPinClicked -> {
                 viewModelScope.launch {
-                    // Assuming your SessionManager exposes these flows based on your Repository code
-                    val question = sessionManager.securityQuestionFlow.firstOrNull() ?: "سوال بازیابی تنظیم نشده است"
+                    val question = sessionManager.securityQuestionFlow.firstOrNull()
+                        ?: context.getString(R.string.recovery_question_not_set)
                     updateState {
                         copy(
                             showExitDialog = false,

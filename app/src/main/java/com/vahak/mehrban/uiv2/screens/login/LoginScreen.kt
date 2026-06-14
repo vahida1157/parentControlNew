@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -66,6 +67,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.util.AppSignatureHelper
 import com.vahak.mehrban.presentation.login.LoginEffect
 import com.vahak.mehrban.presentation.login.LoginEvent
@@ -159,7 +161,7 @@ fun LoginScreenContent(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
-                    text = "مهربان",
+                    text = stringResource(R.string.app_name),
                     style = MaterialTheme.typography.headlineLarge,
                     color = Color.White,
                     fontWeight = FontWeight.Black,
@@ -168,7 +170,7 @@ fun LoginScreenContent(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "محافظ خانواده شما 💚",
+                    text = stringResource(R.string.login_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.8f),
                 )
@@ -198,7 +200,7 @@ fun LoginScreenContent(
                         }
 
                         Text(
-                            text = "شماره تلفن همراه",
+                            text = stringResource(R.string.login_phone_label),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = colors.textSecondary,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -220,7 +222,7 @@ fun LoginScreenContent(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "+98",
+                                        text = stringResource(R.string.login_phone_prefix),
                                         color = colors.primary,
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.bodyLarge
@@ -239,7 +241,7 @@ fun LoginScreenContent(
                                     },
                                     placeholder = {
                                         Text(
-                                            text = "912 345 6789",
+                                            text = stringResource(R.string.login_phone_hint),
                                             color = colors.textHint,
                                             style = MaterialTheme.typography.bodyLarge,
                                         )
@@ -270,7 +272,7 @@ fun LoginScreenContent(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // 🚀 NEW: Privacy Policy Checkbox
+                        // Privacy Policy Checkbox
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -286,7 +288,7 @@ fun LoginScreenContent(
                             )
 
                             val annotatedString = buildAnnotatedString {
-                                append("متن ")
+                                append(stringResource(R.string.login_privacy_prefix))
                                 withStyle(
                                     style = SpanStyle(
                                         color = colors.primary,
@@ -294,9 +296,9 @@ fun LoginScreenContent(
                                         fontWeight = FontWeight.Bold
                                     )
                                 ) {
-                                    append("سیاست حفظ حریم خصوصی")
+                                    append(stringResource(R.string.login_privacy_link))
                                 }
-                                append(" را مطالعه کرده و می‌پذیرم.")
+                                append(stringResource(R.string.login_privacy_suffix))
                             }
 
                             Text(
@@ -328,7 +330,6 @@ fun LoginScreenContent(
                                 disabledContainerColor = colors.divider
                             ),
                             contentPadding = PaddingValues(),
-                            // 🚀 Button is only enabled if Phone is 10 digits AND Privacy is accepted
                             enabled = !state.isLoading && state.phoneNumber.length == 10 && state.isPrivacyAccepted
                         ) {
                             Box(
@@ -360,7 +361,7 @@ fun LoginScreenContent(
                                     )
                                 } else {
                                     Text(
-                                        text = "دریافت کد تأیید",
+                                        text = stringResource(R.string.login_button_text),
                                         color = colors.textOnPrimaryVariant,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
@@ -374,14 +375,14 @@ fun LoginScreenContent(
         }
     }
 
-    // 🚀 NEW: Privacy Policy Dialog
+    // Privacy Policy Dialog
     if (state.showPrivacyDialog) {
         AlertDialog(
             onDismissRequest = { onEvent(LoginEvent.ShowPrivacyDialog(false)) },
             containerColor = colors.surface,
             title = {
                 Text(
-                    text = "سیاست حفظ حریم خصوصی",
+                    text = stringResource(R.string.login_privacy_dialog_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = colors.textPrimary,
                     fontWeight = FontWeight.Bold
@@ -390,18 +391,7 @@ fun LoginScreenContent(
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     Text(
-                        text = """
-                            اپلیکیشن «مهربان» به عنوان یک دستیار کنترل والدین، به حریم خصوصی شما و فرزندانتان احترام می‌گذارد. ما برای ارائه خدمات ایمن و پایدار، نیازمند دریافت اطلاعاتی از شما هستیم.
-                            
-                            ۱. چه اطلاعاتی جمع‌آوری می‌شود؟
-                            در فرآیند ثبت‌نام و استفاده از برنامه، اطلاعاتی شامل شماره تلفن همراه، نام و نام‌خانوادگی، کد ملی، ایمیل، آدرس و همچنین اطلاعات مربوط به میزان استفاده فرزندان از برنامه‌های دستگاه (Usage Stats) دریافت می‌گردد.
-                            
-                            ۲. علت استفاده از اطلاعات چیست؟
-                            شماره تماس و کد ملی صرفاً جهت احراز هویت دقیق والدین و جلوگیری از دسترسی افراد غیرمجاز به تنظیمات فرزندان استفاده می‌شود. اطلاعات کاربری و ایمیل برای پشتیبانی، بازیابی حساب کاربری و اطلاع‌رسانی‌ها کاربرد دارد. داده‌های مصرفی دستگاه نیز منحصراً برای اعمال محدودیت‌های تعیین‌شده توسط خود شما پردازش می‌شوند.
-                            
-                            ۳. تعهد به حفظ امنیت اطلاعات
-                            ما صراحتاً تعهد می‌دهیم که تمامی اطلاعات شخصی شما و فرزندانتان نزد توسعه‌دهنده کاملاً محرمانه و محفوظ است. این اطلاعات تحت هیچ شرایطی فروخته نخواهد شد، مورد سوءاستفاده قرار نخواهد گرفت و در اختیار هیچ شخص، سازمان یا نهاد ثالثی جهت مقاصد تبلیغاتی یا تجاری قرار نمی‌گیرد. تمامی داده‌ها با استفاده از پروتکل‌های امن (رمزنگاری) بین دستگاه شما و سرورهای ما منتقل می‌شوند.
-                        """.trimIndent(),
+                        text = stringResource(R.string.login_privacy_dialog_text),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,
                         lineHeight = 24.sp
@@ -413,12 +403,12 @@ fun LoginScreenContent(
                     onEvent(LoginEvent.PrivacyAcceptedChanged(true))
                     onEvent(LoginEvent.ShowPrivacyDialog(false))
                 }) {
-                    Text("می‌پذیرم", color = colors.primary, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.login_privacy_accept), color = colors.primary, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { onEvent(LoginEvent.ShowPrivacyDialog(false)) }) {
-                    Text("بستن", color = colors.textHint)
+                    Text(stringResource(R.string.cancel), color = colors.textHint)
                 }
             }
         )

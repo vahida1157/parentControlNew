@@ -1,12 +1,15 @@
 package com.vahak.mehrban.domain.repository
 
+import android.content.Context
 import android.util.Log
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.ParentControlDatabase
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.data.remote.AuthApi
 import com.vahak.mehrban.data.remote.OtpRequestDto
 import com.vahak.mehrban.data.remote.VerifyRequestDto
 import com.vahak.mehrban.domain.usecase.OtpValidationResult
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -22,6 +25,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val sessionManager: SessionManager,
     private val authApi: AuthApi,
     private val database: ParentControlDatabase,
+    @ApplicationContext private val context: Context
 ) : AuthRepository {
     override suspend fun requestOtp(phone: String): OtpValidationResult {
         return try {
@@ -31,18 +35,17 @@ class AuthRepositoryImpl @Inject constructor(
                 val ttl = response.body()?.expiresInSeconds ?: 120
                 OtpValidationResult.Success(expiresInSeconds = ttl)
             } else {
-                // Parse the clean error message from Spring Boot's GlobalExceptionHandler
                 val errorBody = response.errorBody()?.string()
                 val errorMessage = try {
                     JSONObject(errorBody!!).getString("error")
                 } catch (_: Exception) {
-                    "خطا در ارتباط با سرور"
+                    context.getString(R.string.error_server_communication)
                 }
                 OtpValidationResult.Error(errorMessage)
             }
         } catch (e: Exception) {
             Log.e("AuthRepository", "FATAL NETWORK CRASH: ", e)
-            OtpValidationResult.Error("خطای شبکه. لطفا اینترنت خود را بررسی کنید.")
+            OtpValidationResult.Error(context.getString(R.string.error_network_check_internet))
         }
     }
 
@@ -64,10 +67,10 @@ class AuthRepositoryImpl @Inject constructor(
                 // Return the token and the flag
                 Result.success(Pair(body.accessToken, !(body.pinPassword.isNullOrEmpty())))
             } else {
-                Result.failure(Exception("کد وارد شده صحیح نیست"))
+                Result.failure(Exception(context.getString(R.string.error_wrong_verification_code)))
             }
         } catch (_: Exception) {
-            Result.failure(Exception("خطای شبکه در ارتباط با سرور"))
+            Result.failure(Exception(context.getString(R.string.error_network_connection)))
         }
     }
 

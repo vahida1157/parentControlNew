@@ -1,10 +1,13 @@
 package com.vahak.mehrban.presentation.sleeptime
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.R
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
@@ -20,7 +23,6 @@ data class SleepTimeStateV2(
     val endTime: LocalTime = LocalTime.of(7, 0),
     val currentEditMode: TimeEditModeV2 = TimeEditModeV2.NONE,
 
-    // New features from HTML
     val isDndEnabled: Boolean = true,
     val isEmergencyCallsEnabled: Boolean = true,
     val isBlueLightFilterEnabled: Boolean = false,
@@ -34,7 +36,6 @@ sealed class SleepTimeEventV2 {
     object BackClicked : SleepTimeEventV2()
     data class ToggleActive(val isActive: Boolean) : SleepTimeEventV2()
 
-    // New Toggles
     data class ToggleDnd(val isActive: Boolean) : SleepTimeEventV2()
     data class ToggleEmergencyCalls(val isActive: Boolean) : SleepTimeEventV2()
     data class ToggleBlueLight(val isActive: Boolean) : SleepTimeEventV2()
@@ -54,15 +55,14 @@ sealed class SleepTimeEffectV2 {
 @HiltViewModel
 class SleepTimeViewModelV2 @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    @ApplicationContext private val context: Context
 ) : BaseViewModel<SleepTimeStateV2, SleepTimeEventV2, SleepTimeEffectV2>(SleepTimeStateV2()) {
 
     private val childId: String = checkNotNull(savedStateHandle["childId"])
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            // 🚀 FIX: Use firstOrNull() instead of collectLatest
-            // This ensures we only load the initial state ONCE and don't overwrite user edits!
             val settings = settingsRepository.getGlobalSettings(childId).firstOrNull()
             if (settings != null) {
                 updateState {
@@ -89,7 +89,6 @@ class SleepTimeViewModelV2 @Inject constructor(
 
             is SleepTimeEventV2.ConfirmTime -> {
                 updateState {
-                    // 🚀 FIX: Read currentEditMode from 'this' inside the update block to prevent race conditions
                     val isStart = this.currentEditMode == TimeEditModeV2.START
                     val newTime = LocalTime.of(event.hours, event.minutes)
 
@@ -115,10 +114,10 @@ class SleepTimeViewModelV2 @Inject constructor(
                 endTime = state.value.endTime
             )
 
-            delay(500) // Smooth UX delay
+            delay(500)
 
             updateState { copy(isSaving = false) }
-            sendEffect(SleepTimeEffectV2.ShowToast("تنظیمات خواب ذخیره شد"))
+            sendEffect(SleepTimeEffectV2.ShowToast(context.getString(R.string.sleep_settings_saved)))
             sendEffect(SleepTimeEffectV2.NavigateBack)
         }
     }

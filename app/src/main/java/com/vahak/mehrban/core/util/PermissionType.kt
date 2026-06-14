@@ -2,71 +2,71 @@ package com.vahak.mehrban.core.util
 
 import android.app.admin.DevicePolicyManager
 import android.provider.Settings
+import com.vahak.mehrban.R
 
 enum class PermissionType(
-    val title: String,
-    val description: String,
-    val instruction: List<String>,
+    val titleRes: Int,
+    val descRes: Int,
+    val instructionResIds: List<Int>,
     val androidSettingsAction: String
 ) {
     USAGE_STATS(
-        title = "آمار کارکرد برنامه‌ها",
-        description = "برای مدیریت زمان استفاده از گوشی، این دسترسی حیاتی است.",
-        instruction = listOf(
-            "۱. روی اعطای دسترسی کلیک کن",
-            "۲. نام برنامه را پیدا و فعال کن",
-            "۳. تنظیمات تکمیل شد"
+        titleRes = R.string.permission_usage_stats_title,
+        descRes = R.string.permission_usage_stats_desc,
+        instructionResIds = listOf(
+            R.string.permission_usage_stats_step1,
+            R.string.permission_usage_stats_step2,
+            R.string.permission_usage_stats_step3
         ),
         androidSettingsAction = Settings.ACTION_USAGE_ACCESS_SETTINGS
     ),
     OVERLAY(
-        title = "نمایش روی سایر برنامه‌ها",
-        description = "برای مسدود کردن برنامه‌ها هنگام اتمام زمان، این دسترسی لازم است.",
-        instruction = listOf(
-            "۱. روی اعطای دسترسی کلیک کن",
-            "۲. گزینه Allow display over other apps را فعال کن",
-            "۳. به برنامه برگرد"
+        titleRes = R.string.permission_overlay_title,
+        descRes = R.string.permission_overlay_desc,
+        instructionResIds = listOf(
+            R.string.permission_overlay_step1,
+            R.string.permission_overlay_step2,
+            R.string.permission_overlay_step3
         ),
         androidSettingsAction = Settings.ACTION_MANAGE_OVERLAY_PERMISSION
     ),
     DEVICE_ADMIN(
-        title = "محافظت از حذف برنامه",
-        description = "برای جلوگیری از پاک شدن برنامه توسط کودک، این دسترسی الزامی است.",
-        instruction = listOf(
-            "۱. روی اعطای دسترسی کلیک کن",
-            "۲. گزینه فعال‌سازی (Activate) را در صفحه بعد انتخاب کن",
-            "۳. به برنامه برگرد"
+        titleRes = R.string.permission_device_admin_title,
+        descRes = R.string.permission_device_admin_desc,
+        instructionResIds = listOf(
+            R.string.permission_device_admin_step1,
+            R.string.permission_device_admin_step2,
+            R.string.permission_device_admin_step3
         ),
-        // This is the specific OS action for Device Admin
         androidSettingsAction = DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN
     ),
     ACCESSIBILITY(
-        title = "دسترسی پذیری (سپر امنیتی)",
-        description = "برای مسدود کردن تنظیمات گوشی و جلوگیری از دور زدن قوانین توسط کودک.",
-        instruction = listOf(
-            "۱. روی اعطای دسترسی کلیک کن",
-            "۲. وارد بخش برنامه‌های نصب شده (Installed apps) شو",
-            "۳. نام برنامه را پیدا کن و آن را روشن کن"
+        titleRes = R.string.permission_accessibility_title,
+        descRes = R.string.permission_accessibility_desc,
+        instructionResIds = listOf(
+            R.string.permission_accessibility_step1,
+            R.string.permission_accessibility_step2,
+            R.string.permission_accessibility_step3
         ),
         androidSettingsAction = Settings.ACTION_ACCESSIBILITY_SETTINGS
     ),
     VPN(
-        title = "فیلتر هوشمند وب (VPN)",
-        description = "برای مسدود کردن سایت‌های نامناسب، نیاز به ایجاد یک تونل امن (VPN محلی) داریم. هیچ داده‌ای به خارج از گوشی ارسال نمی‌شود.",
-        instruction = listOf(
-            "۱. روی اعطای دسترسی کلیک کن",
-            "۲. در پیام هشدار اندروید، تایید (OK) را انتخاب کن",
-            "۳. تمام شد!"
+        titleRes = R.string.permission_vpn_title,
+        descRes = R.string.permission_vpn_desc,
+        instructionResIds = listOf(
+            R.string.permission_vpn_step1,
+            R.string.permission_vpn_step2,
+            R.string.permission_vpn_step3
         ),
-        androidSettingsAction = "ACTION_REQUEST_VPN" // Custom flag
+        androidSettingsAction = "ACTION_REQUEST_VPN" // custom flag
     ),
     LOCATION(
-        title = "موقعیت مکانی",
-        description = "برای تامین امنیت و ردیابی دقیق، به این دسترسی نیاز داریم.",
-        instruction = listOf(
-            "۱. روی اعطای دسترسی کلیک کن",
-            "۲. گزینه Allow all the time رو انتخاب کن",
-            "۳. دسترسی تایید شد"
+        titleRes = R.string.permission_location_title,
+        descRes = R.string.permission_location_desc,
+        instructionResIds = listOf(
+            R.string.permission_location_step1,
+            R.string.permission_location_step2,
+            R.string.permission_location_step3
         ),
         androidSettingsAction = Settings.ACTION_LOCATION_SOURCE_SETTINGS
     )

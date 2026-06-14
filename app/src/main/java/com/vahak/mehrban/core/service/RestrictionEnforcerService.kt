@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.vahak.mehrban.BuildConfig
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.dao.AppRuleDao
 import com.vahak.mehrban.core.data.local.dao.ChildSettingsDao
 import com.vahak.mehrban.core.data.local.dao.UsageDao
@@ -37,17 +38,10 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class RestrictionEnforcerService : LifecycleService() {
 
-    @Inject
-    lateinit var childSettingsDao: ChildSettingsDao
-
-    @Inject
-    lateinit var usageDao: UsageDao
-
-    @Inject
-    lateinit var appRuleDao: AppRuleDao
-
-    @Inject
-    lateinit var usageRepository: UsageRepository
+    @Inject lateinit var childSettingsDao: ChildSettingsDao
+    @Inject lateinit var usageDao: UsageDao
+    @Inject lateinit var appRuleDao: AppRuleDao
+    @Inject lateinit var usageRepository: UsageRepository
 
     private lateinit var timeLockOverlay: RestrictionOverlay
     private lateinit var appLockOverlay: RestrictionOverlay
@@ -57,14 +51,9 @@ class RestrictionEnforcerService : LifecycleService() {
     private var currentChildId: String? = null
     private var lastKnownPackage: String = ""
 
-    // --- HOISTED TRACKING VARIABLES ---
     private var currentDateTracker: LocalDate = LocalDate.now()
-
-    // --- LOCAL TRACKERS (Saved to Room, increments instantly offline) ---
     private var usedSecondsTodayTracker = 0
     private var appUsageMapTracker = mutableMapOf<String, Int>()
-
-    // --- EXTERNAL TRACKERS (From Server, represents time spent on OTHER devices) ---
     private var externalDailySecondsTracker = 0
     private var externalAppUsageMapTracker = mutableMapOf<String, Int>()
 
@@ -104,7 +93,6 @@ class RestrictionEnforcerService : LifecycleService() {
                     stopSelf()
                 }
             }
-
             ACTION_STOP -> {
                 Log.w(TAG, "🛑 Action Stop received. Halting monitoring.")
                 stopMonitoring()
@@ -381,14 +369,19 @@ class RestrictionEnforcerService : LifecycleService() {
 
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("محافظت خانواده فعال است")
-            .setContentText("گوشی در حالت امن کودک قرار دارد.")
-            .setSmallIcon(android.R.drawable.ic_secure).setOngoing(true).build()
+            .setContentTitle(getString(R.string.notification_family_protection_title))
+            .setContentText(getString(R.string.notification_family_protection_text))
+            .setSmallIcon(android.R.drawable.ic_secure)
+            .setOngoing(true)
+            .build()
     }
 
     private fun createNotificationChannel() {
-        val channel =
-            NotificationChannel(CHANNEL_ID, "نظارت خانواده", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            getString(R.string.notification_channel_name),
+            NotificationManager.IMPORTANCE_LOW
+        )
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(channel)
     }

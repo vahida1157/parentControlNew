@@ -6,6 +6,7 @@ import com.vahak.mehrban.core.data.local.ParentControlDatabase
 import com.vahak.mehrban.core.data.local.dao.AppRuleDao
 import com.vahak.mehrban.core.data.local.dao.ChildDao
 import com.vahak.mehrban.core.data.local.dao.ChildSettingsDao
+import com.vahak.mehrban.core.data.local.dao.CrashLogDao
 import com.vahak.mehrban.core.data.local.dao.UsageDao
 import com.vahak.mehrban.core.data.local.dao.WebDao
 import dagger.Module
@@ -48,4 +49,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideWebDao(db: ParentControlDatabase): WebDao = db.webDao
+
+    @Provides
+    @Singleton
+    fun provideCrashLogDao(db: ParentControlDatabase): CrashLogDao = db.crashLogDao
 }

@@ -31,32 +31,30 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.vahak.mehrban.R
 import com.vahak.mehrban.ui.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 
 sealed class BottomNavItem(
     val route: String,
-    val title: String,
+    val title: @Composable () -> String,
     val iconProvider: @Composable () -> Painter
 ) {
-    object Home : BottomNavItem("home", "خانه", { AppIcons.Home })
-    object Children : BottomNavItem(
-        "children",
-        "فرزندان",
-        { AppIcons.Profile }) // Replace with your Users/People icon
+    object Home : BottomNavItem("home", { stringResource(R.string.nav_home) }, { AppIcons.Home })
+    object Children :
+        BottomNavItem("children", { stringResource(R.string.nav_children) }, { AppIcons.Profile })
 
     object Reports :
-        BottomNavItem("reports", "گزارش", { AppIcons.ChartBar }) // Replace with your BarChart icon
+        BottomNavItem("reports", { stringResource(R.string.nav_stats) }, { AppIcons.ChartBar })
 
-    object Profile : BottomNavItem(
-        "profile",
-        "پروفایل",
-        { AppIcons.Settings }) // Replace with your Profile/User icon
+    object Profile :
+        BottomNavItem("profile", { stringResource(R.string.nav_profile) }, { AppIcons.Settings })
 }
 
 @Composable
@@ -112,7 +110,7 @@ fun DashboardBottomNav(navController: NavController) {
                         .background(bgColor)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = null // Removes default ripple to match HTML custom transition
+                            indication = null
                         ) {
                             if (!isSelected) {
                                 navController.navigate(item.route) {
@@ -133,13 +131,13 @@ fun DashboardBottomNav(navController: NavController) {
                     ) {
                         Icon(
                             painter = item.iconProvider(),
-                            contentDescription = item.title,
+                            contentDescription = item.title(),
                             tint = contentColor,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = item.title,
+                            text = item.title(),
                             color = contentColor,
                             fontSize = 10.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold

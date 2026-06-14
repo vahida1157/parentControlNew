@@ -3,6 +3,7 @@ package com.vahak.mehrban.presentation.setting
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.GlobalSettingsEntity
@@ -13,6 +14,7 @@ import com.vahak.mehrban.domain.repository.ChildRepository
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -23,7 +25,7 @@ data class ChildSettingsState(
     val activeChild: ChildEntity? = null,
     val allChildren: List<ChildEntity> = emptyList(),
     val settings: GlobalSettingsEntity? = null,
-    val allowedAppsCount: Int = 0, // FIXED: Changed from blockedAppsCount
+    val allowedAppsCount: Int = 0,
     val isChildSheetOpen: Boolean = false,
     val isLoading: Boolean = true,
 )
@@ -41,8 +43,7 @@ sealed class ChildSettingsEffect {
     object NavigateBack : ChildSettingsEffect()
     data class NavigateToFeature(val route: String) : ChildSettingsEffect()
     data class ShowToast(val message: String) : ChildSettingsEffect()
-    data class NavigateToPermissionSlider(val route: String, val missingPermissions: List<String>) :
-        ChildSettingsEffect()
+    data class NavigateToPermissionSlider(val route: String, val missingPermissions: List<String>) : ChildSettingsEffect()
 }
 
 @HiltViewModel
@@ -52,10 +53,10 @@ class ChildSettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val appRuleRepository: AppRuleRepository,
     private val sessionManager: SessionManager,
+    @ApplicationContext private val context: Context
 ) : BaseViewModel<ChildSettingsState, ChildSettingsEvent, ChildSettingsEffect>(ChildSettingsState()) {
 
-    private val currentChildIdFlow =
-        MutableStateFlow(checkNotNull(savedStateHandle.get<String>("childId")))
+    private val currentChildIdFlow = MutableStateFlow(checkNotNull(savedStateHandle.get<String>("childId")))
 
     private val featurePermissionsMap = mapOf(
         "time_limit" to listOf(PermissionType.USAGE_STATS, PermissionType.OVERLAY),
@@ -74,9 +75,6 @@ class ChildSettingsViewModel @Inject constructor(
 
             currentChildIdFlow.collectLatest { id ->
                 updateState { copy(isLoading = true) }
-
-                // 🚀 PURE OBSERVATION: All network calls are deleted.
-                // We just listen to Room. If the DB updates, the UI recomposes automatically.
 
                 launch {
                     childRepository.observeChildById(id).collectLatest { child ->
@@ -112,31 +110,20 @@ class ChildSettingsViewModel @Inject constructor(
     override fun onEvent(event: ChildSettingsEvent) {
         when (event) {
             is ChildSettingsEvent.BackClicked -> sendEffect(ChildSettingsEffect.NavigateBack)
-            is ChildSettingsEvent.HelpClicked -> sendEffect(ChildSettingsEffect.ShowToast("This feature is under development."))
+            is ChildSettingsEvent.HelpClicked -> sendEffect(ChildSettingsEffect.ShowToast(context.getString(R.string.feature_under_development)))
             is ChildSettingsEvent.OpenChildSheet -> updateState { copy(isChildSheetOpen = true) }
             is ChildSettingsEvent.CloseChildSheet -> updateState { copy(isChildSheetOpen = false) }
             is ChildSettingsEvent.SelectChild -> {
                 updateState { copy(isChildSheetOpen = false, isLoading = true) }
                 currentChildIdFlow.value = event.childId
-
-                // 🚀 Tell the SessionManager we switched children.
-                // The SessionSyncEngine will detect this and fetch the new child's rules.
                 viewModelScope.launch {
                     sessionManager.setViewedChildId(event.childId)
                 }
             }
 
             is ChildSettingsEvent.GridItemClicked -> {
-                if (event.route in listOf(
-                        "location",
-                        "safe_search",
-                        "prevent_delete",
-                        "eye_protect",
-                        "content_movies",
-                        "site_management"
-                    )
-                ) {
-                    sendEffect(ChildSettingsEffect.ShowToast("This feature will be available soon!"))
+                if (event.route in listOf("location", "safe_search", "prevent_delete", "eye_protect", "content_movies", "site_management")) {
+                    sendEffect(ChildSettingsEffect.ShowToast(context.getString(R.string.feature_coming_soon)))
                     return
                 }
 

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "c4e9e5b4fe245d6c566d1837fd32f9be",
+    "identityHash": "0497f10c904f275c45a6b7beb0e6783f",
     "entities": [
       {
         "tableName": "children",
@@ -475,11 +475,65 @@
             ]
           }
         ]
+      },
+      {
+        "tableName": "crash_logs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `appVersion` TEXT NOT NULL, `androidVersion` TEXT NOT NULL, `deviceModel` TEXT NOT NULL, `exceptionType` TEXT NOT NULL, `stackTrace` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "appVersion",
+            "columnName": "appVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "androidVersion",
+            "columnName": "androidVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceModel",
+            "columnName": "deviceModel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exceptionType",
+            "columnName": "exceptionType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stackTrace",
+            "columnName": "stackTrace",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c4e9e5b4fe245d6c566d1837fd32f9be')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0497f10c904f275c45a6b7beb0e6783f')"
     ]
   }
 }

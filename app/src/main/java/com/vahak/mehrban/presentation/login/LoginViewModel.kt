@@ -1,16 +1,18 @@
 package com.vahak.mehrban.presentation.login
 
+import android.content.Context
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.R
 import com.vahak.mehrban.domain.repository.AuthRepository
 import com.vahak.mehrban.domain.usecase.OtpValidationResult
 import com.vahak.mehrban.domain.usecase.PhoneValidationResult
 import com.vahak.mehrban.domain.usecase.ValidatePhoneUseCase
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// 1. Contract Definition
 data class LoginState(
     val phoneNumber: String = "",
     val isLoading: Boolean = false,
@@ -33,7 +35,8 @@ sealed class LoginEffect {
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val validatePhoneUseCase: ValidatePhoneUseCase,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    @ApplicationContext private val context: Context
 ) : BaseViewModel<LoginState, LoginEvent, LoginEffect>(LoginState()) {
 
     override fun onEvent(event: LoginEvent) {
@@ -44,7 +47,6 @@ class LoginViewModel @Inject constructor(
                 }
             }
 
-            // 🚀 Handle Privacy Events
             is LoginEvent.PrivacyAcceptedChanged -> {
                 updateState { copy(isPrivacyAccepted = event.isAccepted) }
             }
@@ -53,11 +55,10 @@ class LoginViewModel @Inject constructor(
             }
 
             is LoginEvent.SubmitClicked -> {
-                // Double check before submitting
                 if (state.value.isPrivacyAccepted) {
                     submitPhone()
                 } else {
-                    updateState { copy(errorMessage = "لطفاً قوانین و حریم خصوصی را تایید کنید.") }
+                    updateState { copy(errorMessage = context.getString(R.string.error_privacy_not_accepted)) }
                 }
             }
         }

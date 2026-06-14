@@ -1,6 +1,5 @@
 package com.vahak.mehrban.uiv2.screens.password
 
-
 import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -56,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.presentation.password.PasswordEffectV2
 import com.vahak.mehrban.presentation.password.PasswordEventV2
 import com.vahak.mehrban.presentation.password.PasswordStateV2
@@ -108,7 +109,7 @@ fun PasswordManagementScreenContent(
 ) {
     val colors = LocalCustomColors.current
     val isDark = isSystemInDarkTheme()
-    val focusManager = LocalFocusManager.current // 🚀 Added Focus Manager
+    val focusManager = LocalFocusManager.current
 
     val backgroundGradient = Brush.linearGradient(
         colors = listOf(colors.primary, colors.primaryVariant, Color(0xFF0A4F46))
@@ -126,7 +127,7 @@ fun PasswordManagementScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .imePadding() // 🚀 Pushes UI up when keyboard opens
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -150,7 +151,7 @@ fun PasswordManagementScreenContent(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "ساخت رمز عبور",
+                text = stringResource(R.string.password_setup_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = Color.White,
                 fontWeight = FontWeight.Black
@@ -159,7 +160,7 @@ fun PasswordManagementScreenContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "برای امنیت حساب، فرم زیر را کامل کنید",
+                text = stringResource(R.string.password_setup_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center
@@ -190,7 +191,7 @@ fun PasswordManagementScreenContent(
                             .padding(bottom = 16.dp)
                     ) {
                         Text(
-                            text = "سوال بازیابی",
+                            text = stringResource(R.string.password_security_question_label),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = colors.textSecondary,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -239,8 +240,8 @@ fun PasswordManagementScreenContent(
                     OutlinedTextField(
                         value = state.securityAnswer,
                         onValueChange = { onEvent(PasswordEventV2.AnswerChanged(it.trim())) },
-                        placeholder = { Text("پاسخ شما", color = colors.textHint) },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), // 🚀 Jump Next
+                        placeholder = { Text(stringResource(R.string.password_answer_placeholder), color = colors.textHint) },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(
                             onNext = { focusManager.moveFocus(FocusDirection.Down) }
                         ),
@@ -270,7 +271,7 @@ fun PasswordManagementScreenContent(
                     // --- 2. PASSWORD INPUT ---
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "رمز عبور (۴ تا ۸ رقم)",
+                            text = stringResource(R.string.password_label),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = colors.textSecondary,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -287,7 +288,7 @@ fun PasswordManagementScreenContent(
                                 },
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.NumberPassword,
-                                    imeAction = ImeAction.Next // 🚀 Jump Next
+                                    imeAction = ImeAction.Next
                                 ),
                                 keyboardActions = KeyboardActions(
                                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
@@ -362,10 +363,10 @@ fun PasswordManagementScreenContent(
                             Spacer(modifier = Modifier.width(10.dp))
 
                             val statusText = when (state.passwordStrength) {
-                                PasswordStrength.NONE -> "رمز را وارد کنید"
-                                PasswordStrength.WEAK -> "خیلی کوتاه"
-                                PasswordStrength.MEDIUM -> "متوسط"
-                                PasswordStrength.STRONG -> "قوی ✓"
+                                PasswordStrength.NONE -> stringResource(R.string.password_strength_none)
+                                PasswordStrength.WEAK -> stringResource(R.string.password_strength_weak)
+                                PasswordStrength.MEDIUM -> stringResource(R.string.password_strength_medium)
+                                PasswordStrength.STRONG -> stringResource(R.string.password_strength_strong)
                             }
                             Text(
                                 text = statusText,
@@ -380,7 +381,7 @@ fun PasswordManagementScreenContent(
                     // --- 3. CONFIRM PASSWORD ---
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "تکرار رمز عبور",
+                            text = stringResource(R.string.password_confirm_label),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = colors.textSecondary,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -392,20 +393,18 @@ fun PasswordManagementScreenContent(
                                 onValueChange = {
                                     val filtered = it.filter { char -> char.isDigit() }
                                     if (filtered.length <= 8) onEvent(
-                                        PasswordEventV2.ConfirmPasswordChanged(
-                                            filtered
-                                        )
+                                        PasswordEventV2.ConfirmPasswordChanged(filtered)
                                     )
                                 },
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.NumberPassword,
-                                    imeAction = ImeAction.Done // 🚀 Done Action
+                                    imeAction = ImeAction.Done
                                 ),
                                 keyboardActions = KeyboardActions(
                                     onDone = {
                                         focusManager.clearFocus()
                                         if (state.isFormValid && !state.isLoading) {
-                                            onEvent(PasswordEventV2.SubmitClicked) // 🚀 Auto Submit
+                                            onEvent(PasswordEventV2.SubmitClicked)
                                         }
                                     }
                                 ),
@@ -442,13 +441,13 @@ fun PasswordManagementScreenContent(
                         if (state.confirmPasswordInput.isNotEmpty()) {
                             if (state.passwordsMatch) {
                                 Text(
-                                    "✓ رمزها مطابقت دارند",
+                                    stringResource(R.string.password_match_success),
                                     color = colors.primary,
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                                 )
                             } else {
                                 Text(
-                                    "✕ رمزها یکسان نیستند",
+                                    stringResource(R.string.password_match_error),
                                     color = colors.red,
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                                 )
@@ -498,7 +497,7 @@ fun PasswordManagementScreenContent(
                             )
                         } else {
                             Text(
-                                text = "تأیید و ورود به اپ",
+                                text = stringResource(R.string.password_submit_button),
                                 color = colors.textOnPrimaryVariant,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
@@ -509,7 +508,7 @@ fun PasswordManagementScreenContent(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "🔐 این رمز برای خروج از حالت فرزند استفاده می‌شود",
+                        text = stringResource(R.string.password_footer_note),
                         color = colors.textSecondary,
                         style = MaterialTheme.typography.labelSmall,
                         textAlign = TextAlign.Center

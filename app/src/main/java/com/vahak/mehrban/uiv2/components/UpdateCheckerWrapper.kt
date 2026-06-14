@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.vahak.mehrban.AppDownloadState
 import com.vahak.mehrban.MainViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.UpdateState
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 
@@ -80,7 +82,7 @@ fun UpdateCheckerWrapper(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "🚀 نسخه جدید در دسترس است",
+                        text = stringResource(R.string.update_new_version_available),
                         fontWeight = FontWeight.Black,
                         fontSize = 18.sp,
                         color = colors.textPrimary
@@ -122,7 +124,7 @@ fun UpdateCheckerWrapper(
                                 shape = RoundedCornerShape(14.dp)
                             ) {
                                 Text(
-                                    "دانلود و نصب مستقیم",
+                                    stringResource(R.string.update_download_install),
                                     color = colors.textOnPrimaryVariant,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -137,7 +139,7 @@ fun UpdateCheckerWrapper(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    "در حال اتصال به سرور دانلود...",
+                                    stringResource(R.string.update_connecting),
                                     fontSize = 12.sp,
                                     color = colors.textSecondary
                                 )
@@ -157,7 +159,7 @@ fun UpdateCheckerWrapper(
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    "در حال دریافت فایل: $progress%",
+                                    stringResource(R.string.update_downloading, progress),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.textPrimary
@@ -189,7 +191,7 @@ fun UpdateCheckerWrapper(
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Text(
-                                        "تلاش مجدد",
+                                        stringResource(R.string.update_retry),
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -199,7 +201,7 @@ fun UpdateCheckerWrapper(
 
                         is AppDownloadState.Success -> {
                             Text(
-                                "دریافت کامل شد. در حال اجرای نصاب...",
+                                stringResource(R.string.update_success_installing),
                                 color = colors.green,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
@@ -218,7 +220,7 @@ fun UpdateCheckerWrapper(
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.red),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("خروج از برنامه", fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.update_exit_app), fontWeight = FontWeight.Bold)
                             }
                         } else {
                             Spacer(modifier = Modifier.height(4.dp))
@@ -227,7 +229,7 @@ fun UpdateCheckerWrapper(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    "بعداً یادآوری کن",
+                                    stringResource(R.string.update_remind_later),
                                     color = colors.textHint,
                                     fontWeight = FontWeight.Bold
                                 )

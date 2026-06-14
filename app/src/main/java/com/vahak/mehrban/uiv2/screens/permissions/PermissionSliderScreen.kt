@@ -51,13 +51,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.receiver.SecurityAdminReceiver
 import com.vahak.mehrban.core.util.PermissionChecker
 import com.vahak.mehrban.core.util.PermissionType
@@ -68,7 +71,6 @@ import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
-import androidx.core.net.toUri
 
 @Composable
 fun PermissionSliderScreen(
@@ -77,6 +79,7 @@ fun PermissionSliderScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val deviceAdminExplanation = stringResource(R.string.permission_device_admin_explanation)
 
     var checkTrigger by remember { mutableIntStateOf(0) }
     var currentPermissionToCheck by remember { mutableStateOf<PermissionType?>(null) }
@@ -125,7 +128,7 @@ fun PermissionSliderScreen(
                                 putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
                                 putExtra(
                                     DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                                    "برای جلوگیری از حذف برنامه توسط کودک، این دسترسی الزامی است."
+                                    deviceAdminExplanation
                                 )
                             }
 
@@ -184,7 +187,7 @@ fun PermissionSliderContent(
         containerColor = colors.background,
         bottomBar = {
             PermissionFooterV2(
-                buttonText = "اعطای دسترسی",
+                buttonText = stringResource(R.string.permission_grant_access),
                 onGrantClick = { onGrantClick(permissions[pagerState.currentPage]) },
             )
         }
@@ -194,7 +197,6 @@ fun PermissionSliderContent(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Header with animated progress bar
             PermissionHeaderV2(
                 currentPage = pagerState.currentPage + 1,
                 totalPages = permissions.size
@@ -240,7 +242,7 @@ fun PermissionSliderContent(
                     }
 
                     Text(
-                        text = currentPermission.title,
+                        text = stringResource(currentPermission.titleRes),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
                         color = colors.textPrimary,
@@ -249,7 +251,7 @@ fun PermissionSliderContent(
                     )
 
                     Text(
-                        text = currentPermission.description,
+                        text = stringResource(currentPermission.descRes),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,
                         textAlign = TextAlign.Center,
@@ -259,15 +261,15 @@ fun PermissionSliderContent(
                     // Conditional Info/Warning Boxes
                     when (currentPermission) {
                         PermissionType.ACCESSIBILITY, PermissionType.USAGE_STATS -> {
-                            InfoBoxV2("این دسترسی هیچ اطلاعات شخصی را جمع‌آوری نمی‌کند. فقط نام اپ‌های فعال را می‌بیند.")
+                            InfoBoxV2(stringResource(R.string.permission_info_accessibility_usage))
                         }
 
                         PermissionType.DEVICE_ADMIN -> {
-                            WarningBoxV2("توجه: این دسترسی فقط با رمز والدین قابل لغو است.")
+                            WarningBoxV2(stringResource(R.string.permission_warning_device_admin))
                         }
 
                         PermissionType.VPN -> {
-                            InfoBoxV2("این VPN هیچ داده‌ای به اینترنت ارسال نمی‌کند و فقط برای فیلتر داخلی استفاده می‌شود.")
+                            InfoBoxV2(stringResource(R.string.permission_info_vpn))
                         }
 
                         else -> {}
@@ -275,9 +277,12 @@ fun PermissionSliderContent(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Dynamic Guide steps mapped from PermissionType.instruction
-                    currentPermission.instruction.forEachIndexed { index, step ->
-                        TutorialStepV2(stepNumber = index + 1, instruction = step)
+                    // Dynamic Guide steps mapped from resource IDs
+                    currentPermission.instructionResIds.forEachIndexed { index, stepResId ->
+                        TutorialStepV2(
+                            stepNumber = index + 1,
+                            instruction = stringResource(stepResId)
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -329,13 +334,13 @@ fun PermissionHeaderV2(currentPage: Int, totalPages: Int) {
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    "مهربان",
+                    stringResource(R.string.app_name_pro),
                     color = Color.White,
                     fontWeight = FontWeight.Black,
                     fontSize = 18.sp
                 )
                 Text(
-                    "راه‌اندازی دسترسی‌ها",
+                    stringResource(R.string.permission_setup_header),
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 12.sp
                 )
@@ -473,7 +478,7 @@ fun PermissionFooterV2(buttonText: String, onGrantClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(16.dp) // Shadow must be applied before background for standard elevation
+            .shadow(16.dp)
             .background(colors.surface)
             .padding(20.dp)
     ) {
@@ -508,7 +513,7 @@ fun PermissionFooterV2(buttonText: String, onGrantClick: () -> Unit) {
 @Composable
 fun PermissionSliderPreviewLight() {
     val mockPermissions = listOf(
-        PermissionType.USAGE_STATS.apply { /* Mock logic */ },
+        PermissionType.USAGE_STATS,
         PermissionType.DEVICE_ADMIN,
         PermissionType.ACCESSIBILITY
     )
@@ -522,7 +527,8 @@ fun PermissionSliderPreviewLight() {
     }
 }
 
-@Preview(showBackground = true, name = "2. Permission Slider Dark", locale = "fa",
+@Preview(
+    showBackground = true, name = "2. Permission Slider Dark", locale = "fa",
     showSystemUi = true, device = "spec:parent=pixel_5,navigation=buttons"
 )
 @Composable

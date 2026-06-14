@@ -44,11 +44,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.Gender
 import com.vahak.mehrban.presentation.family.FamilyChildUi
@@ -101,11 +103,11 @@ fun FamilyManagementContent(
             onDismissRequest = { childIdToDelete = null },
             containerColor = colors.surface,
             title = {
-                Text("حذف فرزند", fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                Text(stringResource(R.string.delete_child_title), fontWeight = FontWeight.Bold, color = colors.textPrimary)
             },
             text = {
                 Text(
-                    "آیا از حذف این پروفایل اطمینان دارید؟ تمام تنظیمات مربوط به این فرزند حذف خواهند شد.",
+                    stringResource(R.string.delete_child_message),
                     color = colors.textSecondary
                 )
             },
@@ -116,12 +118,12 @@ fun FamilyManagementContent(
                         childIdToDelete = null
                     }
                 ) {
-                    Text("حذف", color = colors.red, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.delete), color = colors.red, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { childIdToDelete = null }) {
-                    Text("انصراف", color = colors.textPrimary)
+                    Text(stringResource(R.string.cancel), color = colors.textPrimary)
                 }
             }
         )
@@ -148,7 +150,7 @@ fun FamilyManagementContent(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "روی هر فرزند بزنید تا تنظیمات او باز شود",
+                    text = stringResource(R.string.tap_child_for_settings),
                     fontSize = 12.sp,
                     color = colors.textSecondary,
                     fontWeight = FontWeight.Bold,
@@ -166,7 +168,7 @@ fun FamilyManagementContent(
                     }
                 } else if (state.children.isEmpty()) {
                     Text(
-                        text = "هنوز فرزندی اضافه نشده است.",
+                        text = stringResource(R.string.no_children_added),
                         color = colors.textHint,
                         modifier = Modifier.padding(vertical = 20.dp)
                     )
@@ -217,9 +219,9 @@ fun FamilyScreenHeaderV2(onAddChildClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("مدیریت فرزندان", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+                Text(stringResource(R.string.manage_children), color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
                 Text(
-                    "فرزندان شما",
+                    stringResource(R.string.your_children),
                     color = Color.White,
                     fontWeight = FontWeight.Black,
                     fontSize = 20.sp
@@ -257,7 +259,11 @@ fun ChildCardV2(
 
     val hours = childUi.usageSecondsToday / 3600
     val mins = (childUi.usageSecondsToday % 3600) / 60
-    val ageText = if (childUi.ageYears > 0) "${childUi.ageYears} ساله" else "کمتر از یک سال"
+    val ageText = if (childUi.ageYears > 0) {
+        stringResource(R.string.age_years, childUi.ageYears)
+    } else {
+        stringResource(R.string.age_less_than_one)
+    }
 
     Card(
         modifier = Modifier
@@ -295,8 +301,6 @@ fun ChildCardV2(
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-//                    Box(modifier = Modifier.size(8.dp).background(colors.green, CircleShape))
-//                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = ageText,
                         fontSize = 12.sp,
@@ -312,7 +316,7 @@ fun ChildCardV2(
                     fontWeight = FontWeight.Black,
                     color = colors.primary
                 )
-                Text("امروز", fontSize = 10.sp, color = colors.textSecondary)
+                Text(stringResource(R.string.today), fontSize = 10.sp, color = colors.textSecondary)
             }
 
             IconButton(
@@ -374,7 +378,7 @@ fun AddChildDashedCardV2(onClick: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = "افزودن فرزند جدید",
+                text = stringResource(R.string.add_new_child),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.primary
@@ -392,7 +396,6 @@ private val mockChild1 =
 private val mockChild2 =
     ChildEntity(id = "2", name = "سارا", dob = LocalDate.now().minusYears(8), gender = Gender.GIRL)
 
-// FIXED: Wrapped the mock ChildEntities into the required FamilyChildUi class
 private val mockChildUi1 =
     FamilyChildUi(child = mockChild1, ageYears = 10, usageSecondsToday = 6300)
 private val mockChildUi2 = FamilyChildUi(child = mockChild2, ageYears = 8, usageSecondsToday = 3600)

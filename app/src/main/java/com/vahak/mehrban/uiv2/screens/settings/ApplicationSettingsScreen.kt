@@ -36,11 +36,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.UpdateState
 import com.vahak.mehrban.core.util.LogExporter
 import com.vahak.mehrban.presentation.setting.AppSettingsEffect
@@ -60,10 +62,7 @@ fun ApplicationSettingsScreen(
     onLogoutComplete: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-
-    // 🚀 HOIST THE STATE HERE
     val updateState by viewModel.updateState.collectAsState()
-
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -80,10 +79,10 @@ fun ApplicationSettingsScreen(
 
     ApplicationSettingsContent(
         state = state,
-        updateState = updateState, // Pass state
+        updateState = updateState,
         onEvent = viewModel::onEvent,
-        onCheckForUpdates = viewModel::checkForUpdates, // Pass callback
-        onOpenUpdateDialog = viewModel::openUpdateDialog, // Pass callback
+        onCheckForUpdates = viewModel::checkForUpdates,
+        onOpenUpdateDialog = viewModel::openUpdateDialog,
         onNavigateToPasswordManagement = onNavigateToPasswordManagement,
         onExportLogsClick = {
             coroutineScope.launch {
@@ -95,7 +94,7 @@ fun ApplicationSettingsScreen(
 @Composable
 fun ApplicationSettingsContent(
     state: AppSettingsState,
-    updateState: UpdateState, // 🚀 Now it only needs the raw state
+    updateState: UpdateState,
     onEvent: (AppSettingsEvent) -> Unit,
     onCheckForUpdates: () -> Unit,
     onOpenUpdateDialog: () -> Unit,
@@ -150,7 +149,7 @@ fun ApplicationSettingsContent(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "والد گرامی",
+                        text = stringResource(R.string.dear_parent),
                         color = Color.White,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Black
@@ -183,7 +182,7 @@ fun ApplicationSettingsContent(
                     icon = AppIcons.LockBadge,
                     iconBgColor = colors.blue.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.blue,
-                    title = "تنظیمات رمز عبور",
+                    title = stringResource(R.string.settings_password_settings),
                     onClick = onNavigateToPasswordManagement
                 )
 
@@ -191,29 +190,29 @@ fun ApplicationSettingsContent(
                     icon = AppIcons.Notification,
                     iconBgColor = colors.green.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.green,
-                    title = "اعلان‌ها",
+                    title = stringResource(R.string.settings_notifications),
                     onClick = { /* TODO */ })
 
                 ProfileMenuItemV2(
                     icon = AppIcons.ShieldCheck,
                     iconBgColor = colors.primary.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.primary,
-                    title = "حریم خصوصی",
+                    title = stringResource(R.string.settings_privacy),
                     onClick = { /* TODO */ })
 
-                // 🚀 DYNAMIC UPDATE MENU ITEM
+                // Dynamic update menu item
                 when (updateState) {
                     is UpdateState.UpdateAvailable -> {
                         ProfileMenuItemV2(
                             icon = AppIcons.Notification,
                             iconBgColor = colors.orangeLight,
                             iconTintColor = colors.orange,
-                            title = "نسخه جدید در دسترس است!",
+                            title = stringResource(R.string.settings_update_available),
                             titleColor = colors.orange,
                             modifier = Modifier.border(
                                 1.dp, colors.orange.copy(alpha = 0.5f), RoundedCornerShape(12.dp)
                             ),
-                            onClick = onOpenUpdateDialog // 🚀 Use callback
+                            onClick = onOpenUpdateDialog
                         )
                     }
 
@@ -222,7 +221,7 @@ fun ApplicationSettingsContent(
                             icon = AppIcons.Info,
                             iconBgColor = colors.textSecondary.copy(alpha = 0.1f),
                             iconTintColor = colors.textSecondary,
-                            title = "در حال بررسی بروزرسانی...",
+                            title = stringResource(R.string.settings_update_checking),
                             onClick = { })
                     }
 
@@ -231,8 +230,8 @@ fun ApplicationSettingsContent(
                             icon = AppIcons.Info,
                             iconBgColor = colors.primary.copy(alpha = if (isDark) 0.15f else 0.1f),
                             iconTintColor = colors.primary,
-                            title = "بررسی بروزرسانی برنامه",
-                            onClick = onCheckForUpdates // 🚀 Use callback
+                            title = stringResource(R.string.settings_update_check),
+                            onClick = onCheckForUpdates
                         )
                     }
                 }
@@ -241,14 +240,14 @@ fun ApplicationSettingsContent(
                     icon = AppIcons.Info,
                     iconBgColor = colors.orange.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.orange,
-                    title = "راهنما و پشتیبانی",
+                    title = stringResource(R.string.settings_help_support),
                     onClick = { /* TODO */ })
 
                 ProfileMenuItemV2(
                     icon = AppIcons.ChartBar,
                     iconBgColor = colors.textSecondary.copy(alpha = if (isDark) 0.2f else 0.1f),
                     iconTintColor = colors.textSecondary,
-                    title = "ارسال گزارش سیستم (Debug)",
+                    title = stringResource(R.string.settings_export_logs),
                     onClick = onExportLogsClick
                 )
 
@@ -258,7 +257,7 @@ fun ApplicationSettingsContent(
                     icon = AppIcons.Logout,
                     iconBgColor = colors.redLight,
                     iconTintColor = colors.red,
-                    title = "خروج از حساب کاربری",
+                    title = stringResource(R.string.settings_logout),
                     titleColor = colors.red,
                     modifier = Modifier.border(2.dp, colors.redLight, RoundedCornerShape(12.dp)),
                     onClick = { onEvent(AppSettingsEvent.LogoutClicked) })
@@ -356,7 +355,7 @@ fun ThemeSwitcherCard(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "ظاهر برنامه",
+                text = stringResource(R.string.settings_theme_title),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = colors.textPrimary
@@ -372,21 +371,21 @@ fun ThemeSwitcherCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             ThemeOptionButton(
-                title = "روشن",
+                title = stringResource(R.string.settings_theme_light),
                 icon = AppIcons.Sun,
                 isSelected = currentTheme == AppTheme.LIGHT,
                 onClick = { onThemeChange(AppTheme.LIGHT) },
                 modifier = Modifier.weight(1f)
             )
             ThemeOptionButton(
-                title = "تیره",
+                title = stringResource(R.string.settings_theme_dark),
                 icon = AppIcons.Moon,
                 isSelected = currentTheme == AppTheme.DARK,
                 onClick = { onThemeChange(AppTheme.DARK) },
                 modifier = Modifier.weight(1f)
             )
             ThemeOptionButton(
-                title = "سیستم",
+                title = stringResource(R.string.settings_theme_system),
                 icon = AppIcons.Smartphone,
                 isSelected = currentTheme == AppTheme.SYSTEM,
                 onClick = { onThemeChange(AppTheme.SYSTEM) },
@@ -443,7 +442,7 @@ fun ApplicationSettingsScreenPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         ApplicationSettingsContent(
             state = AppSettingsState("9368630582", AppTheme.LIGHT),
-            updateState = UpdateState.UpToDate, // 🚀 Mock State
+            updateState = UpdateState.UpToDate,
             onEvent = {},
             onCheckForUpdates = {},
             onOpenUpdateDialog = {},

@@ -1,11 +1,14 @@
 package com.vahak.mehrban.presentation.login
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.R
 import com.vahak.mehrban.domain.repository.AuthRepository
 import com.vahak.mehrban.domain.usecase.OtpValidationResult
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -34,7 +37,8 @@ sealed class OtpEffect {
 @HiltViewModel
 class OtpViewModel @Inject constructor(
     private val repository: AuthRepository,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    @ApplicationContext private val context: Context
 ) : BaseViewModel<OtpState, OtpEvent, OtpEffect>(OtpState()) {
 
     private var timerJob: Job? = null
@@ -77,7 +81,7 @@ class OtpViewModel @Inject constructor(
             val result = repository.verifyOtp(phone, state.value.otpCode)
 
             result.onSuccess { pair ->
-                val (_, hasPinSetup) = pair // Extract the flag
+                val (_, hasPinSetup) = pair
 
                 if (hasPinSetup) {
                     sendEffect(OtpEffect.NavigateToDashboard)
@@ -97,7 +101,7 @@ class OtpViewModel @Inject constructor(
             val result = repository.requestOtp(phone)
 
             if (result is OtpValidationResult.Success) {
-                sendEffect(OtpEffect.ShowToast("کد جدید با موفقیت ارسال شد"))
+                sendEffect(OtpEffect.ShowToast(context.getString(R.string.otp_resend_success)))
                 startTimer(result.expiresInSeconds)
             } else if (result is OtpValidationResult.Error) {
                 updateState { copy(errorMessage = result.message) }

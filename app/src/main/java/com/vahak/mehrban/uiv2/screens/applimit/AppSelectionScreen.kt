@@ -46,11 +46,13 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.presentation.appselection.AppFilterTab
 import com.vahak.mehrban.presentation.appselection.AppItemUi
 import com.vahak.mehrban.presentation.appselection.AppSelectionEffectV2
@@ -105,8 +107,8 @@ fun AppSelectionContent(
 
             // --- HARMONIZED HEADER ---
             AppSelectionHeaderV2(
-                title = "قفل برنامه‌ها",
-                subtitle = "تنظیمات دسترسی",
+                title = stringResource(R.string.app_lock_title),
+                subtitle = stringResource(R.string.app_lock_subtitle),
                 iconEmoji = "🔒",
                 onBackClick = { onEvent(AppSelectionEventV2.BackClicked) }
             )
@@ -117,7 +119,7 @@ fun AppSelectionContent(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .offset(y = (-30).dp)
-                    .weight(1f), // Critical: lets the list scroll inside the card
+                    .weight(1f),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = colors.surface),
                 elevation = CardDefaults.cardElevation(8.dp)
@@ -133,7 +135,7 @@ fun AppSelectionContent(
                             value = state.searchQuery,
                             onValueChange = { onEvent(AppSelectionEventV2.UpdateSearchQuery(it)) },
                             placeholder = {
-                                Text("جستجوی برنامه...", color = colors.textHint, fontSize = 13.sp)
+                                Text(stringResource(R.string.search_hint), color = colors.textHint, fontSize = 13.sp)
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
@@ -157,19 +159,19 @@ fun AppSelectionContent(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         FilterTabItemV2(
-                            title = "مسدود شده",
+                            title = stringResource(R.string.tab_blocked),
                             isSelected = state.selectedTab == AppFilterTab.BLOCKED,
                             modifier = Modifier.weight(1f),
                             onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.BLOCKED)) }
                         )
                         FilterTabItemV2(
-                            title = "مجاز",
+                            title = stringResource(R.string.tab_allowed),
                             isSelected = state.selectedTab == AppFilterTab.ALLOWED,
                             modifier = Modifier.weight(1f),
                             onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.ALLOWED)) }
                         )
                         FilterTabItemV2(
-                            title = "همه برنامه‌ها",
+                            title = stringResource(R.string.tab_all),
                             isSelected = state.selectedTab == AppFilterTab.ALL,
                             modifier = Modifier.weight(1f),
                             onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.ALL)) }
@@ -187,7 +189,7 @@ fun AppSelectionContent(
                             )
                         } else if (state.filteredApps.isEmpty()) {
                             Text(
-                                text = "برنامه‌ای یافت نشد.",
+                                text = stringResource(R.string.no_apps_found),
                                 color = colors.textHint,
                                 modifier = Modifier.align(Alignment.Center)
                             )
@@ -217,7 +219,6 @@ fun AppSelectionContent(
                         }
                     }
 
-                    // --- NEW: Harmonized Save Button ---
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = { onEvent(AppSelectionEventV2.SaveClicked) },
@@ -245,7 +246,7 @@ fun AppSelectionContent(
                             )
                         } else {
                             Text(
-                                "ذخیره تنظیمات",
+                                stringResource(R.string.button_save_settings),
                                 color = colors.textOnPrimaryVariant,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold

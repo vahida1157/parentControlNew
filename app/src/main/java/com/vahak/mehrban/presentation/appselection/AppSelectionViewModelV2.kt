@@ -1,11 +1,14 @@
 package com.vahak.mehrban.presentation.appselection
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.util.AppFetchManager
 import com.vahak.mehrban.domain.repository.AppRuleRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -16,7 +19,7 @@ enum class AppFilterTab { BLOCKED, ALLOWED, ALL }
 
 data class AppSelectionStateV2(
     val isLoading: Boolean = true,
-    val isSaving: Boolean = false, // NEW: Track save state
+    val isSaving: Boolean = false,
     val searchQuery: String = "",
     val selectedTab: AppFilterTab = AppFilterTab.ALL,
     val installedApps: List<AppItemUi> = emptyList()
@@ -40,20 +43,21 @@ sealed class AppSelectionEventV2 {
     data class ToggleApp(val packageName: String, val isAllowed: Boolean) : AppSelectionEventV2()
     data class UpdateSearchQuery(val query: String) : AppSelectionEventV2()
     data class TabSelected(val tab: AppFilterTab) : AppSelectionEventV2()
-    object SaveClicked : AppSelectionEventV2() // NEW: Explicit Save Event
+    object SaveClicked : AppSelectionEventV2()
     object BackClicked : AppSelectionEventV2()
 }
 
 sealed class AppSelectionEffectV2 {
     object NavigateBack : AppSelectionEffectV2()
-    data class ShowToast(val message: String) : AppSelectionEffectV2() // NEW: Toast effect
+    data class ShowToast(val message: String) : AppSelectionEffectV2()
 }
 
 @HiltViewModel
 class AppSelectionViewModelV2 @Inject constructor(
     private val appRuleRepository: AppRuleRepository,
     private val appFetchManager: AppFetchManager,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    @ApplicationContext private val context: Context
 ) : BaseViewModel<AppSelectionStateV2, AppSelectionEventV2, AppSelectionEffectV2>(
     AppSelectionStateV2()
 ) {
@@ -103,21 +107,19 @@ class AppSelectionViewModelV2 @Inject constructor(
             is AppSelectionEventV2.TabSelected -> updateState { copy(selectedTab = event.tab) }
 
             is AppSelectionEventV2.SaveClicked -> {
-                // FIXED: Explicitly push only when the user wants to save
                 viewModelScope.launch(Dispatchers.IO) {
                     updateState { copy(isSaving = true) }
                     appRuleRepository.pushRulesToServer(currentChildId)
 
                     withContext(Dispatchers.Main) {
                         updateState { copy(isSaving = false) }
-                        sendEffect(AppSelectionEffectV2.ShowToast("دسترسی برنامه‌ها ذخیره شد ✅"))
+                        sendEffect(AppSelectionEffectV2.ShowToast(context.getString(R.string.app_access_saved)))
                         sendEffect(AppSelectionEffectV2.NavigateBack)
                     }
                 }
             }
 
             is AppSelectionEventV2.BackClicked -> {
-                // FIXED: Back button just goes back. It no longer auto-saves!
                 sendEffect(AppSelectionEffectV2.NavigateBack)
             }
         }

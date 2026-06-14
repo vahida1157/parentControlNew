@@ -42,12 +42,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.presentation.timelimit.TimeLimitEffectV2
 import com.vahak.mehrban.presentation.timelimit.TimeLimitEventV2
 import com.vahak.mehrban.presentation.timelimit.TimeLimitStateV2
@@ -101,8 +103,8 @@ fun TimeLimitContent(
                 .verticalScroll(rememberScrollState())
         ) {
             ScreenHeaderV2(
-                title = "مدیریت زمان استفاده",
-                subtitle = "تنظیمات",
+                title = stringResource(R.string.timelimit_title),
+                subtitle = stringResource(R.string.timelimit_subtitle),
                 iconEmoji = "⏰",
                 onBackClick = { onEvent(TimeLimitEventV2.BackClicked) }
             )
@@ -123,8 +125,8 @@ fun TimeLimitContent(
                 ) {
 
                     ToggleRowV2(
-                        title = "فعال‌سازی محدودیت زمان",
-                        desc = "اعمال سقف استفاده روزانه",
+                        title = stringResource(R.string.timelimit_activate_title),
+                        desc = stringResource(R.string.timelimit_activate_desc),
                         iconEmoji = "⏳",
                         iconBg = colors.orangeLight,
                         isActive = state.isTimeLimitActive,
@@ -135,7 +137,7 @@ fun TimeLimitContent(
 
                     if (state.isTimeLimitActive) {
                         Text(
-                            text = "انتخاب سریع",
+                            text = stringResource(R.string.timelimit_quick_select),
                             fontSize = 12.sp,
                             color = colors.textSecondary,
                             fontWeight = FontWeight.Bold,
@@ -146,22 +148,22 @@ fun TimeLimitContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             TimePresetButton(
-                                title = "۳۰ دقیقه",
+                                title = stringResource(R.string.timelimit_30min),
                                 isSelected = state.hours == 0 && state.minutes == 30,
                                 modifier = Modifier.weight(1f)
                             ) { onEvent(TimeLimitEventV2.TimePresetSelected(0, 30)) }
                             TimePresetButton(
-                                title = "۱ ساعت",
+                                title = stringResource(R.string.timelimit_1hour),
                                 isSelected = state.hours == 1 && state.minutes == 0,
                                 modifier = Modifier.weight(1f)
                             ) { onEvent(TimeLimitEventV2.TimePresetSelected(1, 0)) }
                             TimePresetButton(
-                                title = "۲ ساعت",
+                                title = stringResource(R.string.timelimit_2hours),
                                 isSelected = state.hours == 2 && state.minutes == 0,
                                 modifier = Modifier.weight(1f)
                             ) { onEvent(TimeLimitEventV2.TimePresetSelected(2, 0)) }
                             TimePresetButton(
-                                title = "۳ ساعت",
+                                title = stringResource(R.string.timelimit_3hours),
                                 isSelected = state.hours == 3 && state.minutes == 0,
                                 modifier = Modifier.weight(1f)
                             ) { onEvent(TimeLimitEventV2.TimePresetSelected(3, 0)) }
@@ -170,14 +172,13 @@ fun TimeLimitContent(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Text(
-                            text = "یا زمان دلخواه را وارد کنید",
+                            text = stringResource(R.string.timelimit_custom_time),
                             fontSize = 12.sp,
                             color = colors.textSecondary,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 12.dp)
                         )
 
-                        // --- NEW: Clickable Time Display ---
                         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                             Row(
                                 modifier = Modifier
@@ -191,7 +192,7 @@ fun TimeLimitContent(
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 TimeDisplayBox(
-                                    label = "ساعت",
+                                    label = stringResource(R.string.hour),
                                     value = state.hours.toString(),
                                     modifier = Modifier.weight(1f)
                                 )
@@ -203,7 +204,7 @@ fun TimeLimitContent(
                                     modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                                 TimeDisplayBox(
-                                    label = "دقیقه",
+                                    label = stringResource(R.string.minute),
                                     value = state.minutes.toString(),
                                     modifier = Modifier.weight(1f)
                                 )
@@ -231,7 +232,7 @@ fun TimeLimitContent(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    "زمان مجاز روزانه:",
+                                    stringResource(R.string.timelimit_daily_allowed),
                                     fontSize = 11.sp,
                                     color = colors.textSecondary,
                                     fontWeight = FontWeight.Bold
@@ -294,7 +295,7 @@ fun TimeLimitContent(
                             )
                         } else {
                             Text(
-                                "ذخیره تنظیمات",
+                                stringResource(R.string.button_save_settings),
                                 color = colors.textOnPrimaryVariant,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
@@ -306,11 +307,10 @@ fun TimeLimitContent(
             Spacer(modifier = Modifier.height(30.dp))
         }
 
-        // --- NEW: Dynamic Time Picker Integration ---
         if (state.isPickerVisible) {
             DynamicTimePickerV2(
                 mode = PickerPresentationMode.BOTTOM_SHEET,
-                title = "تعیین سقف مصرف روزانه",
+                title = stringResource(R.string.time_limit_title),
                 initialHours = state.hours,
                 initialMinutes = state.minutes,
                 hoursRange = 0..23,

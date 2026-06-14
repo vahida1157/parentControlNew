@@ -2,6 +2,7 @@ package com.vahak.mehrban.domain.repository
 
 import android.content.Context
 import android.os.Environment
+import com.vahak.mehrban.R
 import com.vahak.mehrban.data.remote.AppUpdateApi
 import com.vahak.mehrban.data.remote.DownloadState
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -30,7 +31,6 @@ class UpdateDownloadManager @Inject constructor(
 
             var response: Response<ResponseBody>? = null
 
-            // 🚀 THE FIX: Try to resume. If the server aborts or says 416, catch it and reset.
             try {
                 response = api.downloadApk(downloadUrl, rangeHeader)
                 if (response.code() == 416 || !response.isSuccessful) {
@@ -48,13 +48,12 @@ class UpdateDownloadManager @Inject constructor(
             }
 
             if (response == null || !response.isSuccessful || response.body() == null) {
-                emit(DownloadState.Error("خطا در برقراری ارتباط با سرور"))
+                emit(DownloadState.Error(context.getString(R.string.error_download_connection_failed)))
                 return@flow
             }
 
             val body = response.body()!!
             val isPartialContent = response.code() == 206
-
             val totalLength = if (isPartialContent) body.contentLength() + downloadedLength else body.contentLength()
 
             var appendToFile = isPartialContent
@@ -88,7 +87,7 @@ class UpdateDownloadManager @Inject constructor(
             emit(DownloadState.Success(file))
 
         } catch (e: Exception) {
-            emit(DownloadState.Error("ارتباط قطع شد. لطفاً دوباره تلاش کنید."))
+            emit(DownloadState.Error(context.getString(R.string.error_download_connection_lost)))
         }
     }.flowOn(Dispatchers.IO)
 }

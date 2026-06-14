@@ -1,12 +1,15 @@
 package com.vahak.mehrban.presentation.sitemanagement
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.entity.BlockedDomainEntity
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.domain.repository.WebRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,14 +28,12 @@ sealed class SiteManagementEvent {
     data class DomainInputChanged(val input: String) : SiteManagementEvent()
     object AddDomainClicked : SiteManagementEvent()
     data class RemoveDomainClicked(val domain: BlockedDomainEntity) : SiteManagementEvent()
-    data class ToggleDomainStatus(val domain: BlockedDomainEntity, val isActive: Boolean) :
-        SiteManagementEvent()
+    data class ToggleDomainStatus(val domain: BlockedDomainEntity, val isActive: Boolean) : SiteManagementEvent()
 }
 
 sealed class SiteManagementEffect {
     object NavigateBack : SiteManagementEffect()
     data class ShowToast(val message: String) : SiteManagementEffect()
-
 }
 
 @HiltViewModel
@@ -40,6 +41,7 @@ class SiteManagementViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val settingsRepository: SettingsRepository,
     private val webRepository: WebRepository,
+    @ApplicationContext private val context: Context
 ) : BaseViewModel<SiteManagementState, SiteManagementEvent, SiteManagementEffect>(
     SiteManagementState()
 ) {
@@ -77,7 +79,6 @@ class SiteManagementViewModel @Inject constructor(
 
             is SiteManagementEvent.ToggleActive -> {
                 viewModelScope.launch {
-                    // This now properly flags is_synced = 0 and pushes to the server!
                     settingsRepository.updateSiteManagementToggle(childId, event.isActive)
                 }
             }
@@ -89,7 +90,7 @@ class SiteManagementViewModel @Inject constructor(
             is SiteManagementEvent.AddDomainClicked -> {
                 val input = state.value.domainInput.trim().lowercase()
                 if (input.isBlank() || !input.contains(".")) {
-                    sendEffect(SiteManagementEffect.ShowToast("لطفاً یک آدرس سایت معتبر وارد کنید (مثال: example.com)"))
+                    sendEffect(SiteManagementEffect.ShowToast(context.getString(R.string.invalid_domain_format)))
                     return
                 }
 

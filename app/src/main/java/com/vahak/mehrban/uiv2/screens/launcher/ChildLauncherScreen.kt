@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.entity.Gender
 import com.vahak.mehrban.core.util.AppInfo
 import com.vahak.mehrban.presentation.launcher.LauncherEffectV2
@@ -82,12 +84,13 @@ fun ChildLauncherScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val launcherExitToast = stringResource(R.string.launcher_exit_toast)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is LauncherEffectV2.RequestExit -> {
-                    Toast.makeText(context, "خروج از محیط امن", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, launcherExitToast, Toast.LENGTH_SHORT).show()
                     onExitLauncherClick()
                 }
 
@@ -153,7 +156,6 @@ fun ChildLauncherContentV2(
             )
         }
 
-        // 🚀 NEW: Security Question Dialog
         if (state.showRecoveryDialog) {
             LauncherRecoveryDialog(
                 question = state.securityQuestion,
@@ -298,13 +300,13 @@ fun LauncherHeader(childName: String, gender: Gender, onExitClick: () -> Unit) {
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "سلام،",
+                stringResource(R.string.launcher_greeting),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.textSecondary
             )
             Text(
-                childName.ifEmpty { "فرزند" },
+                childName.ifEmpty { stringResource(R.string.launcher_default_child_name) },
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Black,
                 color = colors.textPrimary
@@ -342,7 +344,6 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
     val remainHours = remainSeconds / 3600
     val remainMins = (remainSeconds % 3600) / 60
 
-    // PRO FIX: Dynamic solid color replacing the confusing gradient
     val barColor = when {
         !isActive || limitMins == 0 -> colors.green
         progress > 0.9f -> colors.red
@@ -364,7 +365,7 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
             verticalAlignment = Alignment.Bottom
         ) {
             Text(
-                "⏱️ زمان امروز",
+                stringResource(R.string.launcher_time_label),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.textSecondary
@@ -378,7 +379,7 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
                 )
                 if (isActive && limitMins > 0) {
                     Text(
-                        " از ",
+                        stringResource(R.string.launcher_of),
                         fontSize = 12.sp,
                         color = colors.textHint,
                         modifier = Modifier.padding(horizontal = 4.dp)
@@ -391,7 +392,7 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
                     )
                 } else {
                     Text(
-                        " (نامحدود)",
+                        stringResource(R.string.launcher_unlimited_suffix),
                         fontSize = 12.sp,
                         color = colors.textHint,
                         modifier = Modifier.padding(start = 4.dp)
@@ -402,7 +403,6 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // PRO FIX: LTR Layout with Dynamic Solid Color
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Box(
                 modifier = Modifier
@@ -422,10 +422,8 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
         Spacer(modifier = Modifier.height(10.dp))
 
         if (isActive && limitMins > 0) {
-            val remainText = buildString {
-                if (remainHours > 0) append("$remainHours ساعت و ")
-                append("$remainMins دقیقه باقی‌مانده")
-            }
+            val remainText =
+                stringResource(R.string.launcher_remaining_time, remainHours, remainMins)
             Text(
                 text = remainText,
                 fontSize = 11.sp,
@@ -512,10 +510,10 @@ fun LauncherBottomDock(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        DockItem("📞", "تماس", colors.green)
-        DockItem("📷", "دوربین", colors.primaryVariant) // Replacing purple with primaryVariant
-        DockItem("🖼️", "گالری", colors.red)
-        DockItem("🏠", "خانه", colors.primary)
+        DockItem("📞", stringResource(R.string.launcher_phone), colors.green)
+        DockItem("📷", stringResource(R.string.launcher_camera), colors.primaryVariant)
+        DockItem("🖼️", stringResource(R.string.launcher_gallery), colors.red)
+        DockItem("🏠", stringResource(R.string.launcher_home), colors.primary)
     }
 }
 
@@ -574,20 +572,19 @@ fun LauncherPinDialog(
 
             Spacer(modifier = Modifier.height(14.dp))
             Text(
-                "رمز والد",
+                stringResource(R.string.launcher_parent_pin),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
                 color = colors.textPrimary
             )
             Text(
-                "برای خروج از حالت لانچر، رمز والد را وارد کنید",
+                stringResource(R.string.launcher_pin_description),
                 fontSize = 12.sp,
                 color = colors.textSecondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
             )
 
-            // 🚀 FIXED: Custom Text-Based Input Field (No system keyboard pop-up, no fake dots)
             val x = if (isError) (-offsetX).dp else offsetX.dp
             Box(
                 modifier = Modifier
@@ -608,14 +605,13 @@ fun LauncherPinDialog(
             ) {
                 if (enteredPin.isEmpty()) {
                     Text(
-                        text = "رمز عبور (۴ تا ۸ رقم)",
+                        text = stringResource(R.string.launcher_pin_placeholder),
                         color = colors.textHint,
                         fontSize = 14.sp
                     )
                 } else {
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         Text(
-                            // Converts "1234" into "●  ●  ●  ●"
                             text = enteredPin.map { "●" }.joinToString("  "),
                             color = colors.textPrimary,
                             fontSize = 20.sp,
@@ -627,7 +623,7 @@ fun LauncherPinDialog(
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                if (isError) "رمز اشتباه است. دوباره تلاش کنید." else "",
+                if (isError) stringResource(R.string.launcher_pin_error) else "",
                 color = colors.red,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
@@ -689,20 +685,23 @@ fun LauncherPinDialog(
 
             TextButton(onClick = onForgotPinClick, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "رمز عبور را فراموش کرده‌اید؟",
+                    stringResource(R.string.launcher_forgot_pin),
                     color = colors.primary,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             TextButton(onClick = onCancelClick, modifier = Modifier.fillMaxWidth()) {
-                Text("انصراف", color = colors.textHint, fontWeight = FontWeight.Bold)
+                Text(
+                    stringResource(R.string.cancel),
+                    color = colors.textHint,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
 }
 
-// 🚀 NEW COMPOSABLE: Recovery Dialog
 @Composable
 fun LauncherRecoveryDialog(
     question: String,
@@ -733,7 +732,7 @@ fun LauncherRecoveryDialog(
 
             Spacer(modifier = Modifier.height(14.dp))
             Text(
-                "بازیابی رمز عبور",
+                stringResource(R.string.launcher_recovery_title),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
                 color = colors.textPrimary
@@ -742,7 +741,7 @@ fun LauncherRecoveryDialog(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                "سوال امنیتی:",
+                stringResource(R.string.launcher_recovery_question_label),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.textSecondary,
@@ -763,7 +762,12 @@ fun LauncherRecoveryDialog(
             androidx.compose.material3.OutlinedTextField(
                 value = answerInput,
                 onValueChange = onAnswerChange,
-                placeholder = { Text("پاسخ شما", color = colors.textHint) },
+                placeholder = {
+                    Text(
+                        stringResource(R.string.launcher_recovery_answer_placeholder),
+                        color = colors.textHint
+                    )
+                },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -779,7 +783,7 @@ fun LauncherRecoveryDialog(
 
             if (isError) {
                 Text(
-                    "پاسخ اشتباه است.",
+                    stringResource(R.string.launcher_recovery_error),
                     color = colors.red,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
@@ -805,7 +809,7 @@ fun LauncherRecoveryDialog(
                 enabled = answerInput.isNotBlank()
             ) {
                 Text(
-                    "بررسی و خروج",
+                    stringResource(R.string.launcher_recovery_submit),
                     color = colors.textOnPrimaryVariant,
                     fontWeight = FontWeight.Bold
                 )
@@ -814,7 +818,11 @@ fun LauncherRecoveryDialog(
             Spacer(modifier = Modifier.height(8.dp))
 
             TextButton(onClick = onCancelClick, modifier = Modifier.fillMaxWidth()) {
-                Text("انصراف", color = colors.textHint, fontWeight = FontWeight.Bold)
+                Text(
+                    stringResource(R.string.cancel),
+                    color = colors.textHint,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
@@ -836,7 +844,7 @@ fun ChildLauncherPreviewLightV2() {
                 gender = Gender.BOY,
                 isTimeLimitActive = true,
                 timeLimitMins = 120,
-                usageSeconds = 3600 // 1 hour used
+                usageSeconds = 3600
             ),
             onEvent = {}
         )

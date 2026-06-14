@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -57,6 +58,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
+import com.vahak.mehrban.R
 import com.vahak.mehrban.presentation.login.OtpEffect
 import com.vahak.mehrban.presentation.login.OtpEvent
 import com.vahak.mehrban.presentation.login.OtpState
@@ -198,7 +200,7 @@ fun OtpScreenContent(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Text(
-                        text = "تأیید شماره تلفن",
+                        text = stringResource(R.string.otp_title),
                         style = MaterialTheme.typography.headlineMedium,
                         color = Color.White,
                         fontWeight = FontWeight.Black
@@ -211,7 +213,7 @@ fun OtpScreenContent(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "کد ارسال شده به ",
+                            text = stringResource(R.string.otp_subtitle_prefix),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -222,7 +224,7 @@ fun OtpScreenContent(
                             modifier = Modifier.padding(horizontal = 4.dp)
                         )
                         Text(
-                            text = " را وارد کنید",
+                            text = stringResource(R.string.otp_subtitle_suffix),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -254,7 +256,7 @@ fun OtpScreenContent(
                             },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             cursorBrush = SolidColor(Color.Transparent),
-                            textStyle = TextStyle(color = Color.Transparent), // 🚀 Prevents native text artifacts
+                            textStyle = TextStyle(color = Color.Transparent),
                             modifier = Modifier.fillMaxWidth(),
                             decorationBox = {
                                 Row(
@@ -311,21 +313,14 @@ fun OtpScreenContent(
                         val seconds = state.timerSeconds.toString()
 
                         if (!state.canResend) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "ارسال مجدد تا ",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = Color.White.copy(alpha = 0.7f)
-                                )
-                                Text(
-                                    text = "$seconds ثانیه",
-                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = colors.yellow
-                                )
-                            }
+                            Text(
+                                text = stringResource(R.string.otp_resend_timer, seconds),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
                         } else {
                             Text(
-                                text = "ارسال مجدد کد",
+                                text = stringResource(R.string.otp_resend_active),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = colors.yellow,
                                 fontWeight = FontWeight.Bold,
@@ -380,7 +375,7 @@ fun OtpScreenContent(
                                 )
                             } else {
                                 Text(
-                                    text = "تأیید کد",
+                                    text = stringResource(R.string.otp_verify_code_button),
                                     color = Color.White,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold

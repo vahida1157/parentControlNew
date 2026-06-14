@@ -46,12 +46,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.receiver.SecurityAdminReceiver
 import com.vahak.mehrban.core.util.PermissionChecker
 import com.vahak.mehrban.core.util.PermissionType
@@ -68,15 +70,15 @@ fun PermissionSliderScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val deviceAdminExplanation = stringResource(R.string.permission_device_admin_explanation)
+    val helpMessage = stringResource(R.string.help_section_under_construction)
 
-    // THE FIX 1: We use a specific Int counter to force Compose to re-evaluate the LaunchedEffect every time they return from settings.
     var checkTrigger by remember { mutableIntStateOf(0) }
     var currentPermissionToCheck by remember { mutableStateOf<PermissionType?>(null) }
 
     val settingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { _ ->
-        // The user came back from Settings! Let's trigger the UI content to verify it.
         checkTrigger++
     }
 
@@ -88,19 +90,16 @@ fun PermissionSliderScreen(
                 }
 
                 is PermissionSliderEffect.LaunchAndroidSettings -> {
-                    // Remember which permission they are going to grant
                     currentPermissionToCheck = effect.permission
 
                     if (effect.permission == PermissionType.VPN) {
-                        // VpnService.prepare generates the exact intent needed to show the popup
                         val vpnIntent = VpnService.prepare(context)
                         if (vpnIntent != null) {
                             settingsLauncher.launch(vpnIntent)
                         } else {
-                            // If it's null, permission was already granted somehow, force a check!
                             checkTrigger++
                         }
-                        return@collect // Stop execution here for VPN
+                        return@collect
                     }
 
                     if (effect.permission == PermissionType.ACCESSIBILITY || effect.permission == PermissionType.DEVICE_ADMIN) {
@@ -116,14 +115,12 @@ fun PermissionSliderScreen(
                             }
 
                             PermissionType.DEVICE_ADMIN -> {
-                                // 🚀 THIS IS STEP 4 INTEGRATED!
-                                // We inject the exact component we want to activate.
                                 val adminComponent =
                                     ComponentName(context, SecurityAdminReceiver::class.java)
                                 putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
                                 putExtra(
                                     DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                                    "برای جلوگیری از حذف برنامه توسط کودک، این دسترسی الزامی است."
+                                    deviceAdminExplanation
                                 )
                             }
 
@@ -140,17 +137,16 @@ fun PermissionSliderScreen(
     if (state.missingPermissions.isNotEmpty()) {
         PermissionSliderContent(
             permissions = state.missingPermissions,
-            checkTrigger = checkTrigger, // THE FIX 1: Pass the trigger down to the content
+            checkTrigger = checkTrigger,
             permissionToCheck = currentPermissionToCheck,
             onGrantClick = { permission ->
                 viewModel.onEvent(PermissionSliderEvent.GrantClicked(permission))
             },
             onFinishSetup = { viewModel.onEvent(PermissionSliderEvent.SetupFinished) },
-            // THE FIX 2: Added the Help click handler
             onHelpClick = {
                 Toast.makeText(
                     context,
-                    "بخش راهنما در حال ساخت است",
+                    helpMessage,
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -158,36 +154,32 @@ fun PermissionSliderScreen(
     }
 }
 
-// 1. STATELESS UI
 @Composable
 fun PermissionSliderContent(
     permissions: List<PermissionType>,
-    checkTrigger: Int = 0, // NEW
-    permissionToCheck: PermissionType? = null, // NEW
+    checkTrigger: Int = 0,
+    permissionToCheck: PermissionType? = null,
     onGrantClick: (PermissionType) -> Unit,
     onFinishSetup: () -> Unit,
-    onHelpClick: () -> Unit // NEW: Added Help click callback
+    onHelpClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
     val pagerState = rememberPagerState(pageCount = { permissions.size })
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val grantAccessText = stringResource(R.string.permission_grant_access)
+    val finalConfirmText = stringResource(R.string.permission_final_confirm)
+    val underConstructionText = stringResource(R.string.help_section_under_construction)
 
-    // THE FIX 1: Watch the 'checkTrigger'. Whenever it increments, this block runs!
     LaunchedEffect(checkTrigger) {
         if (checkTrigger > 0 && permissionToCheck != null) {
-            // Verify if the Android System actually says it's granted
             if (PermissionChecker.hasPermission(context, permissionToCheck)) {
                 val currentPage = pagerState.currentPage
                 if (currentPage < permissions.lastIndex) {
-                    // Success! Smoothly scroll to the next slide
                     pagerState.animateScrollToPage(currentPage + 1)
                 } else {
-                    // All permissions granted!
                     onFinishSetup()
                 }
-            } else {
-                // They didn't grant it. Do nothing, let them stay on the current slide.
             }
         }
     }
@@ -203,7 +195,7 @@ fun PermissionSliderContent(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
-                userScrollEnabled = false // Prevent manual swiping
+                userScrollEnabled = false
             ) { page ->
                 val currentPermission = permissions[page]
                 val isLastPage = page == permissions.lastIndex
@@ -243,7 +235,7 @@ fun PermissionSliderContent(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = currentPermission.title,
+                            text = stringResource(currentPermission.titleRes),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary,
@@ -252,7 +244,7 @@ fun PermissionSliderContent(
                         )
 
                         Text(
-                            text = currentPermission.description,
+                            text = stringResource(currentPermission.descRes),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.textSecondary,
                             textAlign = TextAlign.Center,
@@ -269,9 +261,9 @@ fun PermissionSliderContent(
                                 modifier = Modifier.padding(24.dp),
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                currentPermission.instruction.forEach { step ->
+                                currentPermission.instructionResIds.forEach { resId ->
                                     Text(
-                                        text = step,
+                                        text = stringResource(resId),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = colors.textPrimary
                                     )
@@ -285,7 +277,6 @@ fun PermissionSliderContent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Grant Button
                         Button(
                             onClick = { onGrantClick(currentPermission) },
                             modifier = Modifier
@@ -295,7 +286,7 @@ fun PermissionSliderContent(
                             colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
                         ) {
                             Text(
-                                text = if (isLastPage) "تایید نهایی و ورود" else "اعطای دسترسی",
+                                text = if (isLastPage) finalConfirmText else grantAccessText,
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
@@ -308,7 +299,6 @@ fun PermissionSliderContent(
     }
 }
 
-// 2. SAFE PREVIEW
 @Preview(showBackground = true, name = "Permission Slider", locale = "fa")
 @Composable
 fun PermissionSliderPreview() {
@@ -321,7 +311,7 @@ fun PermissionSliderPreview() {
             ),
             onGrantClick = {},
             onFinishSetup = {},
-            onHelpClick = {} // Provided for preview
+            onHelpClick = {}
         )
     }
 }

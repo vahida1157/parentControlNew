@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -79,6 +80,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.vahak.mehrban.R
 import com.vahak.mehrban.UpdateState
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.Gender
@@ -127,10 +129,10 @@ fun DashboardScreen(
 
     DashboardScreenContent(
         state = state,
-        updateState = updateState, // Pass state
-        isUpdateIgnored = isUpdateIgnored, // Pass state
+        updateState = updateState,
+        isUpdateIgnored = isUpdateIgnored,
         onEvent = viewModel::onEvent,
-        onShowUpdateDialogAgain = viewModel::showUpdateDialogAgain, // Pass callback
+        onShowUpdateDialogAgain = viewModel::showUpdateDialogAgain,
         onAddChildClick = onAddChildClick,
         onManageFamilyClick = onManageFamilyClick,
         onSettingsClick = onSettingsClick,
@@ -146,10 +148,10 @@ fun DashboardScreen(
 @Composable
 fun DashboardScreenContent(
     state: DashboardState,
-    updateState: UpdateState, // 🚀 Added
-    isUpdateIgnored: Boolean, // 🚀 Added
+    updateState: UpdateState,
+    isUpdateIgnored: Boolean,
     onEvent: (DashboardEvent) -> Unit,
-    onShowUpdateDialogAgain: () -> Unit, // 🚀 Added
+    onShowUpdateDialogAgain: () -> Unit,
     onAddChildClick: () -> Unit,
     onManageFamilyClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
@@ -172,7 +174,7 @@ fun DashboardScreenContent(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 if (isPreview) {
-                    missingSecurityPermissions = emptyList() // Mock state for previews
+                    missingSecurityPermissions = emptyList()
                 } else {
                     // FIXME: Currently we commented out the permission for accessibility and device admin for publish issues,
 //                    val missing = listOf(
@@ -208,7 +210,7 @@ fun DashboardScreenContent(
                     modifier = Modifier
                         .offset(y = fabOffsetY.dp)
                 ) {
-                    Icon(AppIcons.Settings, contentDescription = "تکمیل امنیت")
+                    Icon(AppIcons.Settings, contentDescription = stringResource(R.string.complete_security))
                 }
         }) { _ ->
         Column(
@@ -241,11 +243,11 @@ fun DashboardScreenContent(
                     Text(
                         "✨",
                         fontSize = 16.sp,
-                        modifier = Modifier.scale(scale)   // 🔁 animated scale
+                        modifier = Modifier.scale(scale)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "نسخه جدید مهربان در دسترس است. برای مشاهده و بروزرسانی کلیک کنید.",
+                        text = stringResource(R.string.update_available_banner),
                         color = colors.orange,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
@@ -284,15 +286,17 @@ fun DashboardScreenContent(
                     )
                 }
 
+                val comingSoonText = stringResource(R.string.coming_soon)
+
                 ActionGridV2(
                     onSettingsClick = { onSettingsClick(state.activeChild.id) },
                     onReportClick = { onReportClick(state.activeChild.id) },
                     onTimeLockClick = { onTimeLockClick(state.activeChild.id) },
                     onLocationClick = {
-                        Toast.makeText(context, "به زودی در دسترس خواهد بود", Toast.LENGTH_SHORT)
-                            .show()
+                        Toast.makeText(context, comingSoonText, Toast.LENGTH_SHORT).show()
                     }
                 )
+
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -305,7 +309,6 @@ fun DashboardScreenContent(
 
     // --- LAUNCHER CONFIRMATION BOTTOM SHEET (Matches HTML #modal-launcher) ---
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    // --- LAUNCHER CONFIRMATION BOTTOM SHEET (Matches HTML #modal-launcher) ---
     if (showLauncherConfirmSheet && state.activeChild != null) {
         ModalBottomSheet(
             onDismissRequest = { showLauncherConfirmSheet = false },
@@ -338,14 +341,14 @@ fun DashboardScreenContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "فعال‌سازی لانچر امن",
+                    stringResource(R.string.launcher_safe_activation_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                     color = colors.textPrimary
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "پس از فعال‌سازی، دستگاه فقط برنامه‌های تأیید شده را نمایش می‌دهد و خروج از این حالت نیاز به رمز والد دارد.",
+                    stringResource(R.string.launcher_safe_activation_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center
@@ -374,7 +377,7 @@ fun DashboardScreenContent(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("فعال‌سازی برای فرزند", fontSize = 11.sp, color = colors.textSecondary)
+                        Text(stringResource(R.string.launcher_activation_for_child), fontSize = 11.sp, color = colors.textSecondary)
                         Text(
                             state.activeChild.name,
                             fontSize = 16.sp,
@@ -387,7 +390,7 @@ fun DashboardScreenContent(
                         onEvent(DashboardEvent.OpenChildSheet)
                     }) {
                         Text(
-                            "تغییر",
+                            stringResource(R.string.change),
                             color = colors.primary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
@@ -408,7 +411,7 @@ fun DashboardScreenContent(
                     Text("⚠️", fontSize = 20.sp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "برای خروج از حالت لانچر، رمز ۴ الی 8 رقمی والد را در دستگاه فرزند وارد کنید.",
+                        stringResource(R.string.launcher_exit_warning),
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFE65100),
@@ -447,7 +450,7 @@ fun DashboardScreenContent(
                             ), contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "🛡️ فعال‌سازی حالت لانچر",
+                            stringResource(R.string.launcher_activate_button),
                             color = Color.White,
                             fontWeight = FontWeight.Black,
                             fontSize = 15.sp
@@ -461,7 +464,7 @@ fun DashboardScreenContent(
                         .fillMaxWidth()
                         .padding(top = 8.dp)
                 ) {
-                    Text("انصراف", color = colors.textSecondary, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.cancel), color = colors.textSecondary, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -497,7 +500,7 @@ fun DashboardScreenContent(
 
                     Spacer(modifier = Modifier.height(20.dp))
                     Text(
-                        text = "تنظیم رمز عبور الزامی است",
+                        text = stringResource(R.string.pin_required_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
                         color = colors.textPrimary,
@@ -505,7 +508,7 @@ fun DashboardScreenContent(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "برای فعال‌سازی حالت محافظت و قفل کردن محیط کودک، ابتدا باید رمز عبور والدین را تنظیم کنید.",
+                        text = stringResource(R.string.pin_required_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,
                         textAlign = TextAlign.Center,
@@ -523,7 +526,7 @@ fun DashboardScreenContent(
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text(
-                            "تنظیم رمز عبور",
+                            stringResource(R.string.set_password_button),
                             color = colors.textOnPrimaryVariant,
                             fontWeight = FontWeight.Bold
                         )
@@ -534,7 +537,7 @@ fun DashboardScreenContent(
                         onClick = { onEvent(DashboardEvent.ClosePinRequiredDialog) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("انصراف", color = colors.textHint, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.cancel), color = colors.textHint, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -567,9 +570,9 @@ fun DashboardHeaderV2(onProfileClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("سلام 👋", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+                Text(stringResource(R.string.hello_greeting), color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
                 Text(
-                    "والد گرامی",
+                    stringResource(R.string.dear_parent),
                     color = Color.White,
                     fontWeight = FontWeight.Black,
                     fontSize = 20.sp
@@ -580,7 +583,7 @@ fun DashboardHeaderV2(onProfileClick: () -> Unit) {
                     .size(44.dp)
                     .background(avatarGradient, CircleShape)
                     .border(2.dp, Color.White.copy(alpha = 0.3f), CircleShape)
-                    .clickable { onProfileClick() }, // <-- 2. Call it here
+                    .clickable { onProfileClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -605,7 +608,7 @@ fun HomeChildSelectorV2(
 
     Column(modifier = Modifier.padding(top = 16.dp, bottom = 12.dp, start = 20.dp, end = 20.dp)) {
         Text(
-            text = "انتخاب فرزند",
+            text = stringResource(R.string.select_child),
             color = colors.textSecondary,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold
@@ -718,7 +721,7 @@ fun EmptyDashboardStateV2(onAddClick: () -> Unit) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "اولین فرزند خود را اضافه کنید",
+                    text = stringResource(R.string.first_child_add_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                     color = colors.primary
@@ -727,7 +730,7 @@ fun EmptyDashboardStateV2(onAddClick: () -> Unit) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "برای دسترسی به تنظیمات، گزارش‌ها و ابزارهای محافظتی، ابتدا پروفایل فرزندتان را بسازید.",
+                    text = stringResource(R.string.first_child_add_desc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
@@ -745,7 +748,7 @@ fun EmptyDashboardStateV2(onAddClick: () -> Unit) {
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Text(
-                        "افزودن فرزند",
+                        stringResource(R.string.button_add_child),
                         color = colors.textOnPrimaryVariant,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
@@ -767,7 +770,11 @@ fun ActiveChildSummaryCardV2(
     val colors = LocalCustomColors.current
 
     val age = Period.between(child.dob, LocalDate.now()).years
-    val ageText = if (age > 0) "$age ساله" else "کمتر از یک سال"
+    val ageText = if (age > 0) {
+        stringResource(R.string.age_years, age)
+    } else {
+        stringResource(R.string.age_less_than_one)
+    }
 
     val usageHours = usageSeconds / 3600
     val usageMins = (usageSeconds % 3600) / 60
@@ -776,12 +783,12 @@ fun ActiveChildSummaryCardV2(
     val limitHours = timeLimitMins / 60
     val limitMins = timeLimitMins % 60
     val formattedLimit = if (!isTimeLimitActive || timeLimitMins == 0) {
-        "نامحدود"
+        stringResource(R.string.unlimited)
     } else {
         buildString {
-            if (limitHours > 0) append("$limitHours ساعت ")
-            if (limitMins > 0) append("$limitMins دقیقه")
-        }.trim().ifEmpty { "نامحدود" }
+            if (limitHours > 0) append("$limitHours ${stringResource(R.string.hour)} ")
+            if (limitMins > 0) append("$limitMins ${stringResource(R.string.minute)}")
+        }.trim().ifEmpty { stringResource(R.string.unlimited) }
     }
 
     val totalLimitSeconds = (timeLimitMins * 60).toFloat().coerceAtLeast(1f)
@@ -848,13 +855,17 @@ fun ActiveChildSummaryCardV2(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    "زمان استفاده امروز",
+                    stringResource(R.string.usage_today_label),
                     fontSize = 12.sp,
                     color = colors.textSecondary,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    if (isTimeLimitActive && timeLimitMins > 0) "$formattedUsage از $formattedLimit" else "$formattedUsage (نامحدود)",
+                    if (isTimeLimitActive && timeLimitMins > 0) {
+                        stringResource(R.string.usage_today_value_with_limit, formattedUsage, formattedLimit)
+                    } else {
+                        stringResource(R.string.usage_today_value_unlimited, formattedUsage)
+                    },
                     fontSize = 12.sp, fontWeight = FontWeight.Black, color = colors.textPrimary
                 )
             }
@@ -866,7 +877,7 @@ fun ActiveChildSummaryCardV2(
                     .height(8.dp)
                     .clip(CircleShape),
                 color = when {
-                    !isTimeLimitActive || timeLimitMins == 0 -> colors.divider // 🚀 Force neutral color when unlimited
+                    !isTimeLimitActive || timeLimitMins == 0 -> colors.divider
                     progress > 0.9f -> colors.red
                     progress > 0.75f -> colors.yellow
                     else -> colors.primary
@@ -895,7 +906,6 @@ fun MiniStatItem(value: String, label: String) {
 @Composable
 fun LauncherCTAButtonV2(childName: String, isProtectionActive: Boolean, onClick: () -> Unit) {
     val colors = LocalCustomColors.current
-    // Change color to green if active
     val bgGradient = if (isProtectionActive) {
         Brush.linearGradient(listOf(colors.green, Color(0xFF0D9488)))
     } else {
@@ -903,7 +913,6 @@ fun LauncherCTAButtonV2(childName: String, isProtectionActive: Boolean, onClick:
     }
 
     Button(
-        // Disable clicking if it is already active
         onClick = { if (!isProtectionActive) onClick() },
         modifier = Modifier
             .padding(horizontal = 20.dp)
@@ -939,12 +948,12 @@ fun LauncherCTAButtonV2(childName: String, isProtectionActive: Boolean, onClick:
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        if (isProtectionActive) "محیط امن فعال است" else "ورود به حالت لانچر فرزند",
+                        if (isProtectionActive) stringResource(R.string.environment_active) else stringResource(R.string.enter_child_launcher_mode),
                         color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        if (isProtectionActive) "در حال محافظت از $childName" else "فعال‌سازی محیط امن برای $childName",
+                        if (isProtectionActive) stringResource(R.string.protecting_child, childName) else stringResource(R.string.activate_safe_environment_for, childName),
                         color = Color.White.copy(alpha = 0.95f), fontSize = 11.sp
                     )
                 }
@@ -963,8 +972,8 @@ fun ActionGridV2(
     Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ActionCardV2(
-                "تنظیمات کامل",
-                "زمان، فیلتر و قفل",
+                stringResource(R.string.settings_full),
+                stringResource(R.string.settings_full_desc),
                 "⚙️",
                 Color(0xFFE3F2FD),
                 Color(0xFF1976D2),
@@ -972,8 +981,8 @@ fun ActionGridV2(
                 onClick = onSettingsClick
             )
             ActionCardV2(
-                "گزارش عملکرد",
-                "آمار و فعالیت هفتگی",
+                stringResource(R.string.report_performance),
+                stringResource(R.string.report_performance_desc),
                 "📊",
                 Color(0xFFE8F5E9),
                 Color(0xFF27AE60),
@@ -984,8 +993,8 @@ fun ActionGridV2(
         Spacer(modifier = Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ActionCardV2(
-                "قفل زمان فوری",
-                "قفل دستگاه همین حالا",
+                stringResource(R.string.instant_time_lock),
+                stringResource(R.string.instant_time_lock_desc),
                 "⏱️",
                 Color(0xFFFFF3E0),
                 Color(0xFFE65100),
@@ -993,8 +1002,8 @@ fun ActionGridV2(
                 onClick = onTimeLockClick
             )
             ActionCardV2(
-                "موقعیت لحظه‌ای",
-                "مشاهده روی نقشه",
+                stringResource(R.string.live_location),
+                stringResource(R.string.live_location_desc),
                 "📍",
                 Color(0xFFFCE4EC),
                 Color(0xFFC2185B),
@@ -1051,19 +1060,17 @@ fun BannerSliderV2() {
     val colors = LocalCustomColors.current
 
     val banners = listOf(
-        Triple("📢", "کانال رسمی مهربان", "آخرین بروزرسانی‌ها و نکات والدگری"),
-        Triple("💬", "پشتیبانی ۲۴ ساعته", "سوال یا مشکلی دارید؟ تیم پشتیبانی در خدمت شماست"),
-        Triple("🎁", "پیشنهاد ویژه اشتراک", "۳۰٪ تخفیف اشتراک سالانه مهربان پلاس")
+        Triple("📢", stringResource(R.string.banner_official_channel), stringResource(R.string.banner_official_channel_desc)),
+        Triple("💬", stringResource(R.string.banner_support), stringResource(R.string.banner_support_desc)),
+        Triple("🎁", stringResource(R.string.banner_offer), stringResource(R.string.banner_offer_desc))
     )
 
-    // Move pageCount to use the dynamic size of your list
     val pagerState = rememberPagerState(pageCount = { banners.size })
 
     LaunchedEffect(Unit) {
         while (true) {
-            delay(5_000L) // Wait for 10 seconds
+            delay(5_000L)
 
-            // Only auto-scroll if the user isn't actively swiping
             if (!pagerState.isScrollInProgress) {
                 try {
                     // 1. Use settledPage (the last page it fully stopped on) instead of currentPage
@@ -1191,7 +1198,7 @@ fun DashboardScreenPreviewEmpty() {
             onReportClick = {},
             onTimeLockClick = {},
             onSecurityFabClick = {},
-            updateState = UpdateState.UpToDate, // 🚀 Mock
+            updateState = UpdateState.UpToDate,
             isUpdateIgnored = false,
             onShowUpdateDialogAgain = {},
             onProfileClick = {})
@@ -1214,7 +1221,7 @@ fun DashboardScreenPreviewPopulatedLight() {
             onReportClick = {},
             onTimeLockClick = {},
             onSecurityFabClick = {},
-            updateState = UpdateState.UpToDate, // 🚀 Mock
+            updateState = UpdateState.UpToDate,
             isUpdateIgnored = false,
             onShowUpdateDialogAgain = {},
             onProfileClick = {})
@@ -1236,7 +1243,7 @@ fun DashboardScreenPreviewPopulatedDark() {
             onReportClick = {},
             onTimeLockClick = {},
             onSecurityFabClick = {},
-            updateState = UpdateState.Checking, // 🚀 Mock
+            updateState = UpdateState.Checking,
             isUpdateIgnored = false,
             onShowUpdateDialogAgain = {},
             onProfileClick = {})
@@ -1260,7 +1267,7 @@ fun DashboardScreenPreviewDialog() {
             onReportClick = {},
             onTimeLockClick = {},
             onSecurityFabClick = {},
-            updateState = UpdateState.UpToDate, // 🚀 Mock
+            updateState = UpdateState.UpToDate,
             isUpdateIgnored = false,
             onShowUpdateDialogAgain = {},
             onProfileClick = {})

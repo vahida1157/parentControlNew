@@ -28,10 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.vahak.mehrban.R
 import com.vahak.mehrban.ui.component.PickerPresentationMode
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
@@ -128,10 +130,10 @@ private fun TimePickerContentV2(
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text("دقیقه", color = colors.textSecondary, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.time_minute_label), color = colors.textSecondary, fontWeight = FontWeight.Bold)
             }
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text("ساعت", color = colors.textSecondary, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.time_hour_label), color = colors.textSecondary, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -178,7 +180,7 @@ private fun TimePickerContentV2(
                 shape = RoundedCornerShape(14.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, colors.divider)
             ) {
-                Text("انصراف", color = colors.textSecondary, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.cancel), color = colors.textSecondary, fontWeight = FontWeight.Bold)
             }
 
             Button(
@@ -194,7 +196,7 @@ private fun TimePickerContentV2(
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(14.dp)
             ) {
-                Text("تأیید", color = colors.textOnPrimaryVariant, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.confirm), color = colors.textOnPrimaryVariant, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -212,7 +214,7 @@ fun DynamicTimePickerSheetPreviewV2Light() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         DynamicTimePickerV2(
             mode = PickerPresentationMode.BOTTOM_SHEET,
-            title = "تعیین سقف مصرف روزانه",
+            title = stringResource(R.string.time_limit_title),
             onDismiss = {},
             onConfirm = { _, _ -> }
         )

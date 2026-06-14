@@ -1,24 +1,27 @@
 package com.vahak.mehrban.presentation.setting
 
+import android.content.Context
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.util.AppUpdateManager
 import com.vahak.mehrban.domain.repository.AuthRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AppSettingsState(
-    val parentPhoneNumber: String = "در حال بارگذاری...",
-    val currentTheme: AppTheme = AppTheme.SYSTEM // NEW: Track the theme
+    val parentPhoneNumber: String = "",
+    val currentTheme: AppTheme = AppTheme.SYSTEM
 )
 
 sealed class AppSettingsEvent {
     object LogoutClicked : AppSettingsEvent()
-    data class ThemeSelected(val theme: AppTheme) : AppSettingsEvent() // NEW: Theme Event
+    data class ThemeSelected(val theme: AppTheme) : AppSettingsEvent()
 }
 
 sealed class AppSettingsEffect {
@@ -31,22 +34,23 @@ class ApplicationSettingsViewModel @Inject constructor(
     private val sessionManager: SessionManager,
     private val authRepository: AuthRepository,
     private val appUpdateManager: AppUpdateManager,
-) : BaseViewModel<AppSettingsState, AppSettingsEvent, AppSettingsEffect>(AppSettingsState()) {
+    @ApplicationContext private val context: Context
+) : BaseViewModel<AppSettingsState, AppSettingsEvent, AppSettingsEffect>(
+    AppSettingsState(parentPhoneNumber = context.getString(R.string.settings_loading))
+) {
 
     val updateState = appUpdateManager.updateState
     init {
         // Observe Phone Number
         viewModelScope.launch {
             sessionManager.userPhoneFlow.collectLatest { phone ->
-                updateState { copy(parentPhoneNumber = phone ?: "شماره نامشخص") }
+                updateState { copy(parentPhoneNumber = phone ?: context.getString(R.string.settings_phone_unknown)) }
             }
         }
 
         // Observe Theme Preference
         viewModelScope.launch {
             sessionManager.appThemeFlow.collectLatest { theme ->
-                // Assuming sessionManager.themeModeFlow emits an AppTheme.
-                // If it emits a String, map it to AppTheme here.
                 updateState { copy(currentTheme = theme) }
             }
         }
@@ -71,9 +75,8 @@ class ApplicationSettingsViewModel @Inject constructor(
     fun checkForUpdates() {
         appUpdateManager.checkForUpdates(forceNetworkCall = true) { updateFound ->
             if (!updateFound) {
-                // Send an effect to show a Toast
                 viewModelScope.launch {
-                    sendEffect(AppSettingsEffect.ShowToast("شما از آخرین نسخه استفاده می‌کنید."))
+                    sendEffect(AppSettingsEffect.ShowToast(context.getString(R.string.settings_update_uptodate)))
                 }
             }
         }

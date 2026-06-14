@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.Gender
 import com.vahak.mehrban.presentation.report.AppUsageUi
@@ -96,7 +98,7 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
         ReportHeader(
             child = state.activeChild,
             onBackClick = { onEvent(UsageReportEvent.BackClicked) },
-            onChangeChildClick = { onEvent(UsageReportEvent.OpenChildSheet) } // FIXED: Wired up!
+            onChangeChildClick = { onEvent(UsageReportEvent.OpenChildSheet) }
         )
 
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
@@ -135,7 +137,11 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                             fontWeight = FontWeight.Black,
                             color = colors.textPrimary
                         )
-                        Text("زمان استفاده امروز", fontSize = 12.sp, color = colors.textSecondary)
+                        Text(
+                            stringResource(R.string.usage_today_label),
+                            fontSize = 12.sp,
+                            color = colors.textSecondary
+                        )
                     }
                 }
             }
@@ -158,7 +164,7 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        "پرکاربردترین برنامه‌ها",
+                        stringResource(R.string.report_most_used_apps),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Black,
                         color = colors.textSecondary
@@ -171,8 +177,8 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                     ) {
                         Text(
-                            if (state.showAllApps) "بستن ↑" else "جزئیات ←",
-                            color = colors.primary, // The Blue/Primary Link from HTML
+                            if (state.showAllApps) stringResource(R.string.report_show_less) else stringResource(R.string.report_show_details),
+                            color = colors.primary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -187,20 +193,19 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
 
                 if (appsToShow.isEmpty() && !state.isLoading) {
                     Text(
-                        "هیچ برنامه‌ای امروز استفاده نشده است.",
+                        stringResource(R.string.report_no_app_usage),
                         color = colors.textHint,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(vertical = 16.dp)
                     )
                 } else {
                     val maxUsage =
-                        state.appUsages.maxOfOrNull { it.usedSeconds }?.toFloat()?.coerceAtLeast(1f)
-                            ?: 1f
+                        state.appUsages.maxOfOrNull { it.usedSeconds }?.toFloat()?.coerceAtLeast(1f) ?: 1f
                     appsToShow.forEach { app -> AppUsageRow(app, maxUsage) }
                 }
             }
 
-            // --- THE RESTORED INSIGHT CARD ---
+            // Insight card
             Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier
@@ -214,14 +219,14 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        "نکته این هفته",
+                        stringResource(R.string.report_weekly_insight_title),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Black,
                         color = colors.primary,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        "زمان استفاده روزانه در حد تعادل است. این روند به ترشح طبیعی دوپامین و حفظ تمرکز کمک می‌کند.",
+                        stringResource(R.string.report_weekly_insight_text),
                         fontSize = 12.sp,
                         lineHeight = 20.sp,
                         color = colors.textPrimary
@@ -233,7 +238,7 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
         }
     }
 
-    // --- RESTORED CHILD SELECTOR BOTTOM SHEET ---
+    // Child selector bottom sheet
     if (state.isChildSheetOpen) {
         ModalBottomSheet(
             onDismissRequest = { onEvent(UsageReportEvent.CloseChildSheet) },
@@ -242,7 +247,7 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
-                    "انتخاب فرزند",
+                    stringResource(R.string.select_child),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colors.textSecondary
@@ -317,9 +322,9 @@ fun ReportHeader(child: ChildEntity?, onBackClick: () -> Unit, onChangeChildClic
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("گزارش عملکرد", color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
+                    Text(stringResource(R.string.report_header_subtitle), color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
                     Text(
-                        "📊 آمار استفاده",
+                        stringResource(R.string.report_header_title),
                         color = Color.White,
                         fontWeight = FontWeight.Black,
                         fontSize = 20.sp
@@ -345,7 +350,6 @@ fun ReportHeader(child: ChildEntity?, onBackClick: () -> Unit, onChangeChildClic
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // FIXED: Added clickable and Restored the "تغییر فرزند" badge
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -366,7 +370,7 @@ fun ReportHeader(child: ChildEntity?, onBackClick: () -> Unit, onChangeChildClic
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("گزارش برای", color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                    Text(stringResource(R.string.report_child_label), color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
                     Text(
                         child?.name ?: "...",
                         color = Color.White,
@@ -380,7 +384,7 @@ fun ReportHeader(child: ChildEntity?, onBackClick: () -> Unit, onChangeChildClic
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
-                        "تغییر فرزند",
+                        stringResource(R.string.report_change_child),
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -394,7 +398,15 @@ fun ReportHeader(child: ChildEntity?, onBackClick: () -> Unit, onChangeChildClic
 @Composable
 fun WeeklyUsageChart(weeklySeconds: List<Int>, averageSeconds: Int) {
     val colors = LocalCustomColors.current
-    val labels = listOf("ش", "ی", "د", "س", "چ", "پ", "ج")
+    val labels = listOf(
+        stringResource(R.string.week_day_sat),
+        stringResource(R.string.week_day_sun),
+        stringResource(R.string.week_day_mon),
+        stringResource(R.string.week_day_tue),
+        stringResource(R.string.week_day_wed),
+        stringResource(R.string.week_day_thu),
+        stringResource(R.string.week_day_fri)
+    )
 
     val maxSeconds = weeklySeconds.maxOrNull()?.toFloat()?.coerceAtLeast(1f) ?: 1f
 
@@ -414,13 +426,13 @@ fun WeeklyUsageChart(weeklySeconds: List<Int>, averageSeconds: Int) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "زمان استفاده هفته (ساعت)",
+                    stringResource(R.string.report_weekly_title),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary
                 )
                 Text(
-                    "میانگین: ${String.format("%d:%02d", avgHours, avgMins)}",
+                    stringResource(R.string.report_average_label, String.format("%d:%02d", avgHours, avgMins)),
                     fontSize = 11.sp,
                     color = colors.textSecondary
                 )
@@ -477,10 +489,7 @@ fun WeeklyUsageChart(weeklySeconds: List<Int>, averageSeconds: Int) {
                                         .fillMaxHeight(heightFraction.coerceAtLeast(0.06f))
                                         .background(
                                             Brush.verticalGradient(
-                                                listOf(
-                                                    colors.primaryVariant,
-                                                    colors.primary
-                                                )
+                                                listOf(colors.primaryVariant, colors.primary)
                                             ), RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
                                         )
                                 )
@@ -568,10 +577,7 @@ fun AppUsageRow(app: AppUsageUi, maxSeconds: Float) {
                                 .fillMaxHeight()
                                 .background(
                                     Brush.horizontalGradient(
-                                        listOf(
-                                            colors.primaryVariant,
-                                            colors.primary
-                                        )
+                                        listOf(colors.primaryVariant, colors.primary)
                                     ), RoundedCornerShape(3.dp)
                                 )
                         )
@@ -595,7 +601,7 @@ fun AppUsageRow(app: AppUsageUi, maxSeconds: Float) {
             HorizontalDivider(color = colors.divider.copy(alpha = 0.5f), thickness = 0.5.dp)
             Spacer(modifier = Modifier.height(8.dp))
 
-            Column(modifier = Modifier.padding(start = 52.dp)) { // Aligns text under the app name
+            Column(modifier = Modifier.padding(start = 52.dp)) {
                 app.devices.forEach { device ->
                     val dHours = device.seconds / 3600
                     val dMins = (device.seconds % 3600) / 60
@@ -635,23 +641,10 @@ fun UsageReportPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         UsageReportContent(
             state = UsageReportState(
-                activeChild = ChildEntity(
-                    id = "1",
-                    name = "علی",
-                    dob = LocalDate.now(),
-                    gender = Gender.BOY
-                ),
-                totalSecondsToday = 6300, // 1 hour 45 mins
-                weeklyUsageSeconds = listOf(
-                    3600,
-                    7200,
-                    5400,
-                    9000,
-                    1800,
-                    0,
-                    0
-                ), // Realistic week spread
-                averageSeconds = 5400, // 1 hour 30 mins average
+                activeChild = ChildEntity(id = "1", name = "علی", dob = LocalDate.now(), gender = Gender.BOY),
+                totalSecondsToday = 6300,
+                weeklyUsageSeconds = listOf(3600, 7200, 5400, 9000, 1800, 0, 0),
+                averageSeconds = 5400,
                 appUsages = listOf(
                     AppUsageUi("com.whatsapp", "واتس‌اپ", null, 3600),
                     AppUsageUi("com.instagram", "اینستاگرام", null, 1800),
@@ -671,12 +664,7 @@ fun UsageReportPreviewDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         UsageReportContent(
             state = UsageReportState(
-                activeChild = ChildEntity(
-                    id = "2",
-                    name = "سارا",
-                    dob = LocalDate.now(),
-                    gender = Gender.GIRL
-                ),
+                activeChild = ChildEntity(id = "2", name = "سارا", dob = LocalDate.now(), gender = Gender.GIRL),
                 totalSecondsToday = 0,
                 weeklyUsageSeconds = listOf(0, 0, 0, 0, 0, 0, 0),
                 averageSeconds = 0,

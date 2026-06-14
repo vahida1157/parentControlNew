@@ -3,6 +3,7 @@ package com.vahak.mehrban.core.util
 import android.content.Context
 import androidx.work.*
 import com.vahak.mehrban.BuildConfig
+import com.vahak.mehrban.R
 import com.vahak.mehrban.UpdateState
 import com.vahak.mehrban.AppDownloadState
 import com.vahak.mehrban.core.data.local.UpdateCacheManager
@@ -114,7 +115,7 @@ class AppUpdateManager @Inject constructor(
                     val serverInfo = response.body()!!
                     // 1a. If server says up to date suddenly (rollback), abort.
                     if (serverInfo.latestVersionCode <= BuildConfig.VERSION_CODE) {
-                        _appDownloadState.value = AppDownloadState.Error("بروزرسانی لغو شد. شما در حال استفاده از آخرین نسخه تایید شده هستید.")
+                        _appDownloadState.value = AppDownloadState.Error(context.getString(R.string.update_cancelled_already_latest))
                         _updateState.value = UpdateState.UpToDate
                         return@launch
                     }
@@ -198,7 +199,7 @@ class AppUpdateManager @Inject constructor(
                         _downloadedFilePath.value = path
                     }
                     WorkInfo.State.FAILED -> {
-                        val errorMsg = workInfo.outputData.getString("error") ?: "خطا در دانلود فایل"
+                        val errorMsg = workInfo.outputData.getString("error") ?: context.getString(R.string.download_error_generic)
                         _appDownloadState.value = AppDownloadState.Error(errorMsg)
                     }
                     else -> {}

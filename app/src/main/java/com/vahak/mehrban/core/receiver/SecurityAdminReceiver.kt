@@ -4,6 +4,7 @@ import android.app.admin.DeviceAdminReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.vahak.mehrban.R
 
 class SecurityAdminReceiver : DeviceAdminReceiver() {
 
@@ -22,7 +23,7 @@ class SecurityAdminReceiver : DeviceAdminReceiver() {
     // This text will appear inside that Android OS dialog!
     override fun onDisableRequested(context: Context, intent: Intent): CharSequence {
         Log.w(TAG, "⚠️ Deactivation attempted!")
-        return "هشدار: غیرفعال کردن این بخش باعث اطلاع‌رسانی فوری به والدین و مسدود شدن دستگاه می‌شود. آیا مطمئن هستید؟"
+        return context.getString(R.string.device_admin_disable_warning)
     }
 
     override fun onDisabled(context: Context, intent: Intent) {

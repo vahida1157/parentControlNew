@@ -42,12 +42,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.presentation.sleeptime.SleepTimeEffectV2
 import com.vahak.mehrban.presentation.sleeptime.SleepTimeEventV2
 import com.vahak.mehrban.presentation.sleeptime.SleepTimeStateV2
@@ -60,7 +62,6 @@ import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 import java.time.LocalTime
 
-// Standard time formatter (No Persian conversion)
 private fun formatTimeStandard(time: LocalTime): String {
     return String.format("%02d:%02d", time.hour, time.minute)
 }
@@ -111,8 +112,8 @@ fun SleepTimeContent(
         ) {
             // Header
             ScreenHeaderV2(
-                title = "زمان خواب",
-                subtitle = "تنظیمات",
+                title = stringResource(R.string.sleeptime_title),
+                subtitle = stringResource(R.string.sleeptime_subtitle),
                 iconEmoji = "🌙",
                 onBackClick = { onEvent(SleepTimeEventV2.BackClicked) }
             )
@@ -135,10 +136,10 @@ fun SleepTimeContent(
 
                     // Main Toggle
                     ToggleRowV2(
-                        title = "فعال‌سازی زمان خواب",
-                        desc = "قفل خودکار دستگاه در زمان مشخص",
+                        title = stringResource(R.string.sleeptime_activate_title),
+                        desc = stringResource(R.string.sleeptime_activate_desc),
                         iconEmoji = "🌙",
-                        iconBg = Color(0xFFE8F5E9), // Light green background from HTML
+                        iconBg = Color(0xFFE8F5E9),
                         isActive = state.isSleepTimeActive,
                         onToggle = { onEvent(SleepTimeEventV2.ToggleActive(it)) }
                     )
@@ -146,7 +147,7 @@ fun SleepTimeContent(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     if (state.isSleepTimeActive) {
-                        // Time Inputs (Side by Side)
+                        // Time Inputs
                         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -154,13 +155,13 @@ fun SleepTimeContent(
                             ) {
                                 TimeInputGroupV2(
                                     modifier = Modifier.weight(1f),
-                                    label = "زمان شروع خواب",
+                                    label = stringResource(R.string.sleeptime_start_label),
                                     timeText = formatTimeStandard(state.startTime),
                                     onClick = { onEvent(SleepTimeEventV2.OpenPicker(TimeEditModeV2.START)) }
                                 )
                                 TimeInputGroupV2(
                                     modifier = Modifier.weight(1f),
-                                    label = "زمان بیداری",
+                                    label = stringResource(R.string.sleeptime_end_label),
                                     timeText = formatTimeStandard(state.endTime),
                                     onClick = { onEvent(SleepTimeEventV2.OpenPicker(TimeEditModeV2.END)) }
                                 )
@@ -230,7 +231,7 @@ fun SleepTimeContent(
                             )
                         } else {
                             Text(
-                                "ذخیره تنظیمات",
+                                stringResource(R.string.button_save_settings),
                                 color = colors.textOnPrimaryVariant,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
@@ -247,7 +248,7 @@ fun SleepTimeContent(
             val isStart = state.currentEditMode == TimeEditModeV2.START
 
             DynamicTimePickerV2(
-                title = if (isStart) "زمان شروع خواب" else "زمان بیداری",
+                title = if (isStart) stringResource(R.string.sleeptime_picker_start_title) else stringResource(R.string.sleeptime_picker_end_title),
                 initialHours = if (isStart) state.startTime.hour else state.endTime.hour,
                 initialMinutes = if (isStart) state.startTime.minute else state.endTime.minute,
                 hoursRange = 0..23,

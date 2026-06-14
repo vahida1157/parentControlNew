@@ -39,11 +39,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.Gender
 import com.vahak.mehrban.core.data.local.entity.GlobalSettingsEntity
@@ -58,19 +60,25 @@ import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 import java.time.LocalDate
 import java.time.LocalTime
 
-// Helper Functions
+// --- Helper composables for format strings ---
+
+@Composable
 private fun formatTimeLimit(isActive: Boolean, mins: Int): String {
-    if (!isActive) return "غیرفعال" // "Inactive"
+    if (!isActive) return stringResource(R.string.child_settings_inactive)
     val h = mins / 60
     val m = mins % 60
-    return buildString {
-        if (h > 0) append("$h ساعت ")
-        if (m > 0) append("$m دقیقه")
-    }.trim().ifEmpty { "نامحدود" } // "Unlimited"
+    val hourLabel = stringResource(R.string.hour)   // "ساعت" or "h"
+    val minLabel = stringResource(R.string.minute)  // "دقیقه" or "m"
+    val text = buildString {
+        if (h > 0) append("$h $hourLabel ")
+        if (m > 0) append("$m $minLabel")
+    }.trim()
+    return text.ifEmpty { stringResource(R.string.unlimited) }
 }
 
+@Composable
 private fun formatSleepTime(isActive: Boolean, start: LocalTime, end: LocalTime): String {
-    if (!isActive) return "غیرفعال" // "Inactive"
+    if (!isActive) return stringResource(R.string.child_settings_inactive)
     return String.format("%02d:%02d - %02d:%02d", start.hour, start.minute, end.hour, end.minute)
 }
 
@@ -149,15 +157,15 @@ fun ChildSettingsContent(
             .padding(horizontal = 20.dp, vertical = 16.dp)) {
 
             // SECTION: Time Management
-            SectionTitleV2("مدیریت زمان")
+            SectionTitleV2(stringResource(R.string.child_settings_section_time))
 
             val isTimeLimitActive = state.settings.isTimeLimitActive
             ChildSettingsRowItemV2(
-                title = "قفل زمان روزانه",
-                desc = "سقف زمان استفاده در شبانه‌روز",
+                title = stringResource(R.string.child_settings_daily_time_lock),
+                desc = stringResource(R.string.child_settings_daily_time_lock_desc),
                 iconEmoji = "⏰", iconBg = Color(0xFFE3F2FD),
                 valueBadge = formatTimeLimit(isTimeLimitActive, state.settings.dailyTimeLimitMins),
-                isInactive = !isTimeLimitActive, // Passes inactive state for gray styling
+                isInactive = !isTimeLimitActive,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
@@ -170,15 +178,15 @@ fun ChildSettingsContent(
 
             val isSleepTimeActive = state.settings.isSleepTimeActive
             ChildSettingsRowItemV2(
-                title = "حالت خواب",
-                desc = "قفل خودکار شبانه",
+                title = stringResource(R.string.child_settings_sleep_mode),
+                desc = stringResource(R.string.child_settings_sleep_mode_desc),
                 iconEmoji = "🌙", iconBg = Color(0xFFFCE4EC),
                 valueBadge = formatSleepTime(
                     isSleepTimeActive,
                     state.settings.sleepTimeStart,
                     state.settings.sleepTimeEnd
                 ),
-                isInactive = !isSleepTimeActive, // Passes inactive state for gray styling
+                isInactive = !isSleepTimeActive,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
@@ -191,14 +199,17 @@ fun ChildSettingsContent(
 
             // SECTION: Internet & Apps
             Spacer(modifier = Modifier.height(16.dp))
-            SectionTitleV2("کنترل برنامه و اینترنت")
+            SectionTitleV2(stringResource(R.string.child_settings_section_apps))
 
             val allowedCount = state.allowedAppsCount
-            val appLockBadgeText = if (allowedCount == 0) "همه غیرمجاز" else "$allowedCount برنامه مجاز"
+            val appLockBadgeText = if (allowedCount == 0)
+                stringResource(R.string.child_settings_all_blocked)
+            else
+                stringResource(R.string.child_settings_apps_allowed, allowedCount)
             val isAppLockInactive = allowedCount == 0
             ChildSettingsRowItemV2(
-                title = "قفل برنامه‌ها",
-                desc = "مدیریت دسترسی به اپلیکیشن‌ها",
+                title = stringResource(R.string.child_settings_app_lock),
+                desc = stringResource(R.string.child_settings_app_lock_desc),
                 iconEmoji = "🔒", iconBg = Color(0xFFE8F5E9),
                 valueBadge = appLockBadgeText,
                 isInactive = isAppLockInactive,
@@ -206,10 +217,11 @@ fun ChildSettingsContent(
             )
 
             ChildSettingsRowItemV2(
-                title = "فیلتر سایت‌ها",
-                desc = "مدیریت لیست سایت‌های مسدود/مجاز",
+                title = stringResource(R.string.child_settings_site_filter),
+                desc = stringResource(R.string.child_settings_site_filter_desc),
                 iconEmoji = "🌐", iconBg = Color(0xFFE3F2FD),
-                valueBadge = "به زودی", badgeBgColor = soonBg, badgeTextColor = soonText,
+                valueBadge = stringResource(R.string.coming_soon),
+                badgeBgColor = soonBg, badgeTextColor = soonText,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
@@ -220,10 +232,11 @@ fun ChildSettingsContent(
                 }
             )
             ChildSettingsRowItemV2(
-                title = "جستجوی ایمن",
-                desc = "فیلتر نتایج جستجوی نامناسب",
+                title = stringResource(R.string.child_settings_safe_search),
+                desc = stringResource(R.string.child_settings_safe_search_desc),
                 iconEmoji = "🔍", iconBg = Color(0xFFE8F5E9),
-                valueBadge = "به زودی", badgeBgColor = soonBg, badgeTextColor = soonText,
+                valueBadge = stringResource(R.string.coming_soon),
+                badgeBgColor = soonBg, badgeTextColor = soonText,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
@@ -234,21 +247,23 @@ fun ChildSettingsContent(
                 }
             )
             ChildSettingsRowItemV2(
-                title = "مسدود تبلیغات",
-                desc = "حذف تبلیغات در وب و برنامه‌ها",
+                title = stringResource(R.string.child_settings_block_ads),
+                desc = stringResource(R.string.child_settings_block_ads_desc),
                 iconEmoji = "🚫", iconBg = Color(0xFFFFF3E0),
-                valueBadge = "به زودی", badgeBgColor = soonBg, badgeTextColor = soonText,
+                valueBadge = stringResource(R.string.coming_soon),
+                badgeBgColor = soonBg, badgeTextColor = soonText,
                 onClick = { onEvent(ChildSettingsEvent.HelpClicked) }
             )
 
             // SECTION: Allowed Content
             Spacer(modifier = Modifier.height(16.dp))
-            SectionTitleV2("محتوای مجاز")
+            SectionTitleV2(stringResource(R.string.child_settings_section_content))
             ChildSettingsRowItemV2(
-                title = "فیلم و انیمیشن",
-                desc = "کتابخانه محتوای امن متناسب با سن",
+                title = stringResource(R.string.child_settings_movies),
+                desc = stringResource(R.string.child_settings_movies_desc),
                 iconEmoji = "🎬", iconBg = Color(0xFFFFF3E0),
-                valueBadge = "به زودی", badgeBgColor = soonBg, badgeTextColor = soonText,
+                valueBadge = stringResource(R.string.coming_soon),
+                badgeBgColor = soonBg, badgeTextColor = soonText,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
@@ -261,12 +276,13 @@ fun ChildSettingsContent(
 
             // SECTION: Health & Safety
             Spacer(modifier = Modifier.height(16.dp))
-            SectionTitleV2("سلامت و امنیت")
+            SectionTitleV2(stringResource(R.string.child_settings_section_health))
             ChildSettingsRowItemV2(
-                title = "محافظ چشم",
-                desc = "فیلتر نور آبی و یادآور استراحت",
+                title = stringResource(R.string.child_settings_eye_protection),
+                desc = stringResource(R.string.child_settings_eye_protection_desc),
                 iconEmoji = "👁️", iconBg = Color(0xFFF3E5F5),
-                valueBadge = "به زودی", badgeBgColor = soonBg, badgeTextColor = soonText,
+                valueBadge = stringResource(R.string.coming_soon),
+                badgeBgColor = soonBg, badgeTextColor = soonText,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
@@ -277,17 +293,19 @@ fun ChildSettingsContent(
                 }
             )
             ChildSettingsRowItemV2(
-                title = "موقعیت مکانی",
-                desc = "ردیابی لحظه‌ای و محدوده امن",
+                title = stringResource(R.string.child_settings_location),
+                desc = stringResource(R.string.child_settings_location_desc),
                 iconEmoji = "📍", iconBg = Color(0xFFE0F7FA),
-                valueBadge = "به زودی", badgeBgColor = soonBg, badgeTextColor = soonText,
+                valueBadge = stringResource(R.string.coming_soon),
+                badgeBgColor = soonBg, badgeTextColor = soonText,
                 onClick = { onEvent(ChildSettingsEvent.GridItemClicked("location", localContext)) }
             )
             ChildSettingsRowItemV2(
-                title = "جلوگیری از حذف",
-                desc = "قفل امنیتی برای حذف برنامه‌",
+                title = stringResource(R.string.child_settings_prevent_delete),
+                desc = stringResource(R.string.child_settings_prevent_delete_desc),
                 iconEmoji = "🛡️", iconBg = Color(0xFFFCE4EC),
-                valueBadge = "به زودی", badgeBgColor = soonBg, badgeTextColor = soonText,
+                valueBadge = stringResource(R.string.coming_soon),
+                badgeBgColor = soonBg, badgeTextColor = soonText,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
@@ -310,7 +328,7 @@ fun ChildSettingsContent(
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
-                    "انتخاب فرزند",
+                    stringResource(R.string.select_child),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colors.textSecondary
@@ -394,12 +412,12 @@ fun ChildSettingsHeaderV2(
             ) {
                 Column {
                     Text(
-                        "پیکربندی محافظت",
+                        stringResource(R.string.child_settings_header_subtitle),
                         color = Color.White.copy(alpha = 0.85f),
                         fontSize = 13.sp
                     )
                     Text(
-                        "⚙️ تنظیمات کامل",
+                        stringResource(R.string.child_settings_header_title),
                         color = Color.White,
                         fontWeight = FontWeight.Black,
                         fontSize = 20.sp
@@ -445,7 +463,7 @@ fun ChildSettingsHeaderV2(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "تنظیمات اعمال می‌شود برای",
+                        stringResource(R.string.child_settings_header_child_label),
                         color = Color.White.copy(alpha = 0.8f),
                         fontSize = 11.sp
                     )
@@ -465,7 +483,7 @@ fun ChildSettingsHeaderV2(
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
-                        "تغییر فرزند",
+                        stringResource(R.string.change),
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -514,16 +532,15 @@ fun ChildSettingsRowItemV2(
     val colors = LocalCustomColors.current
     val isDark = isSystemInDarkTheme()
 
-    // Determine badge colors based on inactive state or provided overrides
     val finalBadgeBg = when {
         badgeBgColor != null -> badgeBgColor
-        isInactive -> colors.divider.copy(alpha = 0.5f) // Gray background if inactive
+        isInactive -> colors.divider.copy(alpha = 0.5f)
         else -> colors.primary.copy(alpha = 0.08f)
     }
 
     val finalBadgeText = when {
         badgeTextColor != null -> badgeTextColor
-        isInactive -> colors.textSecondary // Gray text if inactive
+        isInactive -> colors.textSecondary
         else -> colors.primary
     }
 
@@ -586,7 +603,7 @@ fun ChildSettingsRowItemV2(
 private val mockChild = ChildEntity(
     id = "mock-123",
     name = "علی",
-    dob = LocalDate.now().minusYears(10), // Makes the child 10 years old
+    dob = LocalDate.now().minusYears(10),
     gender = Gender.BOY
 )
 
@@ -655,7 +672,7 @@ fun ChildSettingsPreviewSheetOpenV2() {
                 allChildren = mockChildrenList,
                 settings = GlobalSettingsEntity(childId = "mock-123"),
                 isLoading = false,
-                isChildSheetOpen = true // Forces the bottom sheet to show in the preview
+                isChildSheetOpen = true
             ),
             onEvent = {}
         )

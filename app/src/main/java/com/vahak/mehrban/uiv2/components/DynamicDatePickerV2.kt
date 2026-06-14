@@ -27,10 +27,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.vahak.mehrban.R
 import com.vahak.mehrban.ui.component.PickerPresentationMode
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
@@ -40,7 +42,7 @@ import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 @Composable
 fun DynamicDatePickerV2(
     mode: PickerPresentationMode = PickerPresentationMode.DIALOG,
-    title: String = "انتخاب تاریخ",
+    title: String = stringResource(R.string.select_date),
     initialYear: Int = 1395,
     initialMonth: Int = 1,
     initialDay: Int = 1,
@@ -133,7 +135,6 @@ private fun DatePickerContentV2(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Ensure LTR for dates, or handle based on your specific NumberPickerColumn needs
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -182,7 +183,7 @@ private fun DatePickerContentV2(
                 shape = RoundedCornerShape(14.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, colors.divider)
             ) {
-                Text("انصراف", color = colors.textSecondary, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.cancel), color = colors.textSecondary, fontWeight = FontWeight.Bold)
             }
 
             Button(
@@ -198,7 +199,7 @@ private fun DatePickerContentV2(
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(14.dp)
             ) {
-                Text("تأیید", color = colors.textOnPrimaryVariant, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.confirm), color = colors.textOnPrimaryVariant, fontWeight = FontWeight.Bold)
             }
         }
 
