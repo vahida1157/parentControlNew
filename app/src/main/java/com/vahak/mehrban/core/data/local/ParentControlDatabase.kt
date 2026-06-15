@@ -28,7 +28,7 @@ import com.vahak.mehrban.core.data.local.entity.GlobalSettingsEntity
         BlockedDomainEntity::class,
         CrashLogEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)

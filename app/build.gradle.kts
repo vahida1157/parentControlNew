@@ -34,8 +34,8 @@ android {
         applicationId = "com.vahak.mehrban"
         minSdk = 26
         targetSdk = 37
-        versionCode = 9
-        versionName = "1.1.6"
+        versionCode = 10
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -77,6 +77,19 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+    }
+
+    flavorDimensions += "distribution"
+
+    productFlavors {
+        create("website") {
+            dimension = "distribution"
+            // Optional: You can give the website version a different suffix so you can install both on the same phone while testing
+            // applicationIdSuffix = ".website"
+        }
+        create("store") {
+            dimension = "distribution"
         }
     }
 

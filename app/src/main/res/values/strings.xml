@@ -83,6 +83,7 @@
     <!-- Update -->
     <string name="update_new_version_available">🚀 New version available</string>
     <string name="update_download_install">Download &amp; Install</string>
+    <string name="update_download_from_store">Update from store</string>
     <string name="update_connecting">Connecting to download server…</string>
     <string name="update_downloading">Downloading file: %d%%</string>
     <string name="update_retry">Retry</string>

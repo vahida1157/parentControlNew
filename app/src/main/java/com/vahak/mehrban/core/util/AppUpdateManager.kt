@@ -1,6 +1,8 @@
 package com.vahak.mehrban.core.util
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.work.*
 import com.vahak.mehrban.BuildConfig
 import com.vahak.mehrban.R
@@ -101,6 +103,15 @@ class AppUpdateManager @Inject constructor(
 
     // 🚀 THE PRE-FLIGHT CHECK
     fun startDownload(cachedUrl: String, cachedVersionName: String) {
+        // 🚀 Check which flavor is currently running
+        if (BuildConfig.FLAVOR == "store") {
+            openStorePage()
+            return
+        }
+
+        // ==========================================
+        // WEBSITE FLAVOR: Keep your exact existing WorkManager code here
+        // ==========================================
         _appDownloadState.value = AppDownloadState.Connecting
 
         scope.launch {
@@ -151,6 +162,25 @@ class AppUpdateManager @Inject constructor(
 
                 workManager.enqueueUniqueWork("app_update_download", ExistingWorkPolicy.REPLACE, downloadRequest)
             }
+        }
+    }
+
+    private fun openStorePage() {
+        try {
+            // Opens Bazaar, Myket, or Google Play depending on what the user chooses
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("market://details?id=${context.packageName}")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+
+            // Dismiss the dialog after sending them to the store
+            _updateState.value = UpdateState.UpToDate
+        } catch (_: Exception) {
+            // Fallback if they somehow have no app stores installed
+            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://mehr-banan.ir/download"))
+            webIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            context.startActivity(webIntent)
         }
     }
 

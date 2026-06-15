@@ -83,6 +83,7 @@
     <!-- Update -->
     <string name="update_new_version_available">🚀 نسخه جدید در دسترس است</string>
     <string name="update_download_install">دانلود و نصب مستقیم</string>
+    <string name="update_download_from_store">بروزرسانی از فروشگاه</string>
     <string name="update_connecting">در حال اتصال به سرور دانلود...</string>
     <string name="update_downloading">در حال دریافت فایل: %d%%</string>
     <string name="update_retry">تلاش مجدد</string>

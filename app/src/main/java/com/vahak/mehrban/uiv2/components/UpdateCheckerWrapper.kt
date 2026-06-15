@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.vahak.mehrban.BuildConfig
 import com.vahak.mehrban.AppDownloadState
 import com.vahak.mehrban.MainViewModel
 import com.vahak.mehrban.R
@@ -123,8 +124,13 @@ fun UpdateCheckerWrapper(
                                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                                 shape = RoundedCornerShape(14.dp)
                             ) {
+                                val buttonText = if (BuildConfig.FLAVOR == "store") {
+                                    stringResource(R.string.update_download_from_store)
+                                } else {
+                                    stringResource(R.string.update_download_install)
+                                }
                                 Text(
-                                    stringResource(R.string.update_download_install),
+                                    buttonText,
                                     color = colors.textOnPrimaryVariant,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -220,7 +226,10 @@ fun UpdateCheckerWrapper(
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.red),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text(stringResource(R.string.update_exit_app), fontWeight = FontWeight.Bold)
+                                Text(
+                                    stringResource(R.string.update_exit_app),
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         } else {
                             Spacer(modifier = Modifier.height(4.dp))
