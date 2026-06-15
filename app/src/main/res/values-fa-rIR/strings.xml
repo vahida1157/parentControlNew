@@ -2,7 +2,6 @@
 <resources>
     <!-- General -->
     <string name="app_name">مهر بان</string>
-    <string name="app_name_pro">مهربان</string>
     <string name="cancel">انصراف</string>
     <string name="close">بستن</string>
     <string name="confirm">تأیید</string>
@@ -438,4 +437,8 @@
 
     <string name="help_section_under_construction">بخش راهنما در حال ساخت است</string>
     <string name="permission_final_confirm">تایید نهایی و ورود</string>
+
+    <string name="app_language_title">زبان برنامه</string>
+    <string name="language_persian">فارسی</string>
+    <string name="language_english">English</string>
 </resources>

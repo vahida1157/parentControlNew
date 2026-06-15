@@ -44,19 +44,20 @@ sealed class AppDownloadState {
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val sessionManager: SessionManager,
-    private val appUpdateManager: AppUpdateManager // 🚀 Inject the Brain
+    private val appUpdateManager: AppUpdateManager
 ) : ViewModel() {
 
-    // --- Session Flows remain unchanged ---
     val appTheme = sessionManager.appThemeFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.SYSTEM)
     val startDestination = sessionManager.isLoggedIn.map { if (it) Screen.Dashboard.route else Screen.Login.route }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val activeChildId = sessionManager.activeChildIdFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // 🚀 NEW: Expose the Language State
+    val appLanguage = sessionManager.appLanguageFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "fa")
 
     fun clearActiveLauncherSession() {
         viewModelScope.launch { sessionManager.clearActiveChildId() }
     }
 
-    // --- Update Flows just pass through from the Manager ---
     val updateState = appUpdateManager.updateState
     val isUpdateIgnored = appUpdateManager.isUpdateIgnored
     val appDownloadState = appUpdateManager.appDownloadState

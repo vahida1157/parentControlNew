@@ -334,7 +334,7 @@ fun PermissionHeaderV2(currentPage: Int, totalPages: Int) {
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    stringResource(R.string.app_name_pro),
+                    stringResource(R.string.app_name),
                     color = Color.White,
                     fontWeight = FontWeight.Black,
                     fontSize = 18.sp

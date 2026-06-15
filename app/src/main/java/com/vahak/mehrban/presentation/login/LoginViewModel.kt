@@ -3,6 +3,7 @@ package com.vahak.mehrban.presentation.login
 import android.content.Context
 import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.R
+import com.vahak.mehrban.core.data.local.SessionManager // 🚀 Inject SessionManager
 import com.vahak.mehrban.domain.repository.AuthRepository
 import com.vahak.mehrban.domain.usecase.OtpValidationResult
 import com.vahak.mehrban.domain.usecase.PhoneValidationResult
@@ -18,13 +19,14 @@ data class LoginState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isPrivacyAccepted: Boolean = false,
-    val showPrivacyDialog: Boolean = false,
+    val showPrivacyDialog: Boolean = false
 )
 
 sealed class LoginEvent {
     data class PhoneChanged(val phone: String) : LoginEvent()
     data class PrivacyAcceptedChanged(val isAccepted: Boolean) : LoginEvent()
     data class ShowPrivacyDialog(val show: Boolean) : LoginEvent()
+    data class ChangeLanguage(val langCode: String) : LoginEvent() // 🚀 The Language Event
     object SubmitClicked : LoginEvent()
 }
 
@@ -36,6 +38,7 @@ sealed class LoginEffect {
 class LoginViewModel @Inject constructor(
     private val validatePhoneUseCase: ValidatePhoneUseCase,
     private val authRepository: AuthRepository,
+    private val sessionManager: SessionManager, // 🚀 Added
     @ApplicationContext private val context: Context
 ) : BaseViewModel<LoginState, LoginEvent, LoginEffect>(LoginState()) {
 
@@ -46,14 +49,18 @@ class LoginViewModel @Inject constructor(
                     updateState { copy(phoneNumber = event.phone, errorMessage = null) }
                 }
             }
-
             is LoginEvent.PrivacyAcceptedChanged -> {
                 updateState { copy(isPrivacyAccepted = event.isAccepted) }
             }
             is LoginEvent.ShowPrivacyDialog -> {
                 updateState { copy(showPrivacyDialog = event.show) }
             }
-
+            is LoginEvent.ChangeLanguage -> {
+                // 🚀 Instantly save to DataStore. MainActivity reads this and changes UI!
+                viewModelScope.launch {
+                    sessionManager.setAppLanguage(event.langCode)
+                }
+            }
             is LoginEvent.SubmitClicked -> {
                 if (state.value.isPrivacyAccepted) {
                     submitPhone()
@@ -70,19 +77,14 @@ class LoginViewModel @Inject constructor(
             is PhoneValidationResult.Error -> {
                 updateState { copy(errorMessage = validationResult.message) }
             }
-
             is PhoneValidationResult.Success -> {
                 viewModelScope.launch {
                     updateState { copy(isLoading = true, errorMessage = null) }
-
                     when (val result = authRepository.requestOtp(currentPhone)) {
                         is OtpValidationResult.Success -> {
                             updateState { copy(isLoading = false) }
-                            sendEffect(
-                                LoginEffect.NavigateToOtp(currentPhone, result.expiresInSeconds)
-                            )
+                            sendEffect(LoginEffect.NavigateToOtp(currentPhone, result.expiresInSeconds))
                         }
-
                         is OtpValidationResult.Error -> {
                             updateState { copy(isLoading = false, errorMessage = result.message) }
                         }

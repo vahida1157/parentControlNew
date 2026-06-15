@@ -16,12 +16,14 @@ import javax.inject.Inject
 
 data class AppSettingsState(
     val parentPhoneNumber: String = "",
-    val currentTheme: AppTheme = AppTheme.SYSTEM
+    val currentTheme: AppTheme = AppTheme.SYSTEM,
+    val currentLanguage: String = "fa" // 🚀 Added language state
 )
 
 sealed class AppSettingsEvent {
     object LogoutClicked : AppSettingsEvent()
     data class ThemeSelected(val theme: AppTheme) : AppSettingsEvent()
+    data class LanguageSelected(val langCode: String) : AppSettingsEvent() // 🚀 Added language event
 }
 
 sealed class AppSettingsEffect {
@@ -40,6 +42,7 @@ class ApplicationSettingsViewModel @Inject constructor(
 ) {
 
     val updateState = appUpdateManager.updateState
+
     init {
         // Observe Phone Number
         viewModelScope.launch {
@@ -54,6 +57,13 @@ class ApplicationSettingsViewModel @Inject constructor(
                 updateState { copy(currentTheme = theme) }
             }
         }
+
+        // 🚀 Observe Language Preference
+        viewModelScope.launch {
+            sessionManager.appLanguageFlow.collectLatest { lang ->
+                updateState { copy(currentLanguage = lang) }
+            }
+        }
     }
 
     override fun onEvent(event: AppSettingsEvent) {
@@ -61,6 +71,12 @@ class ApplicationSettingsViewModel @Inject constructor(
             is AppSettingsEvent.ThemeSelected -> {
                 viewModelScope.launch {
                     sessionManager.setAppTheme(event.theme)
+                }
+            }
+            is AppSettingsEvent.LanguageSelected -> {
+                // 🚀 Save to SessionManager. MainActivity instantly rebuilds the UI!
+                viewModelScope.launch {
+                    sessionManager.setAppLanguage(event.langCode)
                 }
             }
             is AppSettingsEvent.LogoutClicked -> {
@@ -81,5 +97,6 @@ class ApplicationSettingsViewModel @Inject constructor(
             }
         }
     }
+
     fun openUpdateDialog() = appUpdateManager.unignoreUpdate()
 }

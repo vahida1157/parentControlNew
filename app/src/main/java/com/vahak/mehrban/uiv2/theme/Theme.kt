@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 
@@ -88,12 +89,11 @@ fun ParentControlTheme(
         AppTheme.DARK -> true
         AppTheme.SYSTEM -> isSystemInDarkTheme()
     }
-    val colorTheme =
-        if (darkTheme) DarkColorsV2().toCustomColors() else LightColorsV2().toCustomColors()
+    val colorTheme = if (darkTheme) DarkColorsV2().toCustomColors() else LightColorsV2().toCustomColors()
     val fontScale = LocalFontScale.current
+
     CompositionLocalProvider(
         LocalCustomColors provides colorTheme,
-        LocalLayoutDirection provides LayoutDirection.Rtl,
         LocalFontScale provides fontScale
     ) {
         MaterialTheme(

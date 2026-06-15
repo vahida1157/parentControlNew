@@ -1,6 +1,8 @@
 package com.vahak.mehrban
 
 import android.app.Application
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import androidx.work.Constraints
@@ -25,8 +27,10 @@ class ModernFamilyApp : Application(), Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
     @Inject
     lateinit var sessionSyncEngine: SessionSyncEngine
+
     // 🚀 We use an EntryPoint to safely get the DAO without breaking Hilt's lifecycle
     @EntryPoint
     @InstallIn(SingletonComponent::class)
@@ -36,16 +40,13 @@ class ModernFamilyApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-
-        // 1. Install Crash Handler (from previous step)
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         val crashLogDao = EntryPoints.get(this, CrashHandlerEntryPoint::class.java).getCrashLogDao()
         Thread.setDefaultUncaughtExceptionHandler(GlobalCrashHandler(crashLogDao, defaultHandler))
-
-        // 2. 🚀 ENQUEUE THE CRASH SYNC WORKER
         setupCrashSyncWorker()
         sessionSyncEngine.start()
     }
+
     private fun setupCrashSyncWorker() {
         // Require any working internet connection (Wi-Fi or Cellular)
         val constraints = Constraints.Builder()

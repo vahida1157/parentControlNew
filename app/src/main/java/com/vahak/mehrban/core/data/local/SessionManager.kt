@@ -24,6 +24,7 @@ class SessionManager @Inject constructor(
 ) {
 
     companion object {
+        private val APP_LANGUAGE = stringPreferencesKey("app_language")
         private val THEME_KEY = stringPreferencesKey("app_theme")
         private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         private val AUTH_TOKEN = stringPreferencesKey("auth_token")
@@ -36,6 +37,9 @@ class SessionManager @Inject constructor(
         private val VIEWED_CHILD_ID = stringPreferencesKey("viewed_child_id")
     }
 
+    val appLanguageFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[APP_LANGUAGE] ?: "fa"
+    }
     val appThemeFlow: Flow<AppTheme> = context.dataStore.data.map {
         AppTheme.valueOf(it[THEME_KEY] ?: AppTheme.SYSTEM.name)
     }
@@ -79,6 +83,12 @@ class SessionManager @Inject constructor(
 
     suspend fun clearSession() {
         context.dataStore.edit { it.clear() }
+    }
+
+    suspend fun setAppLanguage(langCode: String) {
+        context.dataStore.edit { prefs ->
+            prefs[APP_LANGUAGE] = langCode
+        }
     }
 
     suspend fun setAppTheme(theme: AppTheme) {

@@ -1,7 +1,7 @@
 [versions]
 agp = "9.2.1"
 androidDeviceNames = "2.1.1"
-coreKtx = "1.18.0"
+coreKtx = "1.19.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
@@ -9,7 +9,7 @@ lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
 kotlin = "2.3.21"
 composeBom = "2026.05.01"
-loggingInterceptor = "5.3.2"
+loggingInterceptor = "5.4.0"
 navigationCompose = "2.9.8"
 datastorePreferences = "1.2.1"
 hilt = "2.59.2"
@@ -21,6 +21,7 @@ retrofit = "3.0.0"
 room = "2.8.4"
 lifecycleService = "2.10.0"
 workRuntimeKtx = "2.11.2"
+appcompat = "1.7.1"
 
 [libraries]
 android-device-names = { module = "com.jaredrummler:android-device-names", version.ref = "androidDeviceNames" }
@@ -45,6 +46,7 @@ hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref
 hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
 androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 
 
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigation" }

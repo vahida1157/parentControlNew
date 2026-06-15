@@ -88,7 +88,8 @@ fun ApplicationSettingsScreen(
             coroutineScope.launch {
                 LogExporter.exportLogsAndShare(context)
             }
-        })
+        }
+    )
 }
 
 @Composable
@@ -172,11 +173,21 @@ fun ApplicationSettingsContent(
                     .padding(top = 16.dp, bottom = 40.dp)
             ) {
 
+                // 🚀 THEME SWITCHER
                 ThemeSwitcherCard(
                     currentTheme = state.currentTheme,
-                    onThemeChange = { newTheme -> onEvent(AppSettingsEvent.ThemeSelected(newTheme)) })
+                    onThemeChange = { newTheme -> onEvent(AppSettingsEvent.ThemeSelected(newTheme)) }
+                )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 🚀 LANGUAGE SWITCHER
+                LanguageSwitcherCard(
+                    currentLanguage = state.currentLanguage,
+                    onLanguageChange = { newLang -> onEvent(AppSettingsEvent.LanguageSelected(newLang)) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 ProfileMenuItemV2(
                     icon = AppIcons.LockBadge,
@@ -263,6 +274,97 @@ fun ApplicationSettingsContent(
                     onClick = { onEvent(AppSettingsEvent.LogoutClicked) })
             }
         }
+    }
+}
+
+// 🚀 NEW: Language Switcher Card UI
+@Composable
+fun LanguageSwitcherCard(
+    currentLanguage: String,
+    onLanguageChange: (String) -> Unit
+) {
+    val colors = LocalCustomColors.current
+    val isDark = isSystemInDarkTheme()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = if (isDark) 2.dp else 4.dp,
+                shape = RoundedCornerShape(12.dp),
+                spotColor = Color.Black.copy(alpha = 0.04f)
+            )
+            .background(colors.surface, RoundedCornerShape(12.dp))
+            .padding(14.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(colors.primary, CircleShape)
+                    .border(2.dp, colors.primary.copy(alpha = 0.2f), CircleShape)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.app_language_title),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.cardInnerBG, RoundedCornerShape(12.dp))
+                .border(1.dp, colors.divider, RoundedCornerShape(12.dp))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            LanguageOptionButton(
+                title = stringResource(R.string.language_persian),
+                isSelected = currentLanguage == "fa",
+                onClick = { onLanguageChange("fa") },
+                modifier = Modifier.weight(1f)
+            )
+            LanguageOptionButton(
+                title = stringResource(R.string.language_english),
+                isSelected = currentLanguage == "en",
+                onClick = { onLanguageChange("en") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+// 🚀 NEW: Button Component for the Language Options
+@Composable
+fun LanguageOptionButton(
+    title: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalCustomColors.current
+
+    Box(
+        modifier = modifier
+            .padding(2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isSelected) colors.primary else Color.Transparent)
+            .clickable { onClick() }
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = title,
+            color = if (isSelected) colors.textOnPrimaryVariant else colors.textHint,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -441,7 +543,7 @@ fun ThemeOptionButton(
 fun ApplicationSettingsScreenPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         ApplicationSettingsContent(
-            state = AppSettingsState("9368630582", AppTheme.LIGHT),
+            state = AppSettingsState("9368630582", AppTheme.LIGHT, "fa"),
             updateState = UpdateState.UpToDate,
             onEvent = {},
             onCheckForUpdates = {},
@@ -457,7 +559,7 @@ fun ApplicationSettingsScreenPreviewLight() {
 fun ApplicationSettingsScreenPreviewDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         ApplicationSettingsContent(
-            state = AppSettingsState("9368630582", AppTheme.DARK),
+            state = AppSettingsState("9368630582", AppTheme.DARK, "en"),
             updateState = UpdateState.UpToDate,
             onEvent = {},
             onCheckForUpdates = {},

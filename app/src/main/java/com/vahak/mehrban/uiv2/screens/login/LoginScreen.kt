@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -105,15 +107,11 @@ fun LoginScreenContent(
     onEvent: (LoginEvent) -> Unit
 ) {
     val colors = LocalCustomColors.current
-
-    val goldGradient = Brush.linearGradient(
-        colors = listOf(colors.yellow, colors.orange)
-    )
+    val goldGradient = Brush.linearGradient(colors = listOf(colors.yellow, colors.orange))
 
     val infiniteTransition = rememberInfiniteTransition(label = "float")
     val floatOffset by infiniteTransition.animateFloat(
-        initialValue = -10f,
-        targetValue = 10f,
+        initialValue = -10f, targetValue = 10f,
         animationSpec = infiniteRepeatable(
             animation = tween(2000, easing = { it }),
             repeatMode = RepeatMode.Reverse
@@ -123,25 +121,29 @@ fun LoginScreenContent(
 
     AppSignatureHelper(LocalContext.current).getAppSignatures()
 
+    // 🚀 Check the active language natively
+    val currentOsLanguage = LocalConfiguration.current.locales[0].language
+    val isPersian = currentOsLanguage == "fa"
+
     AppBackground(
         patternAlpha = 0.06f,
         patternScale = 2.5f,
         patternRepeatScale = 0.5f
     ) {
 
+        // 🚀 1. DRAW THE MAIN LOGIN FORM FIRST (Bottom Layer)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(top = 80.dp, bottom = 24.dp, start = 24.dp, end = 24.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Animated Gold Logo
                 Box(
                     modifier = Modifier
                         .offset(offset = { IntOffset(0, floatOffset.toInt()) })
@@ -177,7 +179,7 @@ fun LoginScreenContent(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Main Input Card
+                // --- MAIN INPUT CARD ---
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = colors.surface),
@@ -287,8 +289,14 @@ fun LoginScreenContent(
                                 colors = CheckboxDefaults.colors(checkedColor = colors.primary)
                             )
 
+                            // 🚀 Extract strings first to satisfy Compose Linting
+                            val prefixStr = stringResource(R.string.login_privacy_prefix)
+                            val linkStr = stringResource(R.string.login_privacy_link)
+                            val suffixStr = stringResource(R.string.login_privacy_suffix)
+
                             val annotatedString = buildAnnotatedString {
-                                append(stringResource(R.string.login_privacy_prefix))
+                                append(prefixStr)
+                                append(" ")
                                 withStyle(
                                     style = SpanStyle(
                                         color = colors.primary,
@@ -296,9 +304,9 @@ fun LoginScreenContent(
                                         fontWeight = FontWeight.Bold
                                     )
                                 ) {
-                                    append(stringResource(R.string.login_privacy_link))
+                                    append(linkStr)
                                 }
-                                append(stringResource(R.string.login_privacy_suffix))
+                                append(" ", suffixStr)
                             }
 
                             Text(
@@ -373,6 +381,32 @@ fun LoginScreenContent(
                 }
             }
         }
+
+        // 🚀 2. DRAW THE LANGUAGE BUTTON SECOND (Top Layer - Now it is clickable!)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(top = 16.dp, start = 16.dp, end = 16.dp),
+            contentAlignment = Alignment.TopStart
+        ) {
+            TextButton(
+                onClick = {
+                    val targetLang = if (isPersian) "en" else "fa"
+                    onEvent(LoginEvent.ChangeLanguage(targetLang))
+                },
+                modifier = Modifier
+                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(50.dp))
+                    .padding(horizontal = 4.dp)
+            ) {
+                Text(
+                    text = if (isPersian) "English 🌐" else "فارسی 🌐",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+            }
+        }
     }
 
     // Privacy Policy Dialog
@@ -403,19 +437,24 @@ fun LoginScreenContent(
                     onEvent(LoginEvent.PrivacyAcceptedChanged(true))
                     onEvent(LoginEvent.ShowPrivacyDialog(false))
                 }) {
-                    Text(stringResource(R.string.login_privacy_accept), color = colors.primary, fontWeight = FontWeight.Bold)
+                    Text(
+                        stringResource(R.string.login_privacy_accept),
+                        color = colors.primary,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { onEvent(LoginEvent.ShowPrivacyDialog(false)) }) {
-                    Text(stringResource(R.string.cancel), color = colors.textHint)
+                    val text = stringResource(R.string.cancel)
+                    Text(text, color = colors.textHint)
                 }
             }
         )
     }
 }
 
-@Preview(showBackground = true, locale = "fa", name = "1. Normal State")
+@Preview(showBackground = true, locale = "fa", name = "1. Normal State", showSystemUi = false)
 @Composable
 fun LoginScreenPreview() {
     ParentControlTheme {
