@@ -4,12 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import com.vahak.mehrban.core.util.PermissionType
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import timber.log.Timber
 import javax.inject.Inject
 
 // 1. Contract
 data class PermissionSliderState(
-    val missingPermissions: List<PermissionType> = emptyList(),
-    val targetFeatureRoute: String = ""
+    val missingPermissions: List<PermissionType> = emptyList(), val targetFeatureRoute: String = ""
 )
 
 sealed class PermissionSliderEvent {
@@ -34,28 +34,30 @@ class PermissionSliderViewModel @Inject constructor(
 ) {
 
     init {
-        // These keys MUST match what you put in your NavHost route later!
         val route = savedStateHandle.get<String>("featureRoute") ?: ""
         val permissionsString = savedStateHandle.get<String>("missingPermissions") ?: ""
 
-        // Convert the string "USAGE_STATS,OVERLAY" back into a List of Enums safely
         val permissionsList = if (permissionsString.isNotBlank()) {
             permissionsString.split(",").mapNotNull { name ->
                 runCatching { PermissionType.valueOf(name) }.getOrNull()
             }
         } else emptyList()
 
+        Timber.d(
+            "Initializing permission slider, missingCount: %d, targetRoute: %s",
+            permissionsList.size,
+            route
+        )
+
         updateState {
-            copy(
-                targetFeatureRoute = route,
-                missingPermissions = permissionsList
-            )
+            copy(targetFeatureRoute = route, missingPermissions = permissionsList)
         }
     }
 
     override fun onEvent(event: PermissionSliderEvent) {
         when (event) {
             is PermissionSliderEvent.GrantClicked -> {
+                Timber.d("User initiated OS permission request: %s", event.permission)
                 sendEffect(
                     PermissionSliderEffect.LaunchAndroidSettings(
                         action = event.permission.androidSettingsAction,
@@ -65,7 +67,7 @@ class PermissionSliderViewModel @Inject constructor(
             }
 
             is PermissionSliderEvent.SetupFinished -> {
-                // Once all permissions are done, forward them to the feature they originally clicked!
+                Timber.i("Required OS permissions granted, routing to target feature")
                 sendEffect(PermissionSliderEffect.NavigateToFeature(state.value.targetFeatureRoute))
             }
         }

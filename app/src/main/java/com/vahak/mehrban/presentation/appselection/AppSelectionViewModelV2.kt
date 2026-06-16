@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 
 enum class AppFilterTab { BLOCKED, ALLOWED, ALL }
@@ -62,6 +63,7 @@ class AppSelectionViewModelV2 @Inject constructor(
     AppSelectionStateV2()
 ) {
 
+
     private val currentChildId: String = checkNotNull(savedStateHandle["childId"])
     private var allInstalledAppsOnDevice: List<AppItemUi> = emptyList()
 
@@ -71,12 +73,12 @@ class AppSelectionViewModelV2 @Inject constructor(
 
     private fun loadAppsAndRules() {
         viewModelScope.launch(Dispatchers.IO) {
+            Timber.d("Fetching installed applications from device")
             updateState { copy(isLoading = true) }
 
-            // 1. Get installed apps
             allInstalledAppsOnDevice = appFetchManager.getInstalledApps()
 
-            // 2. Observe Room. When the Engine finishes syncing, this updates instantly.
+            Timber.d("Observing local application rules for merge")
             appRuleRepository.observeAllRules(currentChildId).collectLatest { dbRules ->
                 val dbRulesMap = dbRules.associateBy { it.packageName }
                 val mergedList = allInstalledAppsOnDevice.map { app ->
@@ -94,11 +96,14 @@ class AppSelectionViewModelV2 @Inject constructor(
     override fun onEvent(event: AppSelectionEventV2) {
         when (event) {
             is AppSelectionEventV2.ToggleApp -> {
+                Timber.d(
+                    "UI requested application rule toggle, packageName: %s, isAllowed: %b",
+                    event.packageName,
+                    event.isAllowed
+                )
                 viewModelScope.launch(Dispatchers.IO) {
                     appRuleRepository.toggleAppRule(
-                        currentChildId,
-                        event.packageName,
-                        event.isAllowed
+                        currentChildId, event.packageName, event.isAllowed
                     )
                 }
             }
@@ -107,21 +112,28 @@ class AppSelectionViewModelV2 @Inject constructor(
             is AppSelectionEventV2.TabSelected -> updateState { copy(selectedTab = event.tab) }
 
             is AppSelectionEventV2.SaveClicked -> {
+                Timber.d("UI requested manual rule synchronization to server")
                 viewModelScope.launch(Dispatchers.IO) {
                     updateState { copy(isSaving = true) }
-                    appRuleRepository.pushRulesToServer(currentChildId)
+
+                    val result = appRuleRepository.pushRulesToServer(currentChildId)
 
                     withContext(Dispatchers.Main) {
                         updateState { copy(isSaving = false) }
-                        sendEffect(AppSelectionEffectV2.ShowToast(context.getString(R.string.app_access_saved)))
-                        sendEffect(AppSelectionEffectV2.NavigateBack)
+                        if (result.isSuccess) {
+                            Timber.i("Application rules manually pushed to server successfully")
+                            sendEffect(AppSelectionEffectV2.ShowToast(context.getString(R.string.app_access_saved)))
+                            sendEffect(AppSelectionEffectV2.NavigateBack)
+                        } else {
+                            // Using warn because offline-first architecture will auto-retry later
+                            Timber.w("Manual rule push failed, retaining local dirty state")
+                            sendEffect(AppSelectionEffectV2.ShowToast(context.getString(R.string.error_server_communication)))
+                        }
                     }
                 }
             }
 
-            is AppSelectionEventV2.BackClicked -> {
-                sendEffect(AppSelectionEffectV2.NavigateBack)
-            }
+            is AppSelectionEventV2.BackClicked -> sendEffect(AppSelectionEffectV2.NavigateBack)
         }
     }
 }

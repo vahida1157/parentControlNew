@@ -11,18 +11,20 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import okhttp3.ResponseBody
+import timber.log.Timber
 import retrofit2.Response
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
 
 class UpdateDownloadManager @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val api: AppUpdateApi
+    @ApplicationContext private val context: Context, private val api: AppUpdateApi
 ) {
+
 
     fun downloadApk(fileName: String, downloadUrl: String): Flow<DownloadState> = flow {
         try {
+            Timber.d("Initiating APK download process, fileName: %s", fileName)
             val directory = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
             val file = File(directory, fileName)
 
@@ -32,32 +34,38 @@ class UpdateDownloadManager @Inject constructor(
             var response: Response<ResponseBody>? = null
 
             try {
+                Timber.d("Requesting APK file chunks, rangeHeader: %s", rangeHeader)
                 response = api.downloadApk(downloadUrl, rangeHeader)
                 if (response.code() == 416 || !response.isSuccessful) {
                     throw Exception("Invalid range or server error: ${response.code()}")
                 }
             } catch (e: Exception) {
-                // The file on the device is corrupted or the server rejected the range.
-                // DELETE IT and start from scratch.
+                Timber.w(
+                    e, "Invalid byte range or server rejection, resetting to clean download state"
+                )
                 if (file.exists()) file.delete()
                 downloadedLength = 0L
                 rangeHeader = null
-
-                // Second attempt: Clean download from 0 bytes
                 response = api.downloadApk(downloadUrl, rangeHeader)
             }
 
             if (response == null || !response.isSuccessful || response.body() == null) {
+                Timber.e(
+                    "Failed to download APK, server responded with error status: %d",
+                    response?.code()
+                )
                 emit(DownloadState.Error(context.getString(R.string.error_download_connection_failed)))
                 return@flow
             }
 
             val body = response.body()!!
             val isPartialContent = response.code() == 206
-            val totalLength = if (isPartialContent) body.contentLength() + downloadedLength else body.contentLength()
+            val totalLength =
+                if (isPartialContent) body.contentLength() + downloadedLength else body.contentLength()
 
             var appendToFile = isPartialContent
             if (!isPartialContent && file.exists()) {
+                Timber.d("Removing existing file due to complete download strategy shift")
                 file.delete()
                 appendToFile = false
             }
@@ -83,10 +91,11 @@ class UpdateDownloadManager @Inject constructor(
                     }
                 }
             }
-
+            Timber.i("APK downloaded successfully, totalBytes: %d", totalLength)
             emit(DownloadState.Success(file))
 
         } catch (e: Exception) {
+            Timber.e(e, "System failure during APK download stream processing")
             emit(DownloadState.Error(context.getString(R.string.error_download_connection_lost)))
         }
     }.flowOn(Dispatchers.IO)

@@ -61,7 +61,8 @@ android {
             // Allows installing Debug and Release apps simultaneously on the same device
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
-            buildConfigField("String", "BASE_URL", "\"http://194.5.195.47/\"")
+//            buildConfigField("String", "BASE_URL", "\"http://194.5.195.47/\"")
+            buildConfigField("String", "BASE_URL", "\"https://mehr-banan.ir/\"")
         }
 
         release {
@@ -154,6 +155,9 @@ dependencies {
     implementation(libs.hilt.work)
 
     implementation(libs.android.device.names)
+
+    // Logging
+    implementation(libs.timber)
 
     ksp(libs.room.compiler)
     ksp(libs.hilt.compiler)

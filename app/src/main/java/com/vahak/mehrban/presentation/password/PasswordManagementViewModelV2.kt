@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 
 data class PasswordStateV2(
@@ -73,12 +74,32 @@ class PasswordViewModelV2 @Inject constructor(
 
     override fun onEvent(event: PasswordEventV2) {
         when (event) {
-            is PasswordEventV2.PasswordChanged -> updateState { copy(passwordInput = event.value, errorMessage = null) }
-            is PasswordEventV2.ConfirmPasswordChanged -> updateState { copy(confirmPasswordInput = event.value, errorMessage = null) }
+            is PasswordEventV2.PasswordChanged -> updateState {
+                copy(
+                    passwordInput = event.value, errorMessage = null
+                )
+            }
+
+            is PasswordEventV2.ConfirmPasswordChanged -> updateState {
+                copy(
+                    confirmPasswordInput = event.value, errorMessage = null
+                )
+            }
+
             PasswordEventV2.TogglePasswordVisibility -> updateState { copy(isPasswordVisible = !isPasswordVisible) }
-            PasswordEventV2.ToggleConfirmPasswordVisibility -> updateState { copy(isConfirmPasswordVisible = !isConfirmPasswordVisible) }
+            PasswordEventV2.ToggleConfirmPasswordVisibility -> updateState {
+                copy(
+                    isConfirmPasswordVisible = !isConfirmPasswordVisible
+                )
+            }
+
             is PasswordEventV2.QuestionSelected -> updateState { copy(selectedQuestion = event.question) }
-            is PasswordEventV2.AnswerChanged -> updateState { copy(securityAnswer = event.answer, errorMessage = null) }
+            is PasswordEventV2.AnswerChanged -> updateState {
+                copy(
+                    securityAnswer = event.answer, errorMessage = null
+                )
+            }
+
             PasswordEventV2.SubmitClicked -> submitForm()
             PasswordEventV2.BackClicked -> sendEffect(PasswordEffectV2.NavigateBack)
         }
@@ -86,11 +107,15 @@ class PasswordViewModelV2 @Inject constructor(
 
     private fun submitForm() {
         val currentState = state.value
-        if (!currentState.isFormValid) return
+        if (!currentState.isFormValid) {
+            Timber.d("Security profile setup rejected locally due to form validation")
+            return
+        }
 
         updateState { copy(isLoading = true, errorMessage = null) }
 
         viewModelScope.launch {
+            Timber.d("Initiating security profile setup submission")
             val result = setupSecurityUseCase.execute(
                 pin = currentState.passwordInput,
                 question = currentState.selectedQuestion,
@@ -99,17 +124,26 @@ class PasswordViewModelV2 @Inject constructor(
 
             result.onSuccess {
                 withContext(Dispatchers.IO) {
-                    sessionManager.setSecurityData(currentState.selectedQuestion, currentState.securityAnswer.trim())
+                    sessionManager.setSecurityData(
+                        currentState.selectedQuestion, currentState.securityAnswer.trim()
+                    )
                     sessionManager.setParentPin(currentState.passwordInput)
                 }
 
                 sessionManager.parentPinFlow.first { emittedPin -> emittedPin == currentState.passwordInput }
 
+                Timber.i("Security profile configured successfully")
                 sendEffect(PasswordEffectV2.ShowToast(context.getString(R.string.password_setup_success)))
                 sendEffect(PasswordEffectV2.NavigateToDashboard)
 
             }.onFailure { error ->
-                updateState { copy(isLoading = false, errorMessage = error.message ?: context.getString(R.string.error_unknown)) }
+                Timber.w("Security profile setup failed during server synchronization")
+                updateState {
+                    copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: context.getString(R.string.error_unknown)
+                    )
+                }
             }
         }
     }

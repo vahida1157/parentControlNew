@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 data class AppSettingsState(
@@ -44,21 +45,18 @@ class ApplicationSettingsViewModel @Inject constructor(
     val updateState = appUpdateManager.updateState
 
     init {
-        // Observe Phone Number
         viewModelScope.launch {
             sessionManager.userPhoneFlow.collectLatest { phone ->
                 updateState { copy(parentPhoneNumber = phone ?: context.getString(R.string.settings_phone_unknown)) }
             }
         }
 
-        // Observe Theme Preference
         viewModelScope.launch {
             sessionManager.appThemeFlow.collectLatest { theme ->
                 updateState { copy(currentTheme = theme) }
             }
         }
 
-        // 🚀 Observe Language Preference
         viewModelScope.launch {
             sessionManager.appLanguageFlow.collectLatest { lang ->
                 updateState { copy(currentLanguage = lang) }
@@ -69,17 +67,15 @@ class ApplicationSettingsViewModel @Inject constructor(
     override fun onEvent(event: AppSettingsEvent) {
         when (event) {
             is AppSettingsEvent.ThemeSelected -> {
-                viewModelScope.launch {
-                    sessionManager.setAppTheme(event.theme)
-                }
+                Timber.i("Application theme preference updated locally: %s", event.theme)
+                viewModelScope.launch { sessionManager.setAppTheme(event.theme) }
             }
             is AppSettingsEvent.LanguageSelected -> {
-                // 🚀 Save to SessionManager. MainActivity instantly rebuilds the UI!
-                viewModelScope.launch {
-                    sessionManager.setAppLanguage(event.langCode)
-                }
+                Timber.i("Application language preference updated locally: %s", event.langCode)
+                viewModelScope.launch { sessionManager.setAppLanguage(event.langCode) }
             }
             is AppSettingsEvent.LogoutClicked -> {
+                Timber.i("Initiating user session termination via settings panel")
                 viewModelScope.launch {
                     authRepository.logout()
                     sendEffect(AppSettingsEffect.NavigateToLogin)
@@ -89,11 +85,15 @@ class ApplicationSettingsViewModel @Inject constructor(
     }
 
     fun checkForUpdates() {
+        Timber.d("Initiating manual application update check")
         appUpdateManager.checkForUpdates(forceNetworkCall = true) { updateFound ->
             if (!updateFound) {
+                Timber.i("Application is currently up to date")
                 viewModelScope.launch {
                     sendEffect(AppSettingsEffect.ShowToast(context.getString(R.string.settings_update_uptodate)))
                 }
+            } else {
+                Timber.i("New application update discovered")
             }
         }
     }

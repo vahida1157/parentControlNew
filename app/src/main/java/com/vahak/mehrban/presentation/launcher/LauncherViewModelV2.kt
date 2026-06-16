@@ -19,13 +19,15 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.time.LocalDate
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 data class LauncherStateV2(
     val childName: String = "",
@@ -89,7 +91,6 @@ class LauncherViewModelV2 @Inject constructor(
     private fun observeActiveSession() {
         val activeChildIdFlow = sessionManager.activeChildIdFlow.distinctUntilChanged()
 
-        // 1. Observe Child Details
         viewModelScope.launch(Dispatchers.IO) {
             activeChildIdFlow.flatMapLatest { childId ->
                 if (childId != null) childRepository.observeChildById(childId) else flowOf(null)
@@ -100,7 +101,6 @@ class LauncherViewModelV2 @Inject constructor(
             }
         }
 
-        // 2. Observe Apps
         viewModelScope.launch(Dispatchers.IO) {
             activeChildIdFlow.flatMapLatest { childId ->
                 if (childId != null) appRuleDao.observeAllowedApps(childId) else flowOf(emptyList())
@@ -111,7 +111,6 @@ class LauncherViewModelV2 @Inject constructor(
             }
         }
 
-        // 3. Observe Time Limits
         viewModelScope.launch(Dispatchers.IO) {
             activeChildIdFlow.flatMapLatest { childId ->
                 if (childId != null) settingsDao.getGlobalSettings(childId) else flowOf(null)
@@ -125,10 +124,11 @@ class LauncherViewModelV2 @Inject constructor(
             }
         }
 
-        // 4. Observe Daily Usage
         viewModelScope.launch(Dispatchers.IO) {
             activeChildIdFlow.flatMapLatest { childId ->
-                if (childId != null) usageDao.observeDailyUsage(childId, LocalDate.now()) else flowOf(null)
+                if (childId != null) usageDao.observeDailyUsage(
+                    childId, LocalDate.now()
+                ) else flowOf(null)
             }.collectLatest { daily ->
                 val localSecs = daily?.usedSeconds ?: 0
                 val cachedGlobalSecs = daily?.globalUsedSeconds ?: 0
@@ -143,35 +143,50 @@ class LauncherViewModelV2 @Inject constructor(
                 if (state.value.isTimeLimitActive && state.value.timeLimitMins > 0) {
                     val limitSecs = state.value.timeLimitMins * 60
                     if (state.value.usageSeconds >= limitSecs) {
-                        sendEffect(LauncherEffectV2.ShowToast("⏳", context.getString(R.string.launcher_time_expired)))
+                        Timber.w(
+                            "Application launch blocked, time limit expired, packageName: %s",
+                            event.packageName
+                        )
+                        sendEffect(
+                            LauncherEffectV2.ShowToast(
+                                "⏳", context.getString(R.string.launcher_time_expired)
+                            )
+                        )
                         return
                     }
                 }
+                Timber.i("Application launch approved, packageName: %s", event.packageName)
                 AppManager.launchApp(context, event.packageName)
             }
 
             // PIN Events
-            is LauncherEventV2.ExitLauncherClicked -> {
-                updateState { copy(showExitDialog = true, enteredPin = "", pinError = false) }
+            is LauncherEventV2.ExitLauncherClicked -> updateState {
+                copy(
+                    showExitDialog = true, enteredPin = "", pinError = false
+                )
             }
-            is LauncherEventV2.DismissExitDialog -> {
-                updateState { copy(showExitDialog = false, enteredPin = "", pinError = false) }
+
+            is LauncherEventV2.DismissExitDialog -> updateState {
+                copy(
+                    showExitDialog = false, enteredPin = "", pinError = false
+                )
             }
+
             is LauncherEventV2.PinDigitEntered -> {
                 val currentPin = state.value.enteredPin
                 if (currentPin.length < 8) {
                     updateState { copy(enteredPin = currentPin + event.digit, pinError = false) }
                 }
             }
+
             is LauncherEventV2.PinBackspaceClicked -> {
                 val currentPin = state.value.enteredPin
                 if (currentPin.isNotEmpty()) {
                     updateState { copy(enteredPin = currentPin.dropLast(1), pinError = false) }
                 }
             }
-            is LauncherEventV2.SubmitExitPin -> {
-                verifyPin(event.pin)
-            }
+
+            is LauncherEventV2.SubmitExitPin -> verifyPin(event.pin)
 
             // Recovery Events
             is LauncherEventV2.ForgotPinClicked -> {
@@ -189,15 +204,20 @@ class LauncherViewModelV2 @Inject constructor(
                     }
                 }
             }
-            is LauncherEventV2.DismissRecoveryDialog -> {
-                updateState { copy(showRecoveryDialog = false, recoveryAnswerInput = "", recoveryError = false) }
+
+            is LauncherEventV2.DismissRecoveryDialog -> updateState {
+                copy(
+                    showRecoveryDialog = false, recoveryAnswerInput = "", recoveryError = false
+                )
             }
-            is LauncherEventV2.RecoveryAnswerChanged -> {
-                updateState { copy(recoveryAnswerInput = event.answer, recoveryError = false) }
+
+            is LauncherEventV2.RecoveryAnswerChanged -> updateState {
+                copy(
+                    recoveryAnswerInput = event.answer, recoveryError = false
+                )
             }
-            is LauncherEventV2.SubmitRecoveryAnswer -> {
-                verifyRecoveryAnswer()
-            }
+
+            is LauncherEventV2.SubmitRecoveryAnswer -> verifyRecoveryAnswer()
         }
     }
 
@@ -205,11 +225,13 @@ class LauncherViewModelV2 @Inject constructor(
         viewModelScope.launch {
             val savedPin = sessionManager.parentPinFlow.first()
             if (savedPin.isNullOrEmpty() || pin == savedPin) {
+                Timber.i("Launcher exit authorized via PIN verification")
                 updateState { copy(showExitDialog = false, enteredPin = "") }
                 sendEffect(LauncherEffectV2.RequestExit)
             } else {
+                Timber.w("Launcher exit denied, incorrect PIN provided")
                 updateState { copy(pinError = true) }
-                delay(600)
+                delay(600.milliseconds)
                 updateState { copy(enteredPin = "", pinError = false) }
             }
         }
@@ -221,9 +243,11 @@ class LauncherViewModelV2 @Inject constructor(
             val inputAnswer = state.value.recoveryAnswerInput.trim()
 
             if (savedAnswer.isNotEmpty() && inputAnswer == savedAnswer) {
+                Timber.i("Launcher exit authorized via recovery answer verification")
                 updateState { copy(showRecoveryDialog = false, recoveryAnswerInput = "") }
                 sendEffect(LauncherEffectV2.RequestExit)
             } else {
+                Timber.w("Launcher exit denied, incorrect recovery answer provided")
                 updateState { copy(recoveryError = true) }
             }
         }

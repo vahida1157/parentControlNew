@@ -12,6 +12,7 @@ import com.vahak.mehrban.ui.screens.Gender
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 import com.vahak.mehrban.core.data.local.entity.Gender as DbGender
 
@@ -52,11 +53,15 @@ class AddChildViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : BaseViewModel<AddChildState, AddChildEvent, AddChildEffect>(AddChildState()) {
 
+
     override fun onEvent(event: AddChildEvent) {
         when (event) {
             is AddChildEvent.NameChanged -> updateState {
-                copy(name = event.name, errorMessage = null)
+                copy(
+                    name = event.name, errorMessage = null
+                )
             }
+
             is AddChildEvent.PhoneChanged -> updateState { copy(phone = event.phone) }
             is AddChildEvent.OpenDobSheet -> updateState { copy(isDobSheetOpen = true) }
             is AddChildEvent.CloseDobSheet -> updateState { copy(isDobSheetOpen = false) }
@@ -68,14 +73,21 @@ class AddChildViewModel @Inject constructor(
                     copy(dob = formattedDob, isDobSheetOpen = false, errorMessage = null)
                 }
             }
+
             is AddChildEvent.GenderSelected -> updateState {
-                copy(gender = event.gender, errorMessage = null)
+                copy(
+                    gender = event.gender, errorMessage = null
+                )
             }
+
             is AddChildEvent.OpenAvatarSheet -> updateState { copy(isAvatarSheetOpen = true) }
             is AddChildEvent.CloseAvatarSheet -> updateState { copy(isAvatarSheetOpen = false) }
             is AddChildEvent.AvatarSelected -> updateState {
-                copy(avatarId = event.id, isAvatarSheetOpen = false)
+                copy(
+                    avatarId = event.id, isAvatarSheetOpen = false
+                )
             }
+
             is AddChildEvent.SaveClicked -> submitData()
         }
     }
@@ -88,6 +100,7 @@ class AddChildViewModel @Inject constructor(
         )
 
         if (validationResult is ChildValidationResult.Error) {
+            Timber.w("Child profile validation rejected, reason: %s", validationResult.message)
             updateState { copy(errorMessage = validationResult.message) }
             return
         }
@@ -95,33 +108,48 @@ class AddChildViewModel @Inject constructor(
         updateState { copy(isSaving = true, errorMessage = null) }
 
         viewModelScope.launch {
-            val dbGender = if (currentState.gender == Gender.Boy) DbGender.BOY else DbGender.GIRL
+            try {
+                Timber.d("Processing child profile creation payload")
+                val dbGender =
+                    if (currentState.gender == Gender.Boy) DbGender.BOY else DbGender.GIRL
 
-            val dobParts = currentState.dob.split("/")
-            val jy = dobParts[0].toInt()
-            val jm = dobParts[1].toInt()
-            val jd = dobParts[2].toInt()
+                val dobParts = currentState.dob.split("/")
+                val jy = dobParts[0].toInt()
+                val jm = dobParts[1].toInt()
+                val jd = dobParts[2].toInt()
 
-            val gregorianDob = JalaliConverter.jalaliToGregorian(jy, jm, jd)
+                val gregorianDob = JalaliConverter.jalaliToGregorian(jy, jm, jd)
+                val finalPhone = currentState.phone.trim().takeIf { it.isNotEmpty() }
 
-            val finalPhone = currentState.phone.trim().takeIf { it.isNotEmpty() }
+                val result = childRepository.createChild(
+                    name = currentState.name,
+                    dob = gregorianDob,
+                    gender = dbGender,
+                    avatarId = currentState.avatarId,
+                    phone = finalPhone
+                )
 
-            val result = childRepository.createChild(
-                name = currentState.name,
-                dob = gregorianDob,
-                gender = dbGender,
-                avatarId = currentState.avatarId,
-                phone = finalPhone
-            )
-
-            result.onSuccess {
-                sendEffect(AddChildEffect.ShowToast(context.getString(R.string.child_added_success)))
-                sendEffect(AddChildEffect.NavigateBack)
-            }.onFailure { error ->
+                result.onSuccess {
+                    Timber.i("Child profile created and saved locally")
+                    sendEffect(AddChildEffect.ShowToast(context.getString(R.string.child_added_success)))
+                    sendEffect(AddChildEffect.NavigateBack)
+                }.onFailure { error ->
+                    Timber.w(error, "Failed to create child profile during repository operation")
+                    updateState {
+                        copy(
+                            isSaving = false,
+                            errorMessage = error.message
+                                ?: context.getString(R.string.error_save_child_generic)
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                // Catches split("/") parsing errors or Jalali conversion crashes
+                Timber.e(e, "System failure processing date conversion or child payload")
                 updateState {
                     copy(
                         isSaving = false,
-                        errorMessage = error.message ?: context.getString(R.string.error_save_child_generic)
+                        errorMessage = context.getString(R.string.error_save_child_generic)
                     )
                 }
             }

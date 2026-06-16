@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 data class ChildSettingsState(
@@ -43,7 +44,8 @@ sealed class ChildSettingsEffect {
     object NavigateBack : ChildSettingsEffect()
     data class NavigateToFeature(val route: String) : ChildSettingsEffect()
     data class ShowToast(val message: String) : ChildSettingsEffect()
-    data class NavigateToPermissionSlider(val route: String, val missingPermissions: List<String>) : ChildSettingsEffect()
+    data class NavigateToPermissionSlider(val route: String, val missingPermissions: List<String>) :
+        ChildSettingsEffect()
 }
 
 @HiltViewModel
@@ -56,7 +58,8 @@ class ChildSettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : BaseViewModel<ChildSettingsState, ChildSettingsEvent, ChildSettingsEffect>(ChildSettingsState()) {
 
-    private val currentChildIdFlow = MutableStateFlow(checkNotNull(savedStateHandle.get<String>("childId")))
+    private val currentChildIdFlow =
+        MutableStateFlow(checkNotNull(savedStateHandle.get<String>("childId")))
 
     private val featurePermissionsMap = mapOf(
         "time_limit" to listOf(PermissionType.USAGE_STATS, PermissionType.OVERLAY),
@@ -74,6 +77,7 @@ class ChildSettingsViewModel @Inject constructor(
             }
 
             currentChildIdFlow.collectLatest { id ->
+                Timber.d("Loading comprehensive child configuration state")
                 updateState { copy(isLoading = true) }
 
                 launch {
@@ -110,19 +114,33 @@ class ChildSettingsViewModel @Inject constructor(
     override fun onEvent(event: ChildSettingsEvent) {
         when (event) {
             is ChildSettingsEvent.BackClicked -> sendEffect(ChildSettingsEffect.NavigateBack)
-            is ChildSettingsEvent.HelpClicked -> sendEffect(ChildSettingsEffect.ShowToast(context.getString(R.string.feature_under_development)))
+            is ChildSettingsEvent.HelpClicked -> sendEffect(
+                ChildSettingsEffect.ShowToast(
+                    context.getString(
+                        R.string.feature_under_development
+                    )
+                )
+            )
+
             is ChildSettingsEvent.OpenChildSheet -> updateState { copy(isChildSheetOpen = true) }
             is ChildSettingsEvent.CloseChildSheet -> updateState { copy(isChildSheetOpen = false) }
             is ChildSettingsEvent.SelectChild -> {
+                Timber.d("Dashboard context switched to new child profile")
                 updateState { copy(isChildSheetOpen = false, isLoading = true) }
                 currentChildIdFlow.value = event.childId
-                viewModelScope.launch {
-                    sessionManager.setViewedChildId(event.childId)
-                }
+                viewModelScope.launch { sessionManager.setViewedChildId(event.childId) }
             }
 
             is ChildSettingsEvent.GridItemClicked -> {
-                if (event.route in listOf("location", "safe_search", "prevent_delete", "eye_protect", "content_movies", "site_management")) {
+                if (event.route in listOf(
+                        "location",
+                        "safe_search",
+                        "prevent_delete",
+                        "eye_protect",
+                        "content_movies",
+                        "site_management"
+                    )
+                ) {
                     sendEffect(ChildSettingsEffect.ShowToast(context.getString(R.string.feature_coming_soon)))
                     return
                 }
@@ -133,8 +151,14 @@ class ChildSettingsViewModel @Inject constructor(
                 }
 
                 if (missingPermissions.isEmpty()) {
+                    Timber.d("OS permissions verified, launching feature: %s", event.route)
                     sendEffect(ChildSettingsEffect.NavigateToFeature(event.route))
                 } else {
+                    Timber.w(
+                        "Feature launch blocked due to missing OS permissions, missingCount: %d, feature: %s",
+                        missingPermissions.size,
+                        event.route
+                    )
                     sendEffect(
                         ChildSettingsEffect.NavigateToPermissionSlider(
                             event.route, missingPermissions.map { it.name })

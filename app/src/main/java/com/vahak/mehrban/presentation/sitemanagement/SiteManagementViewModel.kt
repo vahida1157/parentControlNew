@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 // --- Contract ---
@@ -28,7 +29,8 @@ sealed class SiteManagementEvent {
     data class DomainInputChanged(val input: String) : SiteManagementEvent()
     object AddDomainClicked : SiteManagementEvent()
     data class RemoveDomainClicked(val domain: BlockedDomainEntity) : SiteManagementEvent()
-    data class ToggleDomainStatus(val domain: BlockedDomainEntity, val isActive: Boolean) : SiteManagementEvent()
+    data class ToggleDomainStatus(val domain: BlockedDomainEntity, val isActive: Boolean) :
+        SiteManagementEvent()
 }
 
 sealed class SiteManagementEffect {
@@ -51,12 +53,11 @@ class SiteManagementViewModel @Inject constructor(
     init {
         updateState { copy(childId = this@SiteManagementViewModel.childId) }
 
-        // Trigger a background sync when the screen opens
         viewModelScope.launch {
+            Timber.d("Initiating background synchronization for web filtering domains")
             webRepository.syncDomainsFromServer(childId)
         }
 
-        // 1. Observe the Master Toggle (via Repository)
         viewModelScope.launch {
             settingsRepository.getGlobalSettings(childId).collectLatest { settings ->
                 if (settings != null) {
@@ -65,7 +66,6 @@ class SiteManagementViewModel @Inject constructor(
             }
         }
 
-        // 2. Observe the Blocked Domains List (via Repository)
         viewModelScope.launch {
             webRepository.observeBlockedDomains(childId).collectLatest { domains ->
                 updateState { copy(blockedDomains = domains) }
@@ -78,22 +78,23 @@ class SiteManagementViewModel @Inject constructor(
             is SiteManagementEvent.BackClicked -> sendEffect(SiteManagementEffect.NavigateBack)
 
             is SiteManagementEvent.ToggleActive -> {
+                Timber.i("Site management master toggle modified, isActive: %b", event.isActive)
                 viewModelScope.launch {
                     settingsRepository.updateSiteManagementToggle(childId, event.isActive)
                 }
             }
 
-            is SiteManagementEvent.DomainInputChanged -> {
-                updateState { copy(domainInput = event.input) }
-            }
+            is SiteManagementEvent.DomainInputChanged -> updateState { copy(domainInput = event.input) }
 
             is SiteManagementEvent.AddDomainClicked -> {
                 val input = state.value.domainInput.trim().lowercase()
                 if (input.isBlank() || !input.contains(".")) {
+                    Timber.w("Domain addition rejected due to malformed input")
                     sendEffect(SiteManagementEffect.ShowToast(context.getString(R.string.invalid_domain_format)))
                     return
                 }
 
+                Timber.i("Adding new domain definition to site blocklist: %s", input)
                 viewModelScope.launch {
                     webRepository.addDomain(childId, input)
                     updateState { copy(domainInput = "") }
@@ -101,12 +102,16 @@ class SiteManagementViewModel @Inject constructor(
             }
 
             is SiteManagementEvent.RemoveDomainClicked -> {
+                Timber.i("Deleting domain definition from site blocklist")
                 viewModelScope.launch {
                     webRepository.removeDomain(event.domain)
                 }
             }
 
             is SiteManagementEvent.ToggleDomainStatus -> {
+                Timber.d(
+                    "Toggling domain definition restriction status, isActive: %b", event.isActive
+                )
                 viewModelScope.launch {
                     webRepository.toggleDomainStatus(event.domain.id, event.isActive)
                 }
