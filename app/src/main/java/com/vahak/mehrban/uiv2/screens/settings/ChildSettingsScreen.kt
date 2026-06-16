@@ -2,7 +2,6 @@ package com.vahak.mehrban.uiv2.screens.settings
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -54,6 +52,7 @@ import com.vahak.mehrban.presentation.setting.ChildSettingsEvent
 import com.vahak.mehrban.presentation.setting.ChildSettingsState
 import com.vahak.mehrban.presentation.setting.ChildSettingsViewModel
 import com.vahak.mehrban.ui.theme.AppIcons
+import com.vahak.mehrban.uiv2.components.header.MehrbanChildSelectionHeader
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
@@ -98,14 +97,11 @@ fun ChildSettingsScreen(
                 is ChildSettingsEffect.NavigateBack -> onBackClick()
                 is ChildSettingsEffect.NavigateToFeature -> onNavigateToFeature(effect.route)
                 is ChildSettingsEffect.ShowToast -> Toast.makeText(
-                    context,
-                    effect.message,
-                    Toast.LENGTH_SHORT
+                    context, effect.message, Toast.LENGTH_SHORT
                 ).show()
 
                 is ChildSettingsEffect.NavigateToPermissionSlider -> onInterceptForPermissions(
-                    effect.route,
-                    effect.missingPermissions
+                    effect.route, effect.missingPermissions
                 )
             }
         }
@@ -117,8 +113,7 @@ fun ChildSettingsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChildSettingsContent(
-    state: ChildSettingsState,
-    onEvent: (ChildSettingsEvent) -> Unit
+    state: ChildSettingsState, onEvent: (ChildSettingsEvent) -> Unit
 ) {
     val colors = LocalCustomColors.current
     val localContext = LocalContext.current
@@ -146,15 +141,20 @@ fun ChildSettingsContent(
             .background(colors.background)
             .verticalScroll(rememberScrollState())
     ) {
-        ChildSettingsHeaderV2(
-            child = state.activeChild,
+        MehrbanChildSelectionHeader(
+            title = stringResource(R.string.child_settings_header_title),
+            subtitle = stringResource(R.string.child_settings_header_subtitle),
+            childName = state.activeChild.name,
+            childGender = state.activeChild.gender,
+            changeButtonText = stringResource(R.string.change),
             onBackClick = { onEvent(ChildSettingsEvent.BackClicked) },
-            onChangeChildClick = { onEvent(ChildSettingsEvent.OpenChildSheet) }
-        )
+            onChangeChildClick = { onEvent(ChildSettingsEvent.OpenChildSheet) })
 
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
 
             // SECTION: Time Management
             SectionTitleV2(stringResource(R.string.child_settings_section_time))
@@ -163,97 +163,93 @@ fun ChildSettingsContent(
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_daily_time_lock),
                 desc = stringResource(R.string.child_settings_daily_time_lock_desc),
-                iconEmoji = "⏰", iconBg = Color(0xFFE3F2FD),
+                iconEmoji = "⏰",
+                iconBg = Color(0xFFE3F2FD),
                 valueBadge = formatTimeLimit(isTimeLimitActive, state.settings.dailyTimeLimitMins),
                 isInactive = !isTimeLimitActive,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
-                            "time_limit",
-                            localContext
+                            "time_limit", localContext
                         )
                     )
-                }
-            )
+                })
 
             val isSleepTimeActive = state.settings.isSleepTimeActive
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_sleep_mode),
                 desc = stringResource(R.string.child_settings_sleep_mode_desc),
-                iconEmoji = "🌙", iconBg = Color(0xFFFCE4EC),
+                iconEmoji = "🌙",
+                iconBg = Color(0xFFFCE4EC),
                 valueBadge = formatSleepTime(
-                    isSleepTimeActive,
-                    state.settings.sleepTimeStart,
-                    state.settings.sleepTimeEnd
+                    isSleepTimeActive, state.settings.sleepTimeStart, state.settings.sleepTimeEnd
                 ),
                 isInactive = !isSleepTimeActive,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
-                            "sleep_time",
-                            localContext
+                            "sleep_time", localContext
                         )
                     )
-                }
-            )
+                })
 
             // SECTION: Internet & Apps
             Spacer(modifier = Modifier.height(16.dp))
             SectionTitleV2(stringResource(R.string.child_settings_section_apps))
 
             val allowedCount = state.allowedAppsCount
-            val appLockBadgeText = if (allowedCount == 0)
-                stringResource(R.string.child_settings_all_blocked)
-            else
-                stringResource(R.string.child_settings_apps_allowed, allowedCount)
+            val appLockBadgeText =
+                if (allowedCount == 0) stringResource(R.string.child_settings_all_blocked)
+                else stringResource(R.string.child_settings_apps_allowed, allowedCount)
             val isAppLockInactive = allowedCount == 0
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_app_lock),
                 desc = stringResource(R.string.child_settings_app_lock_desc),
-                iconEmoji = "🔒", iconBg = Color(0xFFE8F5E9),
+                iconEmoji = "🔒",
+                iconBg = Color(0xFFE8F5E9),
                 valueBadge = appLockBadgeText,
                 isInactive = isAppLockInactive,
-                onClick = { onEvent(ChildSettingsEvent.GridItemClicked("app_lock", localContext)) }
-            )
+                onClick = { onEvent(ChildSettingsEvent.GridItemClicked("app_lock", localContext)) })
 
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_site_filter),
                 desc = stringResource(R.string.child_settings_site_filter_desc),
-                iconEmoji = "🌐", iconBg = Color(0xFFE3F2FD),
+                iconEmoji = "🌐",
+                iconBg = Color(0xFFE3F2FD),
                 valueBadge = stringResource(R.string.coming_soon),
-                badgeBgColor = soonBg, badgeTextColor = soonText,
+                badgeBgColor = soonBg,
+                badgeTextColor = soonText,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
-                            "site_management",
-                            localContext
+                            "site_management", localContext
                         )
                     )
-                }
-            )
+                })
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_safe_search),
                 desc = stringResource(R.string.child_settings_safe_search_desc),
-                iconEmoji = "🔍", iconBg = Color(0xFFE8F5E9),
+                iconEmoji = "🔍",
+                iconBg = Color(0xFFE8F5E9),
                 valueBadge = stringResource(R.string.coming_soon),
-                badgeBgColor = soonBg, badgeTextColor = soonText,
+                badgeBgColor = soonBg,
+                badgeTextColor = soonText,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
-                            "safe_search",
-                            localContext
+                            "safe_search", localContext
                         )
                     )
-                }
-            )
+                })
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_block_ads),
                 desc = stringResource(R.string.child_settings_block_ads_desc),
-                iconEmoji = "🚫", iconBg = Color(0xFFFFF3E0),
+                iconEmoji = "🚫",
+                iconBg = Color(0xFFFFF3E0),
                 valueBadge = stringResource(R.string.coming_soon),
-                badgeBgColor = soonBg, badgeTextColor = soonText,
-                onClick = { onEvent(ChildSettingsEvent.HelpClicked) }
-            )
+                badgeBgColor = soonBg,
+                badgeTextColor = soonText,
+                onClick = { onEvent(ChildSettingsEvent.HelpClicked) })
 
             // SECTION: Allowed Content
             Spacer(modifier = Modifier.height(16.dp))
@@ -261,18 +257,18 @@ fun ChildSettingsContent(
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_movies),
                 desc = stringResource(R.string.child_settings_movies_desc),
-                iconEmoji = "🎬", iconBg = Color(0xFFFFF3E0),
+                iconEmoji = "🎬",
+                iconBg = Color(0xFFFFF3E0),
                 valueBadge = stringResource(R.string.coming_soon),
-                badgeBgColor = soonBg, badgeTextColor = soonText,
+                badgeBgColor = soonBg,
+                badgeTextColor = soonText,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
-                            "content_movies",
-                            localContext
+                            "content_movies", localContext
                         )
                     )
-                }
-            )
+                })
 
             // SECTION: Health & Safety
             Spacer(modifier = Modifier.height(16.dp))
@@ -280,41 +276,42 @@ fun ChildSettingsContent(
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_eye_protection),
                 desc = stringResource(R.string.child_settings_eye_protection_desc),
-                iconEmoji = "👁️", iconBg = Color(0xFFF3E5F5),
+                iconEmoji = "👁️",
+                iconBg = Color(0xFFF3E5F5),
                 valueBadge = stringResource(R.string.coming_soon),
-                badgeBgColor = soonBg, badgeTextColor = soonText,
+                badgeBgColor = soonBg,
+                badgeTextColor = soonText,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
-                            "eye_protect",
-                            localContext
+                            "eye_protect", localContext
                         )
                     )
-                }
-            )
+                })
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_location),
                 desc = stringResource(R.string.child_settings_location_desc),
-                iconEmoji = "📍", iconBg = Color(0xFFE0F7FA),
+                iconEmoji = "📍",
+                iconBg = Color(0xFFE0F7FA),
                 valueBadge = stringResource(R.string.coming_soon),
-                badgeBgColor = soonBg, badgeTextColor = soonText,
-                onClick = { onEvent(ChildSettingsEvent.GridItemClicked("location", localContext)) }
-            )
+                badgeBgColor = soonBg,
+                badgeTextColor = soonText,
+                onClick = { onEvent(ChildSettingsEvent.GridItemClicked("location", localContext)) })
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_prevent_delete),
                 desc = stringResource(R.string.child_settings_prevent_delete_desc),
-                iconEmoji = "🛡️", iconBg = Color(0xFFFCE4EC),
+                iconEmoji = "🛡️",
+                iconBg = Color(0xFFFCE4EC),
                 valueBadge = stringResource(R.string.coming_soon),
-                badgeBgColor = soonBg, badgeTextColor = soonText,
+                badgeBgColor = soonBg,
+                badgeTextColor = soonText,
                 onClick = {
                     onEvent(
                         ChildSettingsEvent.GridItemClicked(
-                            "prevent_delete",
-                            localContext
+                            "prevent_delete", localContext
                         )
                     )
-                }
-            )
+                })
             Spacer(modifier = Modifier.height(40.dp))
         }
     }
@@ -345,8 +342,7 @@ fun ChildSettingsContent(
                             .clickable { onEvent(ChildSettingsEvent.SelectChild(child.id)) }
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                        verticalAlignment = Alignment.CenterVertically) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
@@ -385,114 +381,6 @@ fun ChildSettingsContent(
 // ----------------------------------------------------------------------------
 // EXTRACTED UI COMPONENTS
 // ----------------------------------------------------------------------------
-
-@Composable
-fun ChildSettingsHeaderV2(
-    child: ChildEntity,
-    onBackClick: () -> Unit,
-    onChangeChildClick: () -> Unit
-) {
-    val colors = LocalCustomColors.current
-    val headerGradient = Brush.linearGradient(listOf(colors.primary, colors.primaryVariant))
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = headerGradient,
-                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-            )
-            .padding(top = 40.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        stringResource(R.string.child_settings_header_subtitle),
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 13.sp
-                    )
-                    Text(
-                        stringResource(R.string.child_settings_header_title),
-                        color = Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 20.sp
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(12.dp))
-                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onBackClick() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        AppIcons.Back,
-                        contentDescription = "Back",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
-                    .clickable { onChangeChildClick() }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(colors.cardInnerBG, RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(if (child.gender == Gender.BOY) "👦" else "👧", fontSize = 20.sp)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.child_settings_header_child_label),
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 11.sp
-                    )
-                    Text(
-                        child.name,
-                        color = Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 15.sp
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .background(
-                            Color.White.copy(alpha = 0.2f),
-                            RoundedCornerShape(10.dp)
-                        )
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        stringResource(R.string.change),
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun SectionTitleV2(title: String) {
@@ -601,19 +489,12 @@ fun ChildSettingsRowItemV2(
 }
 
 private val mockChild = ChildEntity(
-    id = "mock-123",
-    name = "علی",
-    dob = LocalDate.now().minusYears(10),
-    gender = Gender.BOY
+    id = "mock-123", name = "علی", dob = LocalDate.now().minusYears(10), gender = Gender.BOY
 )
 
 private val mockChildrenList = listOf(
-    mockChild,
-    ChildEntity(
-        id = "mock-456",
-        name = "سارا",
-        dob = LocalDate.now().minusYears(7),
-        gender = Gender.GIRL
+    mockChild, ChildEntity(
+        id = "mock-456", name = "سارا", dob = LocalDate.now().minusYears(7), gender = Gender.GIRL
     )
 )
 
@@ -634,9 +515,7 @@ fun ChildSettingsPreviewLightV2() {
                 allowedAppsCount = 5,
                 isLoading = false,
                 isChildSheetOpen = false
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }
 
@@ -649,16 +528,12 @@ fun ChildSettingsPreviewDarkV2() {
                 activeChild = mockChild,
                 allChildren = mockChildrenList,
                 settings = GlobalSettingsEntity(
-                    childId = "mock-123",
-                    isTimeLimitActive = false,
-                    isSleepTimeActive = false
+                    childId = "mock-123", isTimeLimitActive = false, isSleepTimeActive = false
                 ),
                 allowedAppsCount = 0,
                 isLoading = false,
                 isChildSheetOpen = false
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }
 
@@ -673,8 +548,6 @@ fun ChildSettingsPreviewSheetOpenV2() {
                 settings = GlobalSettingsEntity(childId = "mock-123"),
                 isLoading = false,
                 isChildSheetOpen = true
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }

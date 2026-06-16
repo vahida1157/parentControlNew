@@ -26,11 +26,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,7 +42,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -70,6 +67,7 @@ import com.vahak.mehrban.presentation.launcher.LauncherEffectV2
 import com.vahak.mehrban.presentation.launcher.LauncherEventV2
 import com.vahak.mehrban.presentation.launcher.LauncherStateV2
 import com.vahak.mehrban.presentation.launcher.LauncherViewModelV2
+import com.vahak.mehrban.uiv2.components.header.MehrbanLauncherHeader
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
@@ -79,8 +77,7 @@ import java.util.Locale
 
 @Composable
 fun ChildLauncherScreen(
-    viewModel: LauncherViewModelV2 = hiltViewModel(),
-    onExitLauncherClick: () -> Unit
+    viewModel: LauncherViewModelV2 = hiltViewModel(), onExitLauncherClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -95,9 +92,7 @@ fun ChildLauncherScreen(
                 }
 
                 is LauncherEffectV2.ShowToast -> Toast.makeText(
-                    context,
-                    "${effect.icon} ${effect.message}",
-                    Toast.LENGTH_SHORT
+                    context, "${effect.icon} ${effect.message}", Toast.LENGTH_SHORT
                 ).show()
             }
         }
@@ -108,8 +103,7 @@ fun ChildLauncherScreen(
 
 @Composable
 fun ChildLauncherContentV2(
-    state: LauncherStateV2,
-    onEvent: (LauncherEventV2) -> Unit
+    state: LauncherStateV2, onEvent: (LauncherEventV2) -> Unit
 ) {
     val colors = LocalCustomColors.current
 
@@ -123,11 +117,10 @@ fun ChildLauncherContentV2(
 
         Column(modifier = Modifier.fillMaxSize()) {
 //            LauncherStatusBar()
-            LauncherHeader(
+            MehrbanLauncherHeader(
                 childName = state.childName,
                 gender = state.gender,
-                onExitClick = { onEvent(LauncherEventV2.ExitLauncherClicked) }
-            )
+                onExitClick = { onEvent(LauncherEventV2.ExitLauncherClicked) })
             LauncherTimeCard(
                 usageSeconds = state.usageSeconds,
                 limitMins = state.timeLimitMins,
@@ -138,8 +131,7 @@ fun ChildLauncherContentV2(
 
             LauncherAppGrid(
                 apps = state.installedApps,
-                onAppClick = { onEvent(LauncherEventV2.AppClicked(it)) }
-            )
+                onAppClick = { onEvent(LauncherEventV2.AppClicked(it)) })
         }
 
 //        LauncherBottomDock(modifier = Modifier.align(Alignment.BottomCenter))
@@ -187,34 +179,26 @@ fun AnimatedBackgroundOrbs() {
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .offset { IntOffset(100, offsetY1.toInt() - 100) }
-                .size(300.dp)
-                .background(
-                    Brush.radialGradient(
-                        listOf(
-                            colors.primary.copy(alpha = 0.2f),
-                            Color.Transparent
-                        )
+        Box(modifier = Modifier
+            .offset { IntOffset(100, offsetY1.toInt() - 100) }
+            .size(300.dp)
+            .background(
+                Brush.radialGradient(
+                    listOf(
+                        colors.primary.copy(alpha = 0.2f), Color.Transparent
                     )
-                ),
-            contentAlignment = Alignment.Center
-        ) {}
-        Box(
-            modifier = Modifier
-                .offset { IntOffset(-100, offsetY2.toInt() + 500) }
-                .size(350.dp)
-                .background(
-                    Brush.radialGradient(
-                        listOf(
-                            colors.orange.copy(alpha = 0.15f),
-                            Color.Transparent
-                        )
+                )
+            ), contentAlignment = Alignment.Center) {}
+        Box(modifier = Modifier
+            .offset { IntOffset(-100, offsetY2.toInt() + 500) }
+            .size(350.dp)
+            .background(
+                Brush.radialGradient(
+                    listOf(
+                        colors.orange.copy(alpha = 0.15f), Color.Transparent
                     )
-                ),
-            contentAlignment = Alignment.Center
-        ) {}
+                )
+            ), contentAlignment = Alignment.Center) {}
     }
 }
 
@@ -246,87 +230,6 @@ fun LauncherStatusBar() {
 }
 
 @Composable
-fun LauncherHeader(childName: String, gender: Gender, onExitClick: () -> Unit) {
-    val colors = LocalCustomColors.current
-    val infiniteTransition = rememberInfiniteTransition(label = "ring")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(8000, easing = LinearEasing)), label = "rotate"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.size(64.dp), contentAlignment = Alignment.Center) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .rotate(rotation)
-                    .background(
-                        Brush.sweepGradient(
-                            listOf(
-                                colors.primary,
-                                colors.orange,
-                                colors.yellow,
-                                colors.primary
-                            )
-                        ),
-                        CircleShape
-                    )
-            )
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(colors.surface, RoundedCornerShape(18.dp))
-                    .border(3.dp, colors.surface, RoundedCornerShape(18.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(if (gender == Gender.BOY) "👦" else "👧", fontSize = 32.sp)
-            }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .offset(x = (-2).dp, y = 2.dp)
-                    .size(14.dp)
-                    .background(colors.green, CircleShape)
-                    .border(2.dp, colors.surface, CircleShape)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                stringResource(R.string.launcher_greeting),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.textSecondary
-            )
-            Text(
-                childName.ifEmpty { stringResource(R.string.launcher_default_child_name) },
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Black,
-                color = colors.textPrimary
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .size(42.dp)
-                .background(colors.surface.copy(alpha = 0.8f), RoundedCornerShape(14.dp))
-                .border(1.dp, colors.divider, RoundedCornerShape(14.dp))
-                .clickable { onExitClick() },
-            contentAlignment = Alignment.Center
-        ) {
-            Text("🔓", fontSize = 20.sp)
-        }
-    }
-}
-
-@Composable
 fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
     val colors = LocalCustomColors.current
 
@@ -336,8 +239,7 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
     val totalLimitSeconds = if (isActive && limitMins > 0) limitMins * 60 else 1
     val progress =
         if (isActive && limitMins > 0) (usageSeconds.toFloat() / totalLimitSeconds).coerceIn(
-            0f,
-            1f
+            0f, 1f
         ) else 0f
 
     val remainSeconds = maxOf(0, (limitMins * 60) - usageSeconds)
@@ -450,8 +352,7 @@ fun LauncherAppGrid(apps: List<AppInfo>, onAppClick: (String) -> Unit) {
         items(apps) { app ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable { onAppClick(app.packageName) }
-            ) {
+                modifier = Modifier.clickable { onAppClick(app.packageName) }) {
                 Box(
                     modifier = Modifier
                         .size(64.dp)
@@ -461,8 +362,7 @@ fun LauncherAppGrid(apps: List<AppInfo>, onAppClick: (String) -> Unit) {
                             RoundedCornerShape(18.dp),
                             spotColor = colors.textPrimary.copy(alpha = 0.15f)
                         )
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(8.dp), contentAlignment = Alignment.Center
                 ) {
                     val safeBitmap = remember(app.icon) {
                         try {
@@ -558,8 +458,7 @@ fun LauncherPinDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(colors.surface, RoundedCornerShape(26.dp))
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
@@ -593,15 +492,12 @@ fun LauncherPinDialog(
                     .height(56.dp)
                     .background(colors.cardInnerBG, RoundedCornerShape(12.dp))
                     .border(
-                        1.dp,
-                        when {
+                        1.dp, when {
                             isError -> colors.red
                             enteredPin.isNotEmpty() -> colors.primary
                             else -> colors.divider
-                        },
-                        RoundedCornerShape(12.dp)
-                    ),
-                contentAlignment = Alignment.Center
+                        }, RoundedCornerShape(12.dp)
+                    ), contentAlignment = Alignment.Center
             ) {
                 if (enteredPin.isEmpty()) {
                     Text(
@@ -663,8 +559,7 @@ fun LauncherPinDialog(
                                         "⌫" -> onBackspaceClick()
                                         else -> if (enteredPin.length < 8) onDigitClick(btn)
                                     }
-                                },
-                            contentAlignment = Alignment.Center
+                                }, contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = btn,
@@ -718,8 +613,7 @@ fun LauncherRecoveryDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(colors.surface, RoundedCornerShape(26.dp))
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
@@ -802,8 +696,7 @@ fun LauncherRecoveryDialog(
                     .fillMaxWidth()
                     .height(50.dp),
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = colors.primary,
-                    disabledContainerColor = colors.divider
+                    containerColor = colors.primary, disabledContainerColor = colors.divider
                 ),
                 shape = RoundedCornerShape(12.dp),
                 enabled = answerInput.isNotBlank()
@@ -832,7 +725,10 @@ fun LauncherRecoveryDialog(
 // PREVIEWS
 // ----------------------------------------------------------------------------
 @Preview(
-    showBackground = true, name = "1. Launcher V2", locale = "fa", showSystemUi = true,
+    showBackground = true,
+    name = "1. Launcher V2",
+    locale = "fa",
+    showSystemUi = true,
     device = "id:pixel_5"
 )
 @Composable
@@ -845,9 +741,7 @@ fun ChildLauncherPreviewLightV2() {
                 isTimeLimitActive = true,
                 timeLimitMins = 120,
                 usageSeconds = 3600
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }
 
@@ -861,8 +755,6 @@ fun ChildLauncherDialogPreviewV2() {
                 gender = Gender.BOY,
                 showExitDialog = true,
                 enteredPin = "12"
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }

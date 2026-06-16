@@ -27,7 +27,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -43,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -59,15 +57,15 @@ import com.vahak.mehrban.presentation.appselection.AppSelectionEffectV2
 import com.vahak.mehrban.presentation.appselection.AppSelectionEventV2
 import com.vahak.mehrban.presentation.appselection.AppSelectionStateV2
 import com.vahak.mehrban.presentation.appselection.AppSelectionViewModelV2
-import com.vahak.mehrban.uiv2.theme.AppIcons
+import com.vahak.mehrban.uiv2.components.header.HeaderAction
+import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 
 @Composable
 fun AppSelectionScreen(
-    viewModel: AppSelectionViewModelV2 = hiltViewModel(),
-    onBackClick: () -> Unit
+    viewModel: AppSelectionViewModelV2 = hiltViewModel(), onBackClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -77,24 +75,20 @@ fun AppSelectionScreen(
             when (effect) {
                 is AppSelectionEffectV2.NavigateBack -> onBackClick()
                 is AppSelectionEffectV2.ShowToast -> Toast.makeText(
-                    context,
-                    effect.message,
-                    Toast.LENGTH_SHORT
+                    context, effect.message, Toast.LENGTH_SHORT
                 ).show()
             }
         }
     }
 
     AppSelectionContent(
-        state = state,
-        onEvent = viewModel::onEvent
+        state = state, onEvent = viewModel::onEvent
     )
 }
 
 @Composable
 fun AppSelectionContent(
-    state: AppSelectionStateV2,
-    onEvent: (AppSelectionEventV2) -> Unit
+    state: AppSelectionStateV2, onEvent: (AppSelectionEventV2) -> Unit
 ) {
     val colors = LocalCustomColors.current
 
@@ -106,11 +100,11 @@ fun AppSelectionContent(
         Column(modifier = Modifier.fillMaxSize()) {
 
             // --- HARMONIZED HEADER ---
-            AppSelectionHeaderV2(
+            MehrbanHeader(
                 title = stringResource(R.string.app_lock_title),
                 subtitle = stringResource(R.string.app_lock_subtitle),
                 iconEmoji = "🔒",
-                onBackClick = { onEvent(AppSelectionEventV2.BackClicked) }
+                action = HeaderAction.Back { onEvent(AppSelectionEventV2.BackClicked) },
             )
 
             // --- HARMONIZED CARD ---
@@ -135,7 +129,11 @@ fun AppSelectionContent(
                             value = state.searchQuery,
                             onValueChange = { onEvent(AppSelectionEventV2.UpdateSearchQuery(it)) },
                             placeholder = {
-                                Text(stringResource(R.string.search_hint), color = colors.textHint, fontSize = 13.sp)
+                                Text(
+                                    stringResource(R.string.search_hint),
+                                    color = colors.textHint,
+                                    fontSize = 13.sp
+                                )
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
@@ -162,30 +160,28 @@ fun AppSelectionContent(
                             title = stringResource(R.string.tab_blocked),
                             isSelected = state.selectedTab == AppFilterTab.BLOCKED,
                             modifier = Modifier.weight(1f),
-                            onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.BLOCKED)) }
-                        )
+                            onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.BLOCKED)) })
                         FilterTabItemV2(
                             title = stringResource(R.string.tab_allowed),
                             isSelected = state.selectedTab == AppFilterTab.ALLOWED,
                             modifier = Modifier.weight(1f),
-                            onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.ALLOWED)) }
-                        )
+                            onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.ALLOWED)) })
                         FilterTabItemV2(
                             title = stringResource(R.string.tab_all),
                             isSelected = state.selectedTab == AppFilterTab.ALL,
                             modifier = Modifier.weight(1f),
-                            onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.ALL)) }
-                        )
+                            onClick = { onEvent(AppSelectionEventV2.TabSelected(AppFilterTab.ALL)) })
                     }
 
                     // --- Scrollable App List ---
-                    Box(modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
                         if (state.isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.align(Alignment.Center),
-                                color = colors.primary
+                                modifier = Modifier.align(Alignment.Center), color = colors.primary
                             )
                         } else if (state.filteredApps.isEmpty()) {
                             Text(
@@ -200,20 +196,17 @@ fun AppSelectionContent(
                             ) {
                                 val apps = state.filteredApps
                                 itemsIndexed(
-                                    apps,
-                                    key = { _, it -> it.packageName }) { index, app ->
+                                    apps, key = { _, it -> it.packageName }) { index, app ->
                                     AppListItemV2(
                                         app = app,
                                         isLastItem = index == apps.lastIndex,
                                         onToggle = { isAllowed ->
                                             onEvent(
                                                 AppSelectionEventV2.ToggleApp(
-                                                    app.packageName,
-                                                    isAllowed
+                                                    app.packageName, isAllowed
                                                 )
                                             )
-                                        }
-                                    )
+                                        })
                                 }
                             }
                         }
@@ -262,71 +255,8 @@ fun AppSelectionContent(
 // --- SUB COMPONENTS ---
 
 @Composable
-fun AppSelectionHeaderV2(
-    title: String,
-    subtitle: String? = null,
-    iconEmoji: String? = null,
-    onBackClick: () -> Unit
-) {
-    val colors = LocalCustomColors.current
-    val headerGradient = Brush.linearGradient(listOf(colors.primary, colors.primaryVariant))
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = headerGradient,
-                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-            )
-            .padding(top = 40.dp, bottom = 60.dp, start = 20.dp, end = 20.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (iconEmoji != null) {
-                    Text(iconEmoji, fontSize = 28.sp)
-                    Spacer(modifier = Modifier.width(12.dp))
-                }
-                Column {
-                    if (subtitle != null) {
-                        Text(
-                            text = subtitle,
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 13.sp
-                        )
-                    }
-                    Text(
-                        text = title,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-            }
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onBackClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(AppIcons.Back, contentDescription = "Back", tint = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
 fun FilterTabItemV2(
-    title: String,
-    isSelected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    title: String, isSelected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
     Box(
@@ -334,14 +264,10 @@ fun FilterTabItemV2(
             .clip(RoundedCornerShape(12.dp))
             .background(if (isSelected) colors.primary.copy(alpha = 0.08f) else colors.background)
             .border(
-                1.dp,
-                if (isSelected) colors.primary else colors.divider,
-                RoundedCornerShape(12.dp)
+                1.dp, if (isSelected) colors.primary else colors.divider, RoundedCornerShape(12.dp)
             )
             .clickable { onClick() }
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
+            .padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
         Text(
             text = title,
             color = if (isSelected) colors.primary else colors.textSecondary,
@@ -353,9 +279,7 @@ fun FilterTabItemV2(
 
 @Composable
 fun AppListItemV2(
-    app: AppItemUi,
-    isLastItem: Boolean,
-    onToggle: (Boolean) -> Unit
+    app: AppItemUi, isLastItem: Boolean, onToggle: (Boolean) -> Unit
 ) {
     val colors = LocalCustomColors.current
 
@@ -438,15 +362,12 @@ fun AppSelectionPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         AppSelectionContent(
             state = AppSelectionStateV2(
-                isLoading = false,
-                installedApps = listOf(
+                isLoading = false, installedApps = listOf(
                     AppItemUi("com.whatsapp", "واتس‌اپ", true),
                     AppItemUi("com.instagram", "اینستاگرام", false),
                     AppItemUi("com.mojang.minecraftpe", "ماینکرافت", true)
                 )
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }
 
@@ -456,14 +377,10 @@ fun AppSelectionPreviewDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         AppSelectionContent(
             state = AppSelectionStateV2(
-                isLoading = false,
-                selectedTab = AppFilterTab.BLOCKED,
-                installedApps = listOf(
+                isLoading = false, selectedTab = AppFilterTab.BLOCKED, installedApps = listOf(
                     AppItemUi("com.instagram", "اینستاگرام", false),
                     AppItemUi("com.tiktok", "تیک‌تاک", false)
                 )
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }

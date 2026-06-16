@@ -30,7 +30,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -47,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -67,16 +65,16 @@ import com.vahak.mehrban.presentation.addchild.AddChildState
 import com.vahak.mehrban.presentation.addchild.AddChildViewModel
 import com.vahak.mehrban.ui.component.PickerPresentationMode
 import com.vahak.mehrban.ui.screens.Gender
-import com.vahak.mehrban.ui.theme.AppIcons
 import com.vahak.mehrban.uiv2.components.DynamicDatePickerV2
+import com.vahak.mehrban.uiv2.components.header.HeaderAction
+import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 
 @Composable
 fun AddChildScreen(
-    viewModel: AddChildViewModel = hiltViewModel(),
-    onBackClick: () -> Unit
+    viewModel: AddChildViewModel = hiltViewModel(), onBackClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -86,26 +84,20 @@ fun AddChildScreen(
             when (effect) {
                 is AddChildEffect.NavigateBack -> onBackClick()
                 is AddChildEffect.ShowToast -> Toast.makeText(
-                    context,
-                    effect.message,
-                    Toast.LENGTH_SHORT
+                    context, effect.message, Toast.LENGTH_SHORT
                 ).show()
             }
         }
     }
 
     AddChildScreenContent(
-        state = state,
-        onEvent = viewModel::onEvent,
-        onBackClick = onBackClick
+        state = state, onEvent = viewModel::onEvent, onBackClick = onBackClick
     )
 }
 
 @Composable
 fun AddChildScreenContent(
-    state: AddChildState,
-    onEvent: (AddChildEvent) -> Unit,
-    onBackClick: () -> Unit
+    state: AddChildState, onEvent: (AddChildEvent) -> Unit, onBackClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
 
@@ -120,10 +112,10 @@ fun AddChildScreenContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            ScreenHeaderV2(
+            MehrbanHeader(
                 title = stringResource(R.string.add_child_title),
                 subtitle = stringResource(R.string.add_child_subtitle),
-                onBackClick = onBackClick
+                action = HeaderAction.Back(onBackClick),
             )
 
             Card(
@@ -155,15 +147,21 @@ fun AddChildScreenContent(
                             .padding(bottom = 16.dp),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        AvatarTabItem(stringResource(R.string.tab_boys), selectedCategory == "boys") {
+                        AvatarTabItem(
+                            stringResource(R.string.tab_boys), selectedCategory == "boys"
+                        ) {
                             selectedCategory = "boys"
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        AvatarTabItem(stringResource(R.string.tab_girls), selectedCategory == "girls") {
+                        AvatarTabItem(
+                            stringResource(R.string.tab_girls), selectedCategory == "girls"
+                        ) {
                             selectedCategory = "girls"
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        AvatarTabItem(stringResource(R.string.tab_teens), selectedCategory == "teens") {
+                        AvatarTabItem(
+                            stringResource(R.string.tab_teens), selectedCategory == "teens"
+                        ) {
                             selectedCategory = "teens"
                         }
                     }
@@ -215,16 +213,14 @@ fun AddChildScreenContent(
                             .fillMaxWidth()
                             .height(48.dp)
                             .background(
-                                colors.primary.copy(alpha = 0.05f),
-                                RoundedCornerShape(12.dp)
+                                colors.primary.copy(alpha = 0.05f), RoundedCornerShape(12.dp)
                             )
                             .border(
                                 width = 2.dp,
                                 color = colors.primary.copy(alpha = 0.5f),
                                 shape = RoundedCornerShape(12.dp)
                             )
-                            .padding(10.dp),
-                        contentAlignment = Alignment.Center
+                            .padding(10.dp), contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = stringResource(R.string.upload_photo_button),
@@ -286,8 +282,7 @@ fun AddChildScreenContent(
                                 readOnly = true,
                                 placeholder = {
                                     Text(
-                                        stringResource(R.string.hint_dob),
-                                        color = colors.textHint
+                                        stringResource(R.string.hint_dob), color = colors.textHint
                                     )
                                 },
                                 shape = RoundedCornerShape(12.dp),
@@ -313,13 +308,16 @@ fun AddChildScreenContent(
                                         AddChildEvent.PhoneChanged(filtered)
                                     )
                                 },
-                                placeholder = { Text(stringResource(R.string.hint_phone), color = colors.textHint) },
+                                placeholder = {
+                                    Text(
+                                        stringResource(R.string.hint_phone), color = colors.textHint
+                                    )
+                                },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                                 textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    textAlign = TextAlign.Start,
-                                    color = colors.textPrimary
+                                    textAlign = TextAlign.Start, color = colors.textPrimary
                                 ),
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = OutlinedTextFieldDefaults.colors(
@@ -413,58 +411,12 @@ fun AddChildScreenContent(
                 initialMonth = currentMonth,
                 initialDay = currentDay,
                 onDismiss = { onEvent(AddChildEvent.CloseDobSheet) },
-                onConfirm = { y, m, d -> onEvent(AddChildEvent.DobSelected(y, m, d)) }
-            )
+                onConfirm = { y, m, d -> onEvent(AddChildEvent.DobSelected(y, m, d)) })
         }
     }
 }
 
 // --- SUB COMPONENTS ---
-
-@Composable
-fun ScreenHeaderV2(title: String, subtitle: String? = null, onBackClick: () -> Unit) {
-    val colors = LocalCustomColors.current
-    val headerGradient = Brush.linearGradient(listOf(colors.primary, colors.primaryVariant))
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = headerGradient,
-                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-            )
-            .padding(top = 40.dp, bottom = 60.dp, start = 20.dp, end = 20.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                if (subtitle != null) {
-                    Text(text = subtitle, color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
-                }
-                Text(
-                    text = title,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onBackClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(AppIcons.Back, contentDescription = "Back", tint = Color.White)
-            }
-        }
-    }
-}
 
 @Composable
 fun AvatarTabItem(title: String, isSelected: Boolean, onClick: () -> Unit) {
@@ -479,8 +431,7 @@ fun AvatarTabItem(title: String, isSelected: Boolean, onClick: () -> Unit) {
                 RoundedCornerShape(14.dp)
             )
             .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 8.dp)
-    ) {
+            .padding(horizontal = 14.dp, vertical = 8.dp)) {
         Text(
             text = title,
             color = if (isSelected) colors.primary else colors.textSecondary,
@@ -518,14 +469,10 @@ fun GenderChipV2(
             .clip(RoundedCornerShape(12.dp))
             .background(if (isSelected) activeColor.copy(alpha = 0.1f) else colors.cardInnerBG)
             .border(
-                2.dp,
-                if (isSelected) activeColor else colors.divider,
-                RoundedCornerShape(12.dp)
+                2.dp, if (isSelected) activeColor else colors.divider, RoundedCornerShape(12.dp)
             )
             .clickable { onClick() }
-            .padding(14.dp),
-        contentAlignment = Alignment.Center
-    ) {
+            .padding(14.dp), contentAlignment = Alignment.Center) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(emoji, fontSize = 20.sp)
             Spacer(modifier = Modifier.width(8.dp))

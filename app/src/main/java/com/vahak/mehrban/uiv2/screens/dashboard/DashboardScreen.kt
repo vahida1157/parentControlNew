@@ -90,6 +90,9 @@ import com.vahak.mehrban.presentation.dashboard.DashboardEvent
 import com.vahak.mehrban.presentation.dashboard.DashboardState
 import com.vahak.mehrban.presentation.dashboard.DashboardViewModel
 import com.vahak.mehrban.ui.component.SwipeToActivateButton
+
+import com.vahak.mehrban.uiv2.components.header.HeaderAction
+import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
 import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
@@ -197,21 +200,21 @@ fun DashboardScreenContent(
 
     Scaffold(
         containerColor = colors.background, floatingActionButton = {
-            if (missingSecurityPermissions.isNotEmpty())
-                FloatingActionButton(
-                    onClick = {
-                        val permissionsString =
-                            missingSecurityPermissions.joinToString(",") { it.name }
-                        onSecurityFabClick(permissionsString)
-                    },
-                    containerColor = colors.red,
-                    contentColor = Color.White,
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .offset(y = fabOffsetY.dp)
-                ) {
-                    Icon(AppIcons.Settings, contentDescription = stringResource(R.string.complete_security))
-                }
+            if (missingSecurityPermissions.isNotEmpty()) FloatingActionButton(
+                onClick = {
+                    val permissionsString = missingSecurityPermissions.joinToString(",") { it.name }
+                    onSecurityFabClick(permissionsString)
+                },
+                containerColor = colors.red,
+                contentColor = Color.White,
+                shape = CircleShape,
+                modifier = Modifier.offset(y = fabOffsetY.dp)
+            ) {
+                Icon(
+                    AppIcons.Settings,
+                    contentDescription = stringResource(R.string.complete_security)
+                )
+            }
         }) { _ ->
         Column(
             modifier = Modifier
@@ -222,13 +225,10 @@ fun DashboardScreenContent(
                 // Animation for the sparkle emoji
                 val infiniteTransition = rememberInfiniteTransition(label = "sparkle_pulse")
                 val scale by infiniteTransition.animateFloat(
-                    initialValue = 1f,
-                    targetValue = 1.3f,
-                    animationSpec = infiniteRepeatable(
+                    initialValue = 1f, targetValue = 1.3f, animationSpec = infiniteRepeatable(
                         animation = tween(600, easing = FastOutSlowInEasing),
                         repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "sparkle_scale"
+                    ), label = "sparkle_scale"
                 )
 
                 Row(
@@ -238,12 +238,9 @@ fun DashboardScreenContent(
                         .clickable { onShowUpdateDialogAgain() }
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
+                    horizontalArrangement = Arrangement.Center) {
                     Text(
-                        "✨",
-                        fontSize = 16.sp,
-                        modifier = Modifier.scale(scale)
+                        "✨", fontSize = 16.sp, modifier = Modifier.scale(scale)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -256,7 +253,11 @@ fun DashboardScreenContent(
                 }
             }
 
-            DashboardHeaderV2(onProfileClick = onProfileClick)
+            MehrbanHeader(
+                title = stringResource(R.string.dear_parent),
+                subtitle = stringResource(R.string.hello_greeting),
+                action = HeaderAction.Profile(onClick = onProfileClick),
+            )
 
             if (state.children.isEmpty() || state.activeChild == null) {
                 // Show massive CTA when no child exists
@@ -275,15 +276,13 @@ fun DashboardScreenContent(
                     timeLimitMins = state.activeChildTimeLimitMins,
                     isTimeLimitActive = state.isTimeLimitActive,
                     usageSeconds = state.activeChildUsageSeconds,
-                    onSettingsClick = { onSettingsClick(state.activeChild.id) }
-                )
+                    onSettingsClick = { onSettingsClick(state.activeChild.id) })
 
                 Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
                     SwipeToActivateButton(
                         isActive = state.isProtectionActive,
                         onActivate = { showLauncherConfirmSheet = true },
-                        onDeactivate = { /* Handle deactivation */ }
-                    )
+                        onDeactivate = { /* Handle deactivation */ })
                 }
 
                 val comingSoonText = stringResource(R.string.coming_soon)
@@ -294,8 +293,7 @@ fun DashboardScreenContent(
                     onTimeLockClick = { onTimeLockClick(state.activeChild.id) },
                     onLocationClick = {
                         Toast.makeText(context, comingSoonText, Toast.LENGTH_SHORT).show()
-                    }
-                )
+                    })
 
             }
 
@@ -377,7 +375,11 @@ fun DashboardScreenContent(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.launcher_activation_for_child), fontSize = 11.sp, color = colors.textSecondary)
+                        Text(
+                            stringResource(R.string.launcher_activation_for_child),
+                            fontSize = 11.sp,
+                            color = colors.textSecondary
+                        )
                         Text(
                             state.activeChild.name,
                             fontSize = 16.sp,
@@ -464,7 +466,11 @@ fun DashboardScreenContent(
                         .fillMaxWidth()
                         .padding(top = 8.dp)
                 ) {
-                    Text(stringResource(R.string.cancel), color = colors.textSecondary, fontWeight = FontWeight.Bold)
+                    Text(
+                        stringResource(R.string.cancel),
+                        color = colors.textSecondary,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -537,7 +543,11 @@ fun DashboardScreenContent(
                         onClick = { onEvent(DashboardEvent.ClosePinRequiredDialog) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(stringResource(R.string.cancel), color = colors.textHint, fontWeight = FontWeight.Bold)
+                        Text(
+                            stringResource(R.string.cancel),
+                            color = colors.textHint,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -548,54 +558,6 @@ fun DashboardScreenContent(
 // ----------------------------------------------------------------------------
 // EXTRACTED UI COMPONENTS
 // ----------------------------------------------------------------------------
-
-@Composable
-fun DashboardHeaderV2(onProfileClick: () -> Unit) {
-    val colors = LocalCustomColors.current
-    val headerGradient = Brush.linearGradient(listOf(colors.primary, colors.primaryVariant))
-    val avatarGradient = Brush.linearGradient(listOf(colors.yellow, colors.orange))
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = headerGradient,
-                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-            )
-            .padding(top = 20.dp, bottom = 30.dp, start = 20.dp, end = 20.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(stringResource(R.string.hello_greeting), color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
-                Text(
-                    stringResource(R.string.dear_parent),
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 20.sp
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(avatarGradient, CircleShape)
-                    .border(2.dp, Color.White.copy(alpha = 0.3f), CircleShape)
-                    .clickable { onProfileClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    AppIcons.Profile,
-                    contentDescription = "Profile",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
 
 @Composable
 fun HomeChildSelectorV2(
@@ -696,8 +658,7 @@ fun EmptyDashboardStateV2(onAddClick: () -> Unit) {
                 .clip(RoundedCornerShape(24.dp))
                 .clickable { onAddClick() }
                 .padding(vertical = 48.dp, horizontal = 24.dp),
-            contentAlignment = Alignment.Center
-        ) {
+            contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 // Big Floating Plus Icon
                 Box(
@@ -828,9 +789,7 @@ fun ActiveChildSummaryCardV2(
                         color = colors.textPrimary
                     )
                     Text(
-                        ageText,
-                        color = colors.textSecondary,
-                        fontSize = 12.sp
+                        ageText, color = colors.textSecondary, fontSize = 12.sp
                     )
                 }
                 IconButton(
@@ -851,8 +810,7 @@ fun ActiveChildSummaryCardV2(
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     stringResource(R.string.usage_today_label),
@@ -862,11 +820,12 @@ fun ActiveChildSummaryCardV2(
                 )
                 Text(
                     if (isTimeLimitActive && timeLimitMins > 0) {
-                        stringResource(R.string.usage_today_value_with_limit, formattedUsage, formattedLimit)
+                        stringResource(
+                            R.string.usage_today_value_with_limit, formattedUsage, formattedLimit
+                        )
                     } else {
                         stringResource(R.string.usage_today_value_unlimited, formattedUsage)
-                    },
-                    fontSize = 12.sp, fontWeight = FontWeight.Black, color = colors.textPrimary
+                    }, fontSize = 12.sp, fontWeight = FontWeight.Black, color = colors.textPrimary
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
@@ -948,13 +907,17 @@ fun LauncherCTAButtonV2(childName: String, isProtectionActive: Boolean, onClick:
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        if (isProtectionActive) stringResource(R.string.environment_active) else stringResource(R.string.enter_child_launcher_mode),
-                        color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp
+                        if (isProtectionActive) stringResource(R.string.environment_active) else stringResource(
+                            R.string.enter_child_launcher_mode
+                        ), color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        if (isProtectionActive) stringResource(R.string.protecting_child, childName) else stringResource(R.string.activate_safe_environment_for, childName),
-                        color = Color.White.copy(alpha = 0.95f), fontSize = 11.sp
+                        if (isProtectionActive) stringResource(
+                            R.string.protecting_child, childName
+                        ) else stringResource(R.string.activate_safe_environment_for, childName),
+                        color = Color.White.copy(alpha = 0.95f),
+                        fontSize = 11.sp
                     )
                 }
             }
@@ -1060,9 +1023,17 @@ fun BannerSliderV2() {
     val colors = LocalCustomColors.current
 
     val banners = listOf(
-        Triple("📢", stringResource(R.string.banner_official_channel), stringResource(R.string.banner_official_channel_desc)),
-        Triple("💬", stringResource(R.string.banner_support), stringResource(R.string.banner_support_desc)),
-        Triple("🎁", stringResource(R.string.banner_offer), stringResource(R.string.banner_offer_desc))
+        Triple(
+            "📢",
+            stringResource(R.string.banner_official_channel),
+            stringResource(R.string.banner_official_channel_desc)
+        ), Triple(
+            "💬",
+            stringResource(R.string.banner_support),
+            stringResource(R.string.banner_support_desc)
+        ), Triple(
+            "🎁", stringResource(R.string.banner_offer), stringResource(R.string.banner_offer_desc)
+        )
     )
 
     val pagerState = rememberPagerState(pageCount = { banners.size })
@@ -1078,10 +1049,8 @@ fun BannerSliderV2() {
 
                     // 2. Use a strict tween animation to override the default Spring physics
                     pagerState.animateScrollToPage(
-                        page = nextPage,
-                        animationSpec = tween(
-                            durationMillis = 800,
-                            easing = FastOutSlowInEasing
+                        page = nextPage, animationSpec = tween(
+                            durationMillis = 800, easing = FastOutSlowInEasing
                         )
                     )
                 } catch (_: CancellationException) {
@@ -1126,9 +1095,7 @@ fun BannerSliderV2() {
                         .clickable {
                             // TODO/FIXME: Redirect to actual Web URL or Channel Link in the future
                         }
-                        .padding(18.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
+                        .padding(18.dp), contentAlignment = Alignment.CenterStart) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
@@ -1211,8 +1178,10 @@ fun DashboardScreenPreviewPopulatedLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         DashboardScreenContent(
             state = DashboardState(
-                children = listOf(mockChild1, mockChild2), activeChild = mockChild1,
-                activeChildTimeLimitMins = 50, activeChildUsageSeconds = 1700
+                children = listOf(mockChild1, mockChild2),
+                activeChild = mockChild1,
+                activeChildTimeLimitMins = 50,
+                activeChildUsageSeconds = 1700
             ),
             onEvent = {},
             onAddChildClick = {},
