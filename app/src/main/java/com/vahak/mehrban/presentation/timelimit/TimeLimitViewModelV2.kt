@@ -11,7 +11,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 data class TimeLimitStateV2(
     val isTimeLimitActive: Boolean = true,
@@ -52,13 +54,14 @@ class TimeLimitViewModelV2 @Inject constructor(
     @ApplicationContext private val context: Context
 ) : BaseViewModel<TimeLimitStateV2, TimeLimitEventV2, TimeLimitEffectV2>(TimeLimitStateV2()) {
 
+
     private val childId: String = checkNotNull(savedStateHandle["childId"])
 
     init {
-        // Provide initial localized preview text
         updateState { copy(previewText = buildPreviewText(hours, minutes)) }
 
         viewModelScope.launch {
+            Timber.d("Observing daily application time limit configuration")
             settingsRepository.getGlobalSettings(childId).collectLatest { settings ->
                 if (settings != null) {
                     val h = settings.dailyTimeLimitMins / 60
@@ -108,6 +111,7 @@ class TimeLimitViewModelV2 @Inject constructor(
     }
 
     private fun saveSettings() {
+        Timber.i("Persisting daily application time limit configuration locally")
         updateState { copy(isSaving = true) }
         viewModelScope.launch {
             settingsRepository.updateTimeLimit(
@@ -116,7 +120,7 @@ class TimeLimitViewModelV2 @Inject constructor(
                 limitMins = state.value.totalMinutes
             )
 
-            delay(500)
+            delay(500.milliseconds)
             updateState { copy(isSaving = false) }
             sendEffect(TimeLimitEffectV2.ShowToast(context.getString(R.string.time_settings_saved)))
             sendEffect(TimeLimitEffectV2.NavigateBack)

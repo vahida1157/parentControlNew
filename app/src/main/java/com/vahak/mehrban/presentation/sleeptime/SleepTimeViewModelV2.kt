@@ -12,8 +12,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.time.LocalTime
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 enum class TimeEditModeV2 { NONE, START, END }
 
@@ -59,10 +61,12 @@ class SleepTimeViewModelV2 @Inject constructor(
     @ApplicationContext private val context: Context
 ) : BaseViewModel<SleepTimeStateV2, SleepTimeEventV2, SleepTimeEffectV2>(SleepTimeStateV2()) {
 
+
     private val childId: String = checkNotNull(savedStateHandle["childId"])
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
+            Timber.d("Observing sleep schedule configuration")
             val settings = settingsRepository.getGlobalSettings(childId).firstOrNull()
             if (settings != null) {
                 updateState {
@@ -83,10 +87,8 @@ class SleepTimeViewModelV2 @Inject constructor(
             is SleepTimeEventV2.ToggleDnd -> updateState { copy(isDndEnabled = event.isActive) }
             is SleepTimeEventV2.ToggleEmergencyCalls -> updateState { copy(isEmergencyCallsEnabled = event.isActive) }
             is SleepTimeEventV2.ToggleBlueLight -> updateState { copy(isBlueLightFilterEnabled = event.isActive) }
-
             is SleepTimeEventV2.OpenPicker -> updateState { copy(currentEditMode = event.mode) }
             is SleepTimeEventV2.ClosePicker -> updateState { copy(currentEditMode = TimeEditModeV2.NONE) }
-
             is SleepTimeEventV2.ConfirmTime -> {
                 updateState {
                     val isStart = this.currentEditMode == TimeEditModeV2.START
@@ -105,16 +107,15 @@ class SleepTimeViewModelV2 @Inject constructor(
     }
 
     private fun saveSettings() {
+        Timber.i("Persisting sleep schedule configuration locally")
         updateState { copy(isSaving = true) }
         viewModelScope.launch(Dispatchers.IO) {
             settingsRepository.updateSleepTimeToggle(childId, state.value.isSleepTimeActive)
             settingsRepository.updateSleepTimeSchedule(
-                childId = childId,
-                startTime = state.value.startTime,
-                endTime = state.value.endTime
+                childId = childId, startTime = state.value.startTime, endTime = state.value.endTime
             )
 
-            delay(500)
+            delay(500.milliseconds)
 
             updateState { copy(isSaving = false) }
             sendEffect(SleepTimeEffectV2.ShowToast(context.getString(R.string.sleep_settings_saved)))

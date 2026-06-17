@@ -24,7 +24,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -38,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -56,7 +54,8 @@ import com.vahak.mehrban.presentation.sleeptime.SleepTimeStateV2
 import com.vahak.mehrban.presentation.sleeptime.SleepTimeViewModelV2
 import com.vahak.mehrban.presentation.sleeptime.TimeEditModeV2
 import com.vahak.mehrban.uiv2.components.DynamicTimePickerV2
-import com.vahak.mehrban.uiv2.theme.AppIcons
+import com.vahak.mehrban.uiv2.components.header.HeaderAction
+import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
@@ -68,8 +67,7 @@ private fun formatTimeStandard(time: LocalTime): String {
 
 @Composable
 fun SleepTimeScreen(
-    viewModel: SleepTimeViewModelV2 = hiltViewModel(),
-    onBackClick: () -> Unit
+    viewModel: SleepTimeViewModelV2 = hiltViewModel(), onBackClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -79,24 +77,20 @@ fun SleepTimeScreen(
             when (effect) {
                 is SleepTimeEffectV2.NavigateBack -> onBackClick()
                 is SleepTimeEffectV2.ShowToast -> Toast.makeText(
-                    context,
-                    effect.message,
-                    Toast.LENGTH_SHORT
+                    context, effect.message, Toast.LENGTH_SHORT
                 ).show()
             }
         }
     }
 
     SleepTimeContent(
-        state = state,
-        onEvent = viewModel::onEvent
+        state = state, onEvent = viewModel::onEvent
     )
 }
 
 @Composable
 fun SleepTimeContent(
-    state: SleepTimeStateV2,
-    onEvent: (SleepTimeEventV2) -> Unit
+    state: SleepTimeStateV2, onEvent: (SleepTimeEventV2) -> Unit
 ) {
     val colors = LocalCustomColors.current
 
@@ -111,11 +105,11 @@ fun SleepTimeContent(
                 .verticalScroll(rememberScrollState())
         ) {
             // Header
-            ScreenHeaderV2(
+            MehrbanHeader(
                 title = stringResource(R.string.sleeptime_title),
                 subtitle = stringResource(R.string.sleeptime_subtitle),
                 iconEmoji = "🌙",
-                onBackClick = { onEvent(SleepTimeEventV2.BackClicked) }
+                action = HeaderAction.Back { onEvent(SleepTimeEventV2.BackClicked) },
             )
 
             // Main Card
@@ -141,8 +135,7 @@ fun SleepTimeContent(
                         iconEmoji = "🌙",
                         iconBg = Color(0xFFE8F5E9),
                         isActive = state.isSleepTimeActive,
-                        onToggle = { onEvent(SleepTimeEventV2.ToggleActive(it)) }
-                    )
+                        onToggle = { onEvent(SleepTimeEventV2.ToggleActive(it)) })
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -157,14 +150,12 @@ fun SleepTimeContent(
                                     modifier = Modifier.weight(1f),
                                     label = stringResource(R.string.sleeptime_start_label),
                                     timeText = formatTimeStandard(state.startTime),
-                                    onClick = { onEvent(SleepTimeEventV2.OpenPicker(TimeEditModeV2.START)) }
-                                )
+                                    onClick = { onEvent(SleepTimeEventV2.OpenPicker(TimeEditModeV2.START)) })
                                 TimeInputGroupV2(
                                     modifier = Modifier.weight(1f),
                                     label = stringResource(R.string.sleeptime_end_label),
                                     timeText = formatTimeStandard(state.endTime),
-                                    onClick = { onEvent(SleepTimeEventV2.OpenPicker(TimeEditModeV2.END)) }
-                                )
+                                    onClick = { onEvent(SleepTimeEventV2.OpenPicker(TimeEditModeV2.END)) })
                             }
                         }
 
@@ -248,14 +239,15 @@ fun SleepTimeContent(
             val isStart = state.currentEditMode == TimeEditModeV2.START
 
             DynamicTimePickerV2(
-                title = if (isStart) stringResource(R.string.sleeptime_picker_start_title) else stringResource(R.string.sleeptime_picker_end_title),
+                title = if (isStart) stringResource(R.string.sleeptime_picker_start_title) else stringResource(
+                    R.string.sleeptime_picker_end_title
+                ),
                 initialHours = if (isStart) state.startTime.hour else state.endTime.hour,
                 initialMinutes = if (isStart) state.startTime.minute else state.endTime.minute,
                 hoursRange = 0..23,
                 minutesRange = 0..59,
                 onDismiss = { onEvent(SleepTimeEventV2.ClosePicker) },
-                onConfirm = { h, m -> onEvent(SleepTimeEventV2.ConfirmTime(h, m)) }
-            )
+                onConfirm = { h, m -> onEvent(SleepTimeEventV2.ConfirmTime(h, m)) })
         }
     }
 }
@@ -263,71 +255,8 @@ fun SleepTimeContent(
 // --- SUB COMPONENTS ---
 
 @Composable
-private fun ScreenHeaderV2(
-    title: String,
-    subtitle: String? = null,
-    iconEmoji: String? = null,
-    onBackClick: () -> Unit
-) {
-    val colors = LocalCustomColors.current
-    val headerGradient = Brush.linearGradient(listOf(colors.primary, colors.primaryVariant))
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = headerGradient,
-                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-            )
-            .padding(top = 40.dp, bottom = 60.dp, start = 20.dp, end = 20.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (iconEmoji != null) {
-                    Text(iconEmoji, fontSize = 28.sp)
-                    Spacer(modifier = Modifier.width(12.dp))
-                }
-                Column {
-                    if (subtitle != null) {
-                        Text(
-                            text = subtitle,
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 13.sp
-                        )
-                    }
-                    Text(
-                        text = title,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-            }
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onBackClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(AppIcons.Back, contentDescription = "Back", tint = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
 private fun TimeInputGroupV2(
-    modifier: Modifier = Modifier,
-    label: String,
-    timeText: String,
-    onClick: () -> Unit
+    modifier: Modifier = Modifier, label: String, timeText: String, onClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
     Column(
@@ -337,8 +266,7 @@ private fun TimeInputGroupV2(
             .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+        horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
             fontSize = 11.sp,
@@ -393,9 +321,7 @@ private fun ToggleRowV2(
         }
 
         Switch(
-            checked = isActive,
-            onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
+            checked = isActive, onCheckedChange = onToggle, colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = colors.primary,
                 uncheckedThumbColor = colors.textSecondary,
@@ -418,9 +344,7 @@ fun SleepTimePreviewActive() {
                 isSleepTimeActive = true,
                 startTime = LocalTime.of(21, 30),
                 endTime = LocalTime.of(7, 0)
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }
 
@@ -429,8 +353,6 @@ fun SleepTimePreviewActive() {
 fun SleepTimePreviewDisabled() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         SleepTimeContent(
-            state = SleepTimeStateV2(isSleepTimeActive = false),
-            onEvent = {}
-        )
+            state = SleepTimeStateV2(isSleepTimeActive = false), onEvent = {})
     }
 }

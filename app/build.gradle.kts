@@ -34,8 +34,8 @@ android {
         applicationId = "com.vahak.mehrban"
         minSdk = 26
         targetSdk = 37
-        versionCode = 11
-        versionName = "1.2.1"
+        versionCode = 12
+        versionName = "1.2.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -61,7 +61,8 @@ android {
             // Allows installing Debug and Release apps simultaneously on the same device
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
-            buildConfigField("String", "BASE_URL", "\"http://194.5.195.47/\"")
+//            buildConfigField("String", "BASE_URL", "\"http://194.5.195.47/\"")
+            buildConfigField("String", "BASE_URL", "\"https://mehr-banan.ir/\"")
         }
 
         release {
@@ -154,6 +155,9 @@ dependencies {
     implementation(libs.hilt.work)
 
     implementation(libs.android.device.names)
+
+    // Logging
+    implementation(libs.timber)
 
     ksp(libs.room.compiler)
     ksp(libs.hilt.compiler)

@@ -2,9 +2,7 @@ package com.vahak.mehrban.uiv2.screens.family
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,6 +56,8 @@ import com.vahak.mehrban.presentation.family.FamilyEffect
 import com.vahak.mehrban.presentation.family.FamilyEvent
 import com.vahak.mehrban.presentation.family.FamilyState
 import com.vahak.mehrban.presentation.family.FamilyViewModel
+import com.vahak.mehrban.uiv2.components.header.HeaderAction
+import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
 import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
@@ -84,16 +84,14 @@ fun FamilyManagementScreen(
     }
 
     FamilyManagementContent(
-        state = state,
-        onEvent = viewModel::onEvent
+        state = state, onEvent = viewModel::onEvent
     )
 }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun FamilyManagementContent(
-    state: FamilyState,
-    onEvent: (FamilyEvent) -> Unit
+    state: FamilyState, onEvent: (FamilyEvent) -> Unit
 ) {
     val colors = LocalCustomColors.current
     var childIdToDelete by remember { mutableStateOf<String?>(null) }
@@ -103,12 +101,15 @@ fun FamilyManagementContent(
             onDismissRequest = { childIdToDelete = null },
             containerColor = colors.surface,
             title = {
-                Text(stringResource(R.string.delete_child_title), fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                Text(
+                    stringResource(R.string.delete_child_title),
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary
+                )
             },
             text = {
                 Text(
-                    stringResource(R.string.delete_child_message),
-                    color = colors.textSecondary
+                    stringResource(R.string.delete_child_message), color = colors.textSecondary
                 )
             },
             confirmButton = {
@@ -116,28 +117,31 @@ fun FamilyManagementContent(
                     onClick = {
                         onEvent(FamilyEvent.DeleteChildClicked(childIdToDelete!!))
                         childIdToDelete = null
-                    }
-                ) {
-                    Text(stringResource(R.string.delete), color = colors.red, fontWeight = FontWeight.Bold)
+                    }) {
+                    Text(
+                        stringResource(R.string.delete),
+                        color = colors.red,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { childIdToDelete = null }) {
                     Text(stringResource(R.string.cancel), color = colors.textPrimary)
                 }
-            }
-        )
+            })
     }
     Scaffold(
         containerColor = colors.background,
     ) { _ ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
+            modifier = Modifier.fillMaxSize()
         ) {
             // 1. Header Section
-            FamilyScreenHeaderV2(
-                onAddChildClick = { onEvent(FamilyEvent.AddChildClicked) }
+            MehrbanHeader(
+                title = stringResource(R.string.your_children),
+                subtitle = stringResource(R.string.manage_children),
+                action = HeaderAction.Add { onEvent(FamilyEvent.AddChildClicked) },
             )
 
             // 2. Scrollable Content
@@ -177,8 +181,7 @@ fun FamilyManagementContent(
                         ChildCardV2(
                             childUi = childUi,
                             onClick = { onEvent(FamilyEvent.ChildClicked(childUi.child.id)) },
-                            onDeleteClick = { childIdToDelete = childUi.child.id }
-                        )
+                            onDeleteClick = { childIdToDelete = childUi.child.id })
                     }
                 }
 
@@ -186,8 +189,7 @@ fun FamilyManagementContent(
 
                 // Dashed Add Child Button
                 AddChildDashedCardV2(
-                    onClick = { onEvent(FamilyEvent.AddChildClicked) }
-                )
+                    onClick = { onEvent(FamilyEvent.AddChildClicked) })
 
                 Spacer(modifier = Modifier.height(100.dp)) // Buffer for bottom nav
             }
@@ -200,60 +202,8 @@ fun FamilyManagementContent(
 // ----------------------------------------------------------------------------
 
 @Composable
-fun FamilyScreenHeaderV2(onAddChildClick: () -> Unit) {
-    val colors = LocalCustomColors.current
-    val headerGradient = Brush.linearGradient(listOf(colors.primary, colors.primaryVariant))
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = headerGradient,
-                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-            )
-            .padding(top = 20.dp, bottom = 40.dp, start = 20.dp, end = 20.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(stringResource(R.string.manage_children), color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
-                Text(
-                    stringResource(R.string.your_children),
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 20.sp
-                )
-            }
-
-            // Header Add Button
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
-                    .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
-                    .clip(CircleShape)
-                    .clickable { onAddChildClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    AppIcons.Add,
-                    contentDescription = "Add Child",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun ChildCardV2(
-    childUi: FamilyChildUi,
-    onClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    childUi: FamilyChildUi, onClick: () -> Unit, onDeleteClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
 
@@ -302,9 +252,7 @@ fun ChildCardV2(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = ageText,
-                        fontSize = 12.sp,
-                        color = colors.textSecondary
+                        text = ageText, fontSize = 12.sp, color = colors.textSecondary
                     )
                 }
             }
@@ -320,8 +268,7 @@ fun ChildCardV2(
             }
 
             IconButton(
-                onClick = { onDeleteClick() },
-                modifier = Modifier.padding(start = 8.dp)
+                onClick = { onDeleteClick() }, modifier = Modifier.padding(start = 8.dp)
             ) {
                 Icon(
                     painter = AppIcons.DeleteForever,
@@ -345,8 +292,7 @@ fun AddChildDashedCardV2(onClick: () -> Unit) {
             .background(colors.primary.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
             .drawBehind {
                 val stroke = Stroke(
-                    width = 4f,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 15f), 0f)
+                    width = 4f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 15f), 0f)
                 )
                 drawRoundRect(
                     color = strokeColor.copy(alpha = 0.5f),
@@ -357,8 +303,7 @@ fun AddChildDashedCardV2(onClick: () -> Unit) {
             .clip(RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
+        contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 modifier = Modifier
@@ -366,8 +311,7 @@ fun AddChildDashedCardV2(onClick: () -> Unit) {
                     .background(
                         Brush.linearGradient(listOf(colors.primary, colors.primaryVariant)),
                         CircleShape
-                    ),
-                contentAlignment = Alignment.Center
+                    ), contentAlignment = Alignment.Center
             ) {
                 Icon(
                     AppIcons.Add,
@@ -406,11 +350,8 @@ fun FamilyManagementPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         FamilyManagementContent(
             state = FamilyState(
-                children = listOf(mockChildUi1, mockChildUi2),
-                isLoading = false
-            ),
-            onEvent = {}
-        )
+                children = listOf(mockChildUi1, mockChildUi2), isLoading = false
+            ), onEvent = {})
     }
 }
 
@@ -420,11 +361,8 @@ fun FamilyManagementPreviewDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         FamilyManagementContent(
             state = FamilyState(
-                children = listOf(mockChildUi1),
-                isLoading = false
-            ),
-            onEvent = {}
-        )
+                children = listOf(mockChildUi1), isLoading = false
+            ), onEvent = {})
     }
 }
 
@@ -434,10 +372,7 @@ fun FamilyManagementPreviewLoading() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         FamilyManagementContent(
             state = FamilyState(
-                children = emptyList(),
-                isLoading = true
-            ),
-            onEvent = {}
-        )
+                children = emptyList(), isLoading = true
+            ), onEvent = {})
     }
 }

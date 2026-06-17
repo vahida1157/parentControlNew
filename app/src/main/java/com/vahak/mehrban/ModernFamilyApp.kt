@@ -21,7 +21,7 @@ import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-
+import timber.log.Timber
 @HiltAndroidApp
 class ModernFamilyApp : Application(), Configuration.Provider {
 
@@ -40,6 +40,9 @@ class ModernFamilyApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         val crashLogDao = EntryPoints.get(this, CrashHandlerEntryPoint::class.java).getCrashLogDao()
         Thread.setDefaultUncaughtExceptionHandler(GlobalCrashHandler(crashLogDao, defaultHandler))

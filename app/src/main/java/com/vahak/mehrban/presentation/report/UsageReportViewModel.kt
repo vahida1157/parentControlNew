@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.time.DayOfWeek
 import java.time.LocalDate
 import javax.inject.Inject
@@ -76,23 +77,19 @@ class UsageReportViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : BaseViewModel<UsageReportState, UsageReportEvent, UsageReportEffect>(UsageReportState()) {
 
-    // Nullable so we can handle Bottom Navigation empty arguments gracefully
     private val currentChildIdFlow = MutableStateFlow(savedStateHandle.get<String>("childId"))
-
-    // 🚀 NEW: Holds the rich network report for the Drill-Down Breakdown
     private val networkReportFlow = MutableStateFlow<AppReportResponse?>(null)
 
     init {
-        // 1. Fetch all children for the Bottom Sheet selection
         viewModelScope.launch(Dispatchers.IO) {
             childRepository.getAllChildren().collectLatest { children ->
                 updateState { copy(allChildren = children) }
             }
         }
 
-        // 2. Fallback Logic: Resolve the active child if accessed from Bottom Navigation
         viewModelScope.launch(Dispatchers.IO) {
             if (currentChildIdFlow.value == null) {
+                Timber.d("No child context provided, resolving fallback active profile")
                 val activeId = sessionManager.activeChildIdFlow.firstOrNull()
                 if (activeId != null) {
                     currentChildIdFlow.value = activeId
@@ -103,11 +100,12 @@ class UsageReportViewModel @Inject constructor(
             }
         }
 
-        // 🚀 NEW: Fetch the Drill-Down report from Spring Boot when the child changes
         viewModelScope.launch(Dispatchers.IO) {
             currentChildIdFlow.collectLatest { childId ->
                 if (childId != null) {
+                    Timber.d("Fetching comprehensive drill-down usage report from server")
                     val report = usageRepository.getDailyUsageReport(childId, LocalDate.now())
+                    if (report == null) Timber.w("Drill-down usage report fetch returned null, falling back to local cache")
                     networkReportFlow.value = report
                 } else {
                     networkReportFlow.value = null
@@ -115,11 +113,6 @@ class UsageReportViewModel @Inject constructor(
             }
         }
 
-        // 3. The "Anti-Zombie" Sync Engine:
-        // By using flatMapLatest, these listeners instantly cancel and switch databases
-        // the millisecond a parent selects a different child from the Bottom Sheet.
-
-        // A) Observe Active Child Profile
         viewModelScope.launch(Dispatchers.IO) {
             currentChildIdFlow.flatMapLatest { childId ->
                 if (childId != null) childRepository.observeChildById(childId) else flowOf(null)
@@ -128,70 +121,58 @@ class UsageReportViewModel @Inject constructor(
             }
         }
 
-        // B) Observe Today's Total Usage (UPGRADED: Uses maxOf to ensure global accuracy)
         viewModelScope.launch(Dispatchers.IO) {
             currentChildIdFlow.flatMapLatest { childId ->
                 if (childId != null) usageRepository.observeDailyUsage(
                     childId, LocalDate.now()
                 ) else flowOf(null)
             }.collectLatest { daily ->
-                // Ensures we show the highest known time (Local vs Offline Cache)
                 val effectiveTotal = maxOf(daily?.usedSeconds ?: 0, daily?.globalUsedSeconds ?: 0)
                 updateState { copy(totalSecondsToday = effectiveTotal) }
             }
         }
 
-        // C) Observe Today's App Usages (UPGRADED: Merges Local Room DB + Spring Boot Network)
         viewModelScope.launch(Dispatchers.IO) {
             currentChildIdFlow.flatMapLatest { childId ->
                 if (childId != null) {
                     combine(
                         usageRepository.observeAppUsageForDay(childId, LocalDate.now()),
                         networkReportFlow
-                    ) { localRecords, networkReport ->
-                        Pair(localRecords, networkReport)
-                    }
+                    ) { localRecords, networkReport -> Pair(localRecords, networkReport) }
                 } else {
                     flowOf(Pair(emptyList(), null))
                 }
             }.collectLatest { (localRecords, networkReport) ->
+                Timber.d("Aggregating local and network app usage records")
                 val installedApps = AppManager.getInstalledApps(context)
 
-                val uiList = if (networkReport != null) {
-                    // 🌐 WE HAVE NETWORK DATA: Show global totals and device breakdowns!
-                    networkReport.apps.map { networkApp ->
-                        val appInfo =
-                            installedApps.find { it.packageName == networkApp.packageName }
-                        AppUsageUi(
-                            packageName = networkApp.packageName,
-                            appName = appInfo?.name ?: networkApp.packageName,
-                            icon = appInfo?.icon,
-                            usedSeconds = networkApp.totalSeconds,
-                            devices = networkApp.devices.map {
-                                DeviceUsageUi(
-                                    it.deviceName, it.usedSeconds
-                                )
-                            })
-                    }
-                } else {
-                    // 📴 OFFLINE MODE: Fallback to local Room data
-                    localRecords.map { record ->
-                        val appInfo = installedApps.find { it.packageName == record.packageName }
-                        AppUsageUi(
-                            packageName = record.packageName,
-                            appName = appInfo?.name ?: record.packageName,
-                            icon = appInfo?.icon,
-                            usedSeconds = maxOf(record.usedSeconds, record.globalUsedSeconds),
-                            devices = emptyList()
-                        )
-                    }
-                }.sortedByDescending { it.usedSeconds }
+                val uiList = (networkReport?.apps?.map { networkApp ->
+                    val appInfo = installedApps.find { it.packageName == networkApp.packageName }
+                    AppUsageUi(
+                        packageName = networkApp.packageName,
+                        appName = appInfo?.name ?: networkApp.packageName,
+                        icon = appInfo?.icon,
+                        usedSeconds = networkApp.totalSeconds,
+                        devices = networkApp.devices.map {
+                            DeviceUsageUi(
+                                it.deviceName, it.usedSeconds
+                            )
+                        })
+                } ?: localRecords.map { record ->
+                    val appInfo = installedApps.find { it.packageName == record.packageName }
+                    AppUsageUi(
+                        packageName = record.packageName,
+                        appName = appInfo?.name ?: record.packageName,
+                        icon = appInfo?.icon,
+                        usedSeconds = maxOf(record.usedSeconds, record.globalUsedSeconds),
+                        devices = emptyList()
+                    )
+                }).sortedByDescending { it.usedSeconds }
 
                 updateState { copy(appUsages = uiList, isLoading = false) }
             }
         }
 
-        // D) Observe Weekly Chart Data (UPGRADED: Uses maxOf for historical accuracy)
         viewModelScope.launch(Dispatchers.IO) {
             currentChildIdFlow.flatMapLatest { childId ->
                 if (childId == null) return@flatMapLatest flowOf(List(7) { 0 })
@@ -211,10 +192,8 @@ class UsageReportViewModel @Inject constructor(
                 val saturday = today.minusDays(daysToSubtract.toLong())
                 val weekDates = (0..6).map { saturday.plusDays(it.toLong()) }
 
-                val usageFlows = weekDates.map { date ->
-                    usageRepository.observeDailyUsage(childId, date)
-                }
-
+                val usageFlows =
+                    weekDates.map { date -> usageRepository.observeDailyUsage(childId, date) }
                 combine(usageFlows) { dailyUsages ->
                     dailyUsages.map { maxOf(it?.usedSeconds ?: 0, it?.globalUsedSeconds ?: 0) }
                 }
@@ -223,7 +202,9 @@ class UsageReportViewModel @Inject constructor(
                     val activeDaysCount = weeklySecs.count { it > 0 }.coerceAtLeast(1)
                     val avg = weeklySecs.sum() / activeDaysCount
                     updateState {
-                        copy(weeklyUsageSeconds = weeklySecs.toList(), averageSeconds = avg)
+                        copy(
+                            weeklyUsageSeconds = weeklySecs.toList(), averageSeconds = avg
+                        )
                     }
                 }
             }
@@ -236,6 +217,7 @@ class UsageReportViewModel @Inject constructor(
             is UsageReportEvent.OpenChildSheet -> updateState { copy(isChildSheetOpen = true) }
             is UsageReportEvent.CloseChildSheet -> updateState { copy(isChildSheetOpen = false) }
             is UsageReportEvent.SelectChild -> {
+                Timber.d("Switching usage report context to new child profile")
                 updateState {
                     copy(
                         isChildSheetOpen = false,

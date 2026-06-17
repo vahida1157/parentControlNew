@@ -24,7 +24,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -38,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -56,15 +54,15 @@ import com.vahak.mehrban.presentation.timelimit.TimeLimitStateV2
 import com.vahak.mehrban.presentation.timelimit.TimeLimitViewModelV2
 import com.vahak.mehrban.ui.component.PickerPresentationMode
 import com.vahak.mehrban.uiv2.components.DynamicTimePickerV2
-import com.vahak.mehrban.uiv2.theme.AppIcons
+import com.vahak.mehrban.uiv2.components.header.HeaderAction
+import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 
 @Composable
 fun TimeLimitScreen(
-    viewModel: TimeLimitViewModelV2 = hiltViewModel(),
-    onBackClick: () -> Unit
+    viewModel: TimeLimitViewModelV2 = hiltViewModel(), onBackClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -74,9 +72,7 @@ fun TimeLimitScreen(
             when (effect) {
                 is TimeLimitEffectV2.NavigateBack -> onBackClick()
                 is TimeLimitEffectV2.ShowToast -> Toast.makeText(
-                    context,
-                    effect.message,
-                    Toast.LENGTH_SHORT
+                    context, effect.message, Toast.LENGTH_SHORT
                 ).show()
             }
         }
@@ -87,8 +83,7 @@ fun TimeLimitScreen(
 
 @Composable
 fun TimeLimitContent(
-    state: TimeLimitStateV2,
-    onEvent: (TimeLimitEventV2) -> Unit
+    state: TimeLimitStateV2, onEvent: (TimeLimitEventV2) -> Unit
 ) {
     val colors = LocalCustomColors.current
 
@@ -102,11 +97,11 @@ fun TimeLimitContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            ScreenHeaderV2(
+            MehrbanHeader(
                 title = stringResource(R.string.timelimit_title),
                 subtitle = stringResource(R.string.timelimit_subtitle),
                 iconEmoji = "⏰",
-                onBackClick = { onEvent(TimeLimitEventV2.BackClicked) }
+                action = HeaderAction.Back { onEvent(TimeLimitEventV2.BackClicked) },
             )
 
             Card(
@@ -130,8 +125,7 @@ fun TimeLimitContent(
                         iconEmoji = "⏳",
                         iconBg = colors.orangeLight,
                         isActive = state.isTimeLimitActive,
-                        onToggle = { onEvent(TimeLimitEventV2.ToggleActive(it)) }
-                    )
+                        onToggle = { onEvent(TimeLimitEventV2.ToggleActive(it)) })
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -189,8 +183,7 @@ fun TimeLimitContent(
                                     .clickable { onEvent(TimeLimitEventV2.OpenPicker) }
                                     .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
+                                horizontalArrangement = Arrangement.Center) {
                                 TimeDisplayBox(
                                     label = stringResource(R.string.hour),
                                     value = state.hours.toString(),
@@ -217,16 +210,14 @@ fun TimeLimitContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(
-                                    colors.primary.copy(alpha = 0.08f),
-                                    RoundedCornerShape(12.dp)
+                                    colors.primary.copy(alpha = 0.08f), RoundedCornerShape(12.dp)
                                 )
                                 .border(
                                     1.dp,
                                     colors.primary.copy(alpha = 0.15f),
                                     RoundedCornerShape(12.dp)
                                 )
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(16.dp), verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("⏰", fontSize = 24.sp)
                             Spacer(modifier = Modifier.width(12.dp))
@@ -316,8 +307,7 @@ fun TimeLimitContent(
                 hoursRange = 0..23,
                 minutesRange = 0..59,
                 onDismiss = { onEvent(TimeLimitEventV2.ClosePicker) },
-                onConfirm = { h, m -> onEvent(TimeLimitEventV2.ConfirmTime(h, m)) }
-            )
+                onConfirm = { h, m -> onEvent(TimeLimitEventV2.ConfirmTime(h, m)) })
         }
     }
 }
@@ -345,71 +335,8 @@ private fun TimeDisplayBox(label: String, value: String, modifier: Modifier = Mo
 }
 
 @Composable
-fun ScreenHeaderV2(
-    title: String,
-    subtitle: String? = null,
-    iconEmoji: String? = null,
-    onBackClick: () -> Unit
-) {
-    val colors = LocalCustomColors.current
-    val headerGradient = Brush.linearGradient(listOf(colors.primary, colors.primaryVariant))
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = headerGradient,
-                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-            )
-            .padding(top = 40.dp, bottom = 60.dp, start = 20.dp, end = 20.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (iconEmoji != null) {
-                    Text(iconEmoji, fontSize = 28.sp)
-                    Spacer(modifier = Modifier.width(12.dp))
-                }
-                Column {
-                    if (subtitle != null) {
-                        Text(
-                            text = subtitle,
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 13.sp
-                        )
-                    }
-                    Text(
-                        text = title,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-            }
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onBackClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(AppIcons.Back, contentDescription = "Back", tint = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
 fun TimePresetButton(
-    title: String,
-    isSelected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    title: String, isSelected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
     Box(
@@ -417,14 +344,10 @@ fun TimePresetButton(
             .clip(RoundedCornerShape(12.dp))
             .background(if (isSelected) colors.primary.copy(alpha = 0.08f) else colors.surface)
             .border(
-                2.dp,
-                if (isSelected) colors.primary else colors.divider,
-                RoundedCornerShape(12.dp)
+                2.dp, if (isSelected) colors.primary else colors.divider, RoundedCornerShape(12.dp)
             )
             .clickable { onClick() }
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center
-    ) {
+            .padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
         Text(
             title,
             color = if (isSelected) colors.primary else colors.textPrimary,
@@ -467,8 +390,7 @@ fun ToggleRowV2(
             Text(desc, fontSize = 11.sp, color = colors.textSecondary)
         }
         Switch(
-            checked = isActive, onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
+            checked = isActive, onCheckedChange = onToggle, colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = colors.primary,
                 uncheckedThumbColor = colors.textSecondary,

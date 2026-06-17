@@ -60,6 +60,7 @@ import com.vahak.mehrban.presentation.report.UsageReportEffect
 import com.vahak.mehrban.presentation.report.UsageReportEvent
 import com.vahak.mehrban.presentation.report.UsageReportState
 import com.vahak.mehrban.presentation.report.UsageReportViewModel
+import com.vahak.mehrban.uiv2.components.header.MehrbanChildSelectionHeader
 import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
@@ -68,8 +69,7 @@ import java.time.LocalDate
 
 @Composable
 fun UsageReportScreen(
-    viewModel: UsageReportViewModel = hiltViewModel(),
-    onBackClick: () -> Unit
+    viewModel: UsageReportViewModel = hiltViewModel(), onBackClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -95,11 +95,14 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
             .background(colors.background)
             .verticalScroll(rememberScrollState())
     ) {
-        ReportHeader(
-            child = state.activeChild,
+        MehrbanChildSelectionHeader(
+            title = stringResource(R.string.report_header_title),
+            subtitle = stringResource(R.string.report_header_subtitle),
+            childName = state.activeChild?.name,
+            childGender = state.activeChild?.gender,
+            changeButtonText = stringResource(R.string.report_change_child),
             onBackClick = { onEvent(UsageReportEvent.BackClicked) },
-            onChangeChildClick = { onEvent(UsageReportEvent.OpenChildSheet) }
-        )
+            onChangeChildClick = { onEvent(UsageReportEvent.OpenChildSheet) })
 
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
 
@@ -122,10 +125,8 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                         modifier = Modifier
                             .size(48.dp)
                             .background(
-                                colors.primary.copy(alpha = 0.12f),
-                                RoundedCornerShape(12.dp)
-                            ),
-                        contentAlignment = Alignment.Center
+                                colors.primary.copy(alpha = 0.12f), RoundedCornerShape(12.dp)
+                            ), contentAlignment = Alignment.Center
                     ) {
                         Text("⏱️", fontSize = 24.sp)
                     }
@@ -177,7 +178,9 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                     ) {
                         Text(
-                            if (state.showAllApps) stringResource(R.string.report_show_less) else stringResource(R.string.report_show_details),
+                            if (state.showAllApps) stringResource(R.string.report_show_less) else stringResource(
+                                R.string.report_show_details
+                            ),
                             color = colors.primary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
@@ -200,7 +203,8 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                     )
                 } else {
                     val maxUsage =
-                        state.appUsages.maxOfOrNull { it.usedSeconds }?.toFloat()?.coerceAtLeast(1f) ?: 1f
+                        state.appUsages.maxOfOrNull { it.usedSeconds }?.toFloat()?.coerceAtLeast(1f)
+                            ?: 1f
                     appsToShow.forEach { app -> AppUsageRow(app, maxUsage) }
                 }
             }
@@ -212,8 +216,7 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                     .fillMaxWidth()
                     .background(colors.primary.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
                     .border(1.dp, colors.primary.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
-                    .padding(16.dp),
-                verticalAlignment = Alignment.Top
+                    .padding(16.dp), verticalAlignment = Alignment.Top
             ) {
                 Text("💡", fontSize = 24.sp)
                 Spacer(modifier = Modifier.width(12.dp))
@@ -264,8 +267,7 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                             .clickable { onEvent(UsageReportEvent.SelectChild(child.id)) }
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                        verticalAlignment = Alignment.CenterVertically) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
@@ -284,9 +286,7 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                             )
                         }
                         if (isSelected) Icon(
-                            AppIcons.Check,
-                            contentDescription = null,
-                            tint = colors.primary
+                            AppIcons.Check, contentDescription = null, tint = colors.primary
                         )
                     }
                     if (!isSelected) HorizontalDivider(
@@ -296,100 +296,6 @@ fun UsageReportContent(state: UsageReportState, onEvent: (UsageReportEvent) -> U
                     )
                 }
                 Spacer(modifier = Modifier.height(30.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun ReportHeader(child: ChildEntity?, onBackClick: () -> Unit, onChangeChildClick: () -> Unit) {
-    val colors = LocalCustomColors.current
-    val headerGradient = Brush.linearGradient(listOf(colors.primary, colors.primaryVariant))
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = headerGradient,
-                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-            )
-            .padding(top = 40.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(stringResource(R.string.report_header_subtitle), color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
-                    Text(
-                        stringResource(R.string.report_header_title),
-                        color = Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 20.sp
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(12.dp))
-                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onBackClick() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        AppIcons.Back,
-                        contentDescription = "Back",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
-                    .clip(RoundedCornerShape(14.dp))
-                    .clickable { onChangeChildClick() }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(colors.cardInnerBG, RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(if (child?.gender == Gender.BOY) "👦" else "👧", fontSize = 20.sp)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.report_child_label), color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
-                    Text(
-                        child?.name ?: "...",
-                        color = Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 15.sp
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        stringResource(R.string.report_change_child),
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
             }
         }
     }
@@ -432,9 +338,9 @@ fun WeeklyUsageChart(weeklySeconds: List<Int>, averageSeconds: Int) {
                     color = colors.textPrimary
                 )
                 Text(
-                    stringResource(R.string.report_average_label, String.format("%d:%02d", avgHours, avgMins)),
-                    fontSize = 11.sp,
-                    color = colors.textSecondary
+                    stringResource(
+                        R.string.report_average_label, String.format("%d:%02d", avgHours, avgMins)
+                    ), fontSize = 11.sp, color = colors.textSecondary
                 )
             }
 
@@ -463,7 +369,9 @@ fun WeeklyUsageChart(weeklySeconds: List<Int>, averageSeconds: Int) {
                             if (seconds > 0) {
                                 Box(
                                     modifier = Modifier
-                                        .background(colors.cardInnerBG, RoundedCornerShape(4.dp))
+                                        .background(
+                                            colors.cardInnerBG, RoundedCornerShape(4.dp)
+                                        )
                                         .padding(horizontal = 4.dp, vertical = 2.dp)
                                 ) {
                                     Text(
@@ -641,7 +549,9 @@ fun UsageReportPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         UsageReportContent(
             state = UsageReportState(
-                activeChild = ChildEntity(id = "1", name = "علی", dob = LocalDate.now(), gender = Gender.BOY),
+                activeChild = ChildEntity(
+                    id = "1", name = "علی", dob = LocalDate.now(), gender = Gender.BOY
+                ),
                 totalSecondsToday = 6300,
                 weeklyUsageSeconds = listOf(3600, 7200, 5400, 9000, 1800, 0, 0),
                 averageSeconds = 5400,
@@ -652,9 +562,7 @@ fun UsageReportPreviewLight() {
                 ),
                 isLoading = false,
                 showAllApps = false
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }
 
@@ -664,15 +572,15 @@ fun UsageReportPreviewDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         UsageReportContent(
             state = UsageReportState(
-                activeChild = ChildEntity(id = "2", name = "سارا", dob = LocalDate.now(), gender = Gender.GIRL),
+                activeChild = ChildEntity(
+                    id = "2", name = "سارا", dob = LocalDate.now(), gender = Gender.GIRL
+                ),
                 totalSecondsToday = 0,
                 weeklyUsageSeconds = listOf(0, 0, 0, 0, 0, 0, 0),
                 averageSeconds = 0,
                 appUsages = emptyList(),
                 isLoading = false,
                 isChildSheetOpen = false
-            ),
-            onEvent = {}
-        )
+            ), onEvent = {})
     }
 }

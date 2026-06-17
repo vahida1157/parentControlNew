@@ -12,6 +12,7 @@ import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 data class LoginState(
@@ -38,9 +39,10 @@ sealed class LoginEffect {
 class LoginViewModel @Inject constructor(
     private val validatePhoneUseCase: ValidatePhoneUseCase,
     private val authRepository: AuthRepository,
-    private val sessionManager: SessionManager, // 🚀 Added
+    private val sessionManager: SessionManager,
     @ApplicationContext private val context: Context
 ) : BaseViewModel<LoginState, LoginEvent, LoginEffect>(LoginState()) {
+
 
     override fun onEvent(event: LoginEvent) {
         when (event) {
@@ -49,22 +51,21 @@ class LoginViewModel @Inject constructor(
                     updateState { copy(phoneNumber = event.phone, errorMessage = null) }
                 }
             }
-            is LoginEvent.PrivacyAcceptedChanged -> {
-                updateState { copy(isPrivacyAccepted = event.isAccepted) }
-            }
-            is LoginEvent.ShowPrivacyDialog -> {
-                updateState { copy(showPrivacyDialog = event.show) }
-            }
+
+            is LoginEvent.PrivacyAcceptedChanged -> updateState { copy(isPrivacyAccepted = event.isAccepted) }
+            is LoginEvent.ShowPrivacyDialog -> updateState { copy(showPrivacyDialog = event.show) }
             is LoginEvent.ChangeLanguage -> {
-                // 🚀 Instantly save to DataStore. MainActivity reads this and changes UI!
+                Timber.i("Application language changed by user, langCode: %s", event.langCode)
                 viewModelScope.launch {
                     sessionManager.setAppLanguage(event.langCode)
                 }
             }
+
             is LoginEvent.SubmitClicked -> {
                 if (state.value.isPrivacyAccepted) {
                     submitPhone()
                 } else {
+                    Timber.d("Login rejected, privacy policy not accepted")
                     updateState { copy(errorMessage = context.getString(R.string.error_privacy_not_accepted)) }
                 }
             }
@@ -75,17 +76,28 @@ class LoginViewModel @Inject constructor(
         val currentPhone = state.value.phoneNumber
         when (val validationResult = validatePhoneUseCase.execute(currentPhone)) {
             is PhoneValidationResult.Error -> {
+                Timber.w("Phone validation rejected locally")
                 updateState { copy(errorMessage = validationResult.message) }
             }
+
             is PhoneValidationResult.Success -> {
                 viewModelScope.launch {
+                    Timber.d("Initiating OTP request to server")
                     updateState { copy(isLoading = true, errorMessage = null) }
+
                     when (val result = authRepository.requestOtp(currentPhone)) {
                         is OtpValidationResult.Success -> {
+                            Timber.i("OTP requested successfully, routing to verification screen")
                             updateState { copy(isLoading = false) }
-                            sendEffect(LoginEffect.NavigateToOtp(currentPhone, result.expiresInSeconds))
+                            sendEffect(
+                                LoginEffect.NavigateToOtp(
+                                    currentPhone, result.expiresInSeconds
+                                )
+                            )
                         }
+
                         is OtpValidationResult.Error -> {
+                            Timber.w("OTP request failed during network call")
                             updateState { copy(isLoading = false, errorMessage = result.message) }
                         }
                     }

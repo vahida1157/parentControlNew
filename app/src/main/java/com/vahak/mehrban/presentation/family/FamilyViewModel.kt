@@ -14,11 +14,11 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.time.LocalDate
 import java.time.Period
 import javax.inject.Inject
 
-// 1. New UI Data Class
 data class FamilyChildUi(
     val child: ChildEntity,
     val ageYears: Int,
@@ -47,16 +47,19 @@ sealed class FamilyEffect {
 @HiltViewModel
 class FamilyViewModel @Inject constructor(
     private val childRepository: ChildRepository,
-    private val usageDao: UsageDao // INJECTED
+    private val usageDao: UsageDao
 ) : BaseViewModel<FamilyState, FamilyEvent, FamilyEffect>(FamilyState()) {
+
+    
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
+            Timber.d("Observing child profiles for family dashboard")
             childRepository.getAllChildren().flatMapLatest { children ->
                 if (children.isEmpty()) {
                     flowOf(emptyList())
                 } else {
-                    // Combine every child with their live daily usage
+                    Timber.d("Combining child profiles with live daily usage data, profileCount: %d", children.size)
                     val usageFlows = children.map { child ->
                         usageDao.observeDailyUsage(child.id, LocalDate.now()).map { daily ->
                             val age = Period.between(child.dob, LocalDate.now()).years
@@ -81,8 +84,8 @@ class FamilyViewModel @Inject constructor(
             is FamilyEvent.AddChildClicked -> sendEffect(FamilyEffect.NavigateToAddChild)
             is FamilyEvent.ChildClicked -> sendEffect(FamilyEffect.NavigateToChildSettings(event.childId))
             is FamilyEvent.DeleteChildClicked -> {
+                Timber.i("Initiating local soft-delete for child profile via Family dashboard")
                 viewModelScope.launch(Dispatchers.IO) {
-                    // This calls your already-perfect offline-first delete logic!
                     childRepository.deleteChildLocally(event.childId)
                 }
             }
