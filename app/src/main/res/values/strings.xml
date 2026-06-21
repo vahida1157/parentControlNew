@@ -441,4 +441,6 @@
     <string name="app_language_title">زبان برنامه</string>
     <string name="language_persian">فارسی</string>
     <string name="language_english">English</string>
+    <string name="notification_empty_title">شما پیام جدیدی ندارید</string>
+    <string name="notification_empty_description">تمامی اعلان‌ها و هشدارهای مربوط به استفاده فرزندان در اینجا نمایش داده می‌شود.</string>
 </resources>

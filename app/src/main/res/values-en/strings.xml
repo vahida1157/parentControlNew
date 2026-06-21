@@ -440,4 +440,7 @@
     <string name="app_language_title">App Language</string>
     <string name="language_persian">فارسی</string>
     <string name="language_english">English</string>
+
+    <string name="notification_empty_title">You have no new messages</string>
+    <string name="notification_empty_description">All notifications and alerts about your children’s usage will appear here.</string>
 </resources>

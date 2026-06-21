@@ -3,6 +3,7 @@ package com.vahak.mehrban.core.service
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.domain.repository.AppRuleRepository
 import com.vahak.mehrban.domain.repository.ChildRepository
+import com.vahak.mehrban.domain.repository.NotificationRepository
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.domain.repository.UsageRepository
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +22,8 @@ class SessionSyncEngine @Inject constructor(
     private val childRepository: ChildRepository,
     private val settingsRepository: SettingsRepository,
     private val appRuleRepository: AppRuleRepository,
-    private val usageRepository: UsageRepository
+    private val usageRepository: UsageRepository,
+    private val notificationRepository: NotificationRepository // 🚀 Inject this
 ) {
     private val engineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -55,6 +57,11 @@ class SessionSyncEngine @Inject constructor(
                         launch { appRuleRepository.syncRulesFromServer(childId) }
                     }
                 }
+        }
+        // 🚀 SYNC TARGET 3: Account-wide Notifications
+        engineScope.launch {
+            // Push any offline read receipts, then fetch new messages
+            notificationRepository.syncNotificationsFromServer()
         }
     }
 }

@@ -5,6 +5,7 @@ import com.vahak.mehrban.data.remote.AppUpdateApi
 import com.vahak.mehrban.data.remote.ApplicationCrashApi
 import com.vahak.mehrban.data.remote.AuthApi
 import com.vahak.mehrban.data.remote.ChildApi
+import com.vahak.mehrban.data.remote.NotificationApi
 import com.vahak.mehrban.data.remote.ProfileApi
 import com.vahak.mehrban.data.remote.RuleApi
 import com.vahak.mehrban.data.remote.SettingsApi
@@ -94,4 +95,9 @@ object NetworkModule {
     @Singleton
     fun provideApplicationCrashApi(retrofit: Retrofit): ApplicationCrashApi =
         retrofit.create(ApplicationCrashApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideNotificationApi(retrofit: Retrofit): NotificationApi =
+        retrofit.create(NotificationApi::class.java)
 }

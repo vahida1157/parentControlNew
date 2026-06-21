@@ -8,6 +8,7 @@ import com.vahak.mehrban.core.data.local.dao.AppRuleDao
 import com.vahak.mehrban.core.data.local.dao.ChildDao
 import com.vahak.mehrban.core.data.local.dao.ChildSettingsDao
 import com.vahak.mehrban.core.data.local.dao.CrashLogDao
+import com.vahak.mehrban.core.data.local.dao.NotificationDao
 import com.vahak.mehrban.core.data.local.dao.UsageDao
 import com.vahak.mehrban.core.data.local.dao.WebDao
 import com.vahak.mehrban.core.data.local.entity.AppRuleEntity
@@ -17,6 +18,7 @@ import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.CrashLogEntity
 import com.vahak.mehrban.core.data.local.entity.DailyUsageEntity
 import com.vahak.mehrban.core.data.local.entity.GlobalSettingsEntity
+import com.vahak.mehrban.core.data.local.entity.NotificationEntity
 
 @Database(
     entities = [
@@ -27,8 +29,9 @@ import com.vahak.mehrban.core.data.local.entity.GlobalSettingsEntity
         AppUsageRecordEntity::class,
         BlockedDomainEntity::class,
         CrashLogEntity::class,
+        NotificationEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)
@@ -39,4 +42,5 @@ abstract class ParentControlDatabase : RoomDatabase() {
     abstract val appRuleDao: AppRuleDao
     abstract val webDao: WebDao
     abstract val crashLogDao: CrashLogDao
+    abstract val notificationDao: NotificationDao
 }

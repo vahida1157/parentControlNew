@@ -1,5 +1,6 @@
 package com.vahak.mehrban.uiv2.screens.settings
 
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,9 +21,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.mehrban.R
 import com.vahak.mehrban.UpdateState
@@ -59,6 +63,7 @@ import kotlinx.coroutines.launch
 fun ApplicationSettingsScreen(
     viewModel: ApplicationSettingsViewModel = hiltViewModel(),
     onNavigateToPasswordManagement: () -> Unit,
+    onNavigateToNotifications: () -> Unit, // 🚀 Added
     onLogoutComplete: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
@@ -84,12 +89,12 @@ fun ApplicationSettingsScreen(
         onCheckForUpdates = viewModel::checkForUpdates,
         onOpenUpdateDialog = viewModel::openUpdateDialog,
         onNavigateToPasswordManagement = onNavigateToPasswordManagement,
+        onNavigateToNotifications = onNavigateToNotifications, // 🚀 Passed down
         onExportLogsClick = {
             coroutineScope.launch {
                 LogExporter.exportLogsAndShare(context)
             }
-        }
-    )
+        })
 }
 
 @Composable
@@ -100,11 +105,14 @@ fun ApplicationSettingsContent(
     onCheckForUpdates: () -> Unit,
     onOpenUpdateDialog: () -> Unit,
     onNavigateToPasswordManagement: () -> Unit,
+    onNavigateToNotifications: () -> Unit, // 🚀 Added
     onExportLogsClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
     val isDark = isSystemInDarkTheme()
     val scrollState = rememberScrollState()
+
+    val context = LocalContext.current
 
     val headerGradient = Brush.linearGradient(
         colors = listOf(colors.primary, colors.primaryVariant)
@@ -173,19 +181,20 @@ fun ApplicationSettingsContent(
                     .padding(top = 16.dp, bottom = 40.dp)
             ) {
 
-                // 🚀 THEME SWITCHER
                 ThemeSwitcherCard(
                     currentTheme = state.currentTheme,
-                    onThemeChange = { newTheme -> onEvent(AppSettingsEvent.ThemeSelected(newTheme)) }
-                )
+                    onThemeChange = { newTheme -> onEvent(AppSettingsEvent.ThemeSelected(newTheme)) })
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 🚀 LANGUAGE SWITCHER
                 LanguageSwitcherCard(
-                    currentLanguage = state.currentLanguage,
-                    onLanguageChange = { newLang -> onEvent(AppSettingsEvent.LanguageSelected(newLang)) }
-                )
+                    currentLanguage = state.currentLanguage, onLanguageChange = { newLang ->
+                        onEvent(
+                            AppSettingsEvent.LanguageSelected(
+                                newLang
+                            )
+                        )
+                    })
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -202,16 +211,16 @@ fun ApplicationSettingsContent(
                     iconBgColor = colors.green.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.green,
                     title = stringResource(R.string.settings_notifications),
-                    onClick = { /* TODO */ })
+                    onClick = onNavigateToNotifications // 🚀 Trigger callback here
+                )
 
                 ProfileMenuItemV2(
                     icon = AppIcons.ShieldCheck,
                     iconBgColor = colors.primary.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.primary,
                     title = stringResource(R.string.settings_privacy),
-                    onClick = { /* TODO */ })
+                    onClick = { onEvent(AppSettingsEvent.ShowPrivacyDialog(true)) })
 
-                // Dynamic update menu item
                 when (updateState) {
                     is UpdateState.UpdateAvailable -> {
                         ProfileMenuItemV2(
@@ -252,7 +261,10 @@ fun ApplicationSettingsContent(
                     iconBgColor = colors.orange.copy(alpha = if (isDark) 0.15f else 0.1f),
                     iconTintColor = colors.orange,
                     title = stringResource(R.string.settings_help_support),
-                    onClick = { /* TODO */ })
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, "https://mehr-ban.com/support".toUri())
+                        context.startActivity(intent)
+                    })
 
                 ProfileMenuItemV2(
                     icon = AppIcons.ChartBar,
@@ -275,13 +287,44 @@ fun ApplicationSettingsContent(
             }
         }
     }
+
+    if (state.showPrivacyDialog) {
+        AlertDialog(
+            onDismissRequest = { onEvent(AppSettingsEvent.ShowPrivacyDialog(false)) },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = stringResource(R.string.login_privacy_dialog_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.textPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text(
+                        text = stringResource(R.string.login_privacy_dialog_text),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textSecondary,
+                        lineHeight = 24.sp
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { onEvent(AppSettingsEvent.ShowPrivacyDialog(false)) }) {
+                    Text(
+                        text = stringResource(R.string.close),
+                        color = colors.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            })
+    }
 }
 
-// 🚀 NEW: Language Switcher Card UI
 @Composable
 fun LanguageSwitcherCard(
-    currentLanguage: String,
-    onLanguageChange: (String) -> Unit
+    currentLanguage: String, onLanguageChange: (String) -> Unit
 ) {
     val colors = LocalCustomColors.current
     val isDark = isSystemInDarkTheme()
@@ -340,13 +383,9 @@ fun LanguageSwitcherCard(
     }
 }
 
-// 🚀 NEW: Button Component for the Language Options
 @Composable
 fun LanguageOptionButton(
-    title: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    title: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier
 ) {
     val colors = LocalCustomColors.current
 
@@ -356,9 +395,7 @@ fun LanguageOptionButton(
             .clip(RoundedCornerShape(8.dp))
             .background(if (isSelected) colors.primary else Color.Transparent)
             .clickable { onClick() }
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
+            .padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
         Text(
             text = title,
             color = if (isSelected) colors.textOnPrimaryVariant else colors.textHint,
@@ -549,6 +586,7 @@ fun ApplicationSettingsScreenPreviewLight() {
             onCheckForUpdates = {},
             onOpenUpdateDialog = {},
             onNavigateToPasswordManagement = {},
+            onNavigateToNotifications = {},
             onExportLogsClick = {},
         )
     }
@@ -565,6 +603,7 @@ fun ApplicationSettingsScreenPreviewDark() {
             onCheckForUpdates = {},
             onOpenUpdateDialog = {},
             onNavigateToPasswordManagement = {},
+            onNavigateToNotifications = {}, // 🚀 Added
             onExportLogsClick = {},
         )
     }

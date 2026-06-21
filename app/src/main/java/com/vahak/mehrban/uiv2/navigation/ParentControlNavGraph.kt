@@ -9,20 +9,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.vahak.mehrban.ui.screens.settings.SiteManagementScreen
+import com.vahak.mehrban.uiv2.screens.MainParentScreen
+import com.vahak.mehrban.uiv2.screens.addchild.AddChildScreen
 import com.vahak.mehrban.uiv2.screens.applimit.AppSelectionScreen
-import com.vahak.mehrban.uiv2.screens.timelimit.TimeLimitScreen
-import com.vahak.mehrban.uiv2.screens.sleeptime.SleepTimeScreen
 import com.vahak.mehrban.uiv2.screens.family.FamilyManagementScreen
+import com.vahak.mehrban.uiv2.screens.login.LoginScreen
+import com.vahak.mehrban.uiv2.screens.login.OtpScreen
+import com.vahak.mehrban.uiv2.screens.notification.NotificationScreen
+import com.vahak.mehrban.uiv2.screens.password.PasswordManagementScreen
 import com.vahak.mehrban.uiv2.screens.permissions.PermissionSliderScreen
 import com.vahak.mehrban.uiv2.screens.report.UsageReportScreen
 import com.vahak.mehrban.uiv2.screens.settings.ChildSettingsScreen
-import com.vahak.mehrban.ui.screens.settings.SiteManagementScreen
+import com.vahak.mehrban.uiv2.screens.sleeptime.SleepTimeScreen
+import com.vahak.mehrban.uiv2.screens.timelimit.TimeLimitScreen
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
-import com.vahak.mehrban.uiv2.screens.MainParentScreen
-import com.vahak.mehrban.uiv2.screens.addchild.AddChildScreen
-import com.vahak.mehrban.uiv2.screens.login.LoginScreen
-import com.vahak.mehrban.uiv2.screens.login.OtpScreen
-import com.vahak.mehrban.uiv2.screens.password.PasswordManagementScreen
 
 @Composable
 fun ParentControlNavGraph(
@@ -170,6 +171,12 @@ fun ParentControlNavGraph(
 
             SiteManagementScreen(
                 onBackClick = { navController.popBackStack() })
+        }
+
+        composable(Screen.Notifications.route) {
+            NotificationScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

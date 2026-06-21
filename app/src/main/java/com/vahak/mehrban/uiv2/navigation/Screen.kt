@@ -45,4 +45,6 @@ sealed class Screen(val route: String) {
     }
 
     object ChildLauncher : Screen("child_launcher")
+
+    object Notifications : Screen("notifications_screen")
 }

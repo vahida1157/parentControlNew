@@ -106,7 +106,8 @@ fun MainParentScreen(
                 composable(BottomNavItem.Profile.route) {
                     ApplicationSettingsScreen(
                         onNavigateToPasswordManagement = { rootNavController.navigate(Screen.PasswordManagement.route) },
-                        onLogoutComplete = onLogoutComplete
+                        onNavigateToNotifications = { rootNavController.navigate(Screen.Notifications.route) },
+                        onLogoutComplete = onLogoutComplete,
                     )
                 }
             }

@@ -6,6 +6,8 @@ import com.vahak.mehrban.domain.repository.AuthRepository
 import com.vahak.mehrban.domain.repository.AuthRepositoryImpl
 import com.vahak.mehrban.domain.repository.ChildRepository
 import com.vahak.mehrban.domain.repository.ChildRepositoryImpl
+import com.vahak.mehrban.domain.repository.NotificationRepository
+import com.vahak.mehrban.domain.repository.NotificationRepositoryImpl
 import com.vahak.mehrban.domain.repository.ProfileRepository
 import com.vahak.mehrban.domain.repository.ProfileRepositoryImpl
 import com.vahak.mehrban.domain.repository.SettingsRepository
@@ -65,4 +67,10 @@ abstract class RepositoryModule {
     abstract fun bindUsageRepository(
         usageRepositoryImpl: UsageRepositoryImpl
     ): UsageRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNotificationRepository(
+        notificationRepositoryImpl: NotificationRepositoryImpl
+    ): NotificationRepository
 }

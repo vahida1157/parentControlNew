@@ -18,13 +18,15 @@ import javax.inject.Inject
 data class AppSettingsState(
     val parentPhoneNumber: String = "",
     val currentTheme: AppTheme = AppTheme.SYSTEM,
-    val currentLanguage: String = "fa" // 🚀 Added language state
+    val currentLanguage: String = "fa",
+    val showPrivacyDialog: Boolean = false // 🚀 Added Dialog State
 )
 
 sealed class AppSettingsEvent {
     object LogoutClicked : AppSettingsEvent()
     data class ThemeSelected(val theme: AppTheme) : AppSettingsEvent()
-    data class LanguageSelected(val langCode: String) : AppSettingsEvent() // 🚀 Added language event
+    data class LanguageSelected(val langCode: String) : AppSettingsEvent()
+    data class ShowPrivacyDialog(val show: Boolean) : AppSettingsEvent() // 🚀 Added Dialog Event
 }
 
 sealed class AppSettingsEffect {
@@ -73,6 +75,9 @@ class ApplicationSettingsViewModel @Inject constructor(
             is AppSettingsEvent.LanguageSelected -> {
                 Timber.i("Application language preference updated locally: %s", event.langCode)
                 viewModelScope.launch { sessionManager.setAppLanguage(event.langCode) }
+            }
+            is AppSettingsEvent.ShowPrivacyDialog -> {
+                updateState { copy(showPrivacyDialog = event.show) } // 🚀 Handle Toggle
             }
             is AppSettingsEvent.LogoutClicked -> {
                 Timber.i("Initiating user session termination via settings panel")
