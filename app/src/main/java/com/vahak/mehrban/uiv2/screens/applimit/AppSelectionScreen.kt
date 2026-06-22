@@ -56,6 +56,8 @@ import com.vahak.mehrban.presentation.appselection.AppItemUi
 import com.vahak.mehrban.presentation.appselection.AppSelectionEffectV2
 import com.vahak.mehrban.presentation.appselection.AppSelectionEventV2
 import com.vahak.mehrban.presentation.appselection.AppSelectionStateV2
+import com.vahak.mehrban.presentation.appselection.AppSelectionToastType.SAVED
+import com.vahak.mehrban.presentation.appselection.AppSelectionToastType.SERVER_ERROR
 import com.vahak.mehrban.presentation.appselection.AppSelectionViewModelV2
 import com.vahak.mehrban.uiv2.components.header.HeaderAction
 import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
@@ -70,13 +72,19 @@ fun AppSelectionScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
+    val appAccessSavedMessage = stringResource(R.string.app_access_saved)
+    val serverCommunicationErrorMessage = stringResource(R.string.error_server_communication)
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is AppSelectionEffectV2.NavigateBack -> onBackClick()
-                is AppSelectionEffectV2.ShowToast -> Toast.makeText(
-                    context, effect.message, Toast.LENGTH_SHORT
-                ).show()
+                is AppSelectionEffectV2.ShowToast -> {
+                    val message = when (effect.type) {
+                        SAVED -> appAccessSavedMessage
+                        SERVER_ERROR -> serverCommunicationErrorMessage
+                    }
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

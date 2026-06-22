@@ -108,13 +108,13 @@
     <string name="hint_phone">شماره تلفن فرزند</string>
     <string name="gender_boy">پسر</string>
     <string name="gender_girl">دختر</string>
-    <string name="button_add_child">افزودن فرزند ✅</string>
+    <string name="button_add_child">افزودن فرزند</string>
     <string name="dob_picker_title">تاریخ تولد فرزند</string>
 
     <!-- App Lock -->
     <string name="app_lock_title">قفل برنامه‌ها</string>
     <string name="app_lock_subtitle">تنظیمات دسترسی</string>
-    <string name="search_hint">جستجوی برنامه...</string>
+    <string name="search_hint">جستجوی برنامه…</string>
     <string name="tab_blocked">مسدود شده</string>
     <string name="tab_allowed">مجاز</string>
     <string name="tab_all">همه برنامه‌ها</string>

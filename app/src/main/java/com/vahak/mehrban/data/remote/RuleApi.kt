@@ -24,5 +24,5 @@ interface RuleApi {
     @PUT("api/policy/v1/rules/{childId}/bulk")
     suspend fun updateAppRules(
         @Path("childId") childId: String, @Body request: BulkRuleRequestDto
-    ): Response<Map<String, String>>
+    ): Response<Unit>
 }

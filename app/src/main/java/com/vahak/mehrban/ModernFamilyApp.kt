@@ -1,8 +1,6 @@
 package com.vahak.mehrban
 
 import android.app.Application
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import androidx.work.Constraints
@@ -11,7 +9,6 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.vahak.mehrban.core.data.local.dao.CrashLogDao
-import com.vahak.mehrban.core.service.SessionSyncEngine
 import com.vahak.mehrban.core.util.GlobalCrashHandler
 import com.vahak.mehrban.worker.TelemetrySyncWorker
 import dagger.hilt.EntryPoint
@@ -19,17 +16,16 @@ import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import timber.log.Timber
+
 @HiltAndroidApp
 class ModernFamilyApp : Application(), Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
-    @Inject
-    lateinit var sessionSyncEngine: SessionSyncEngine
 
     // 🚀 We use an EntryPoint to safely get the DAO without breaking Hilt's lifecycle
     @EntryPoint
@@ -47,7 +43,6 @@ class ModernFamilyApp : Application(), Configuration.Provider {
         val crashLogDao = EntryPoints.get(this, CrashHandlerEntryPoint::class.java).getCrashLogDao()
         Thread.setDefaultUncaughtExceptionHandler(GlobalCrashHandler(crashLogDao, defaultHandler))
         setupCrashSyncWorker()
-        sessionSyncEngine.start()
     }
 
     private fun setupCrashSyncWorker() {

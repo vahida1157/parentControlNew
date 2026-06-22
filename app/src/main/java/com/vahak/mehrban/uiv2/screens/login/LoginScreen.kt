@@ -71,6 +71,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.mehrban.R
 import com.vahak.mehrban.core.util.AppSignatureHelper
+import com.vahak.mehrban.domain.error.AuthError.NETWORK_UNAVAILABLE
+import com.vahak.mehrban.domain.error.AuthError.SERVER_REJECTION
+import com.vahak.mehrban.domain.error.AuthError.WRONG_VERIFICATION_CODE
+import com.vahak.mehrban.domain.usecase.PhoneValidationError.EMPTY
+import com.vahak.mehrban.domain.usecase.PhoneValidationError.INVALID_FORMAT
+import com.vahak.mehrban.domain.usecase.PhoneValidationError.PRIVACY_NOT_ACCEPTED
 import com.vahak.mehrban.presentation.login.LoginEffect
 import com.vahak.mehrban.presentation.login.LoginEvent
 import com.vahak.mehrban.presentation.login.LoginState
@@ -82,8 +88,7 @@ import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel = hiltViewModel(),
-    onNavigateToOtp: (String, Int) -> Unit
+    viewModel: LoginViewModel = hiltViewModel(), onNavigateToOtp: (String, Int) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -96,27 +101,22 @@ fun LoginScreen(
     }
 
     LoginScreenContent(
-        state = state,
-        onEvent = viewModel::onEvent
+        state = state, onEvent = viewModel::onEvent
     )
 }
 
 @Composable
 fun LoginScreenContent(
-    state: LoginState,
-    onEvent: (LoginEvent) -> Unit
+    state: LoginState, onEvent: (LoginEvent) -> Unit
 ) {
     val colors = LocalCustomColors.current
     val goldGradient = Brush.linearGradient(colors = listOf(colors.yellow, colors.orange))
 
     val infiniteTransition = rememberInfiniteTransition(label = "float")
     val floatOffset by infiniteTransition.animateFloat(
-        initialValue = -10f, targetValue = 10f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = { it }),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "float_offset"
+        initialValue = -10f, targetValue = 10f, animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = { it }), repeatMode = RepeatMode.Reverse
+        ), label = "float_offset"
     )
 
     AppSignatureHelper(LocalContext.current).getAppSignatures()
@@ -126,9 +126,7 @@ fun LoginScreenContent(
     val isPersian = currentOsLanguage == "fa"
 
     AppBackground(
-        patternAlpha = 0.06f,
-        patternScale = 2.5f,
-        patternRepeatScale = 0.5f
+        patternAlpha = 0.06f, patternScale = 2.5f, patternRepeatScale = 0.5f
     ) {
 
         // 🚀 1. DRAW THE MAIN LOGIN FORM FIRST (Bottom Layer)
@@ -192,9 +190,21 @@ fun LoginScreenContent(
                             .padding(horizontal = 24.dp, vertical = 32.dp),
                         horizontalAlignment = Alignment.Start
                     ) {
-                        if (state.errorMessage != null) {
+                        if (state.validationError != null || state.authError != null) {
+                            val message = when {
+                                state.validationError == EMPTY -> stringResource(R.string.error_phone_empty)
+                                state.validationError == INVALID_FORMAT -> stringResource(R.string.error_phone_invalid_format)
+                                state.validationError == PRIVACY_NOT_ACCEPTED -> stringResource(R.string.error_privacy_not_accepted)
+                                state.authError == NETWORK_UNAVAILABLE -> stringResource(R.string.error_network_connection)
+                                state.authError == SERVER_REJECTION -> state.serverErrorMessage
+                                    ?: stringResource(R.string.error_server_communication)
+
+                                state.authError == WRONG_VERIFICATION_CODE -> stringResource(R.string.error_wrong_verification_code)
+                                else -> stringResource(R.string.error_unknown)
+                            }
+
                             Text(
-                                text = state.errorMessage,
+                                text = message,
                                 color = colors.red,
                                 style = MaterialTheme.typography.labelMedium,
                                 modifier = Modifier.padding(bottom = 12.dp)
@@ -281,8 +291,7 @@ fun LoginScreenContent(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable { onEvent(LoginEvent.PrivacyAcceptedChanged(!state.isPrivacyAccepted)) }
-                                .padding(vertical = 8.dp)
-                        ) {
+                                .padding(vertical = 8.dp)) {
                             Checkbox(
                                 checked = state.isPrivacyAccepted,
                                 onCheckedChange = { onEvent(LoginEvent.PrivacyAcceptedChanged(it)) },
@@ -315,8 +324,7 @@ fun LoginScreenContent(
                                 color = colors.textPrimary,
                                 modifier = Modifier
                                     .padding(start = 4.dp)
-                                    .clickable { onEvent(LoginEvent.ShowPrivacyDialog(true)) }
-                            )
+                                    .clickable { onEvent(LoginEvent.ShowPrivacyDialog(true)) })
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -344,22 +352,17 @@ fun LoginScreenContent(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(
-                                        if (!state.isLoading && state.phoneNumber.length == 10 && state.isPrivacyAccepted)
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    colors.primary,
-                                                    colors.primaryVariant
-                                                )
+                                        if (!state.isLoading && state.phoneNumber.length == 10 && state.isPrivacyAccepted) Brush.linearGradient(
+                                            listOf(
+                                                colors.primary, colors.primaryVariant
                                             )
-                                        else
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    colors.divider,
-                                                    colors.divider
-                                                )
+                                        )
+                                        else Brush.linearGradient(
+                                            listOf(
+                                                colors.divider, colors.divider
                                             )
-                                    ),
-                                contentAlignment = Alignment.Center
+                                        )
+                                    ), contentAlignment = Alignment.Center
                             ) {
                                 if (state.isLoading) {
                                     CircularProgressIndicator(
@@ -394,9 +397,10 @@ fun LoginScreenContent(
                 onClick = {
                     val targetLang = if (isPersian) "en" else "fa"
                     onEvent(LoginEvent.ChangeLanguage(targetLang))
-                },
-                modifier = Modifier
-                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(50.dp))
+                }, modifier = Modifier
+                    .background(
+                        Color.White.copy(alpha = 0.15f), RoundedCornerShape(50.dp)
+                    )
                     .padding(horizontal = 4.dp)
             ) {
                 Text(
@@ -411,12 +415,16 @@ fun LoginScreenContent(
 
     // Privacy Policy Dialog
     if (state.showPrivacyDialog) {
+        val loginPrivacyDialogTitle = stringResource(R.string.login_privacy_dialog_title)
+        val loginPrivacyDialogText = stringResource(R.string.login_privacy_dialog_text)
+        val loginPrivacyAccept = stringResource(R.string.login_privacy_accept)
+        val loginPrivacyCancel = stringResource(R.string.cancel)
         AlertDialog(
             onDismissRequest = { onEvent(LoginEvent.ShowPrivacyDialog(false)) },
             containerColor = colors.surface,
             title = {
                 Text(
-                    text = stringResource(R.string.login_privacy_dialog_title),
+                    text = loginPrivacyDialogTitle,
                     style = MaterialTheme.typography.titleLarge,
                     color = colors.textPrimary,
                     fontWeight = FontWeight.Bold
@@ -425,7 +433,7 @@ fun LoginScreenContent(
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     Text(
-                        text = stringResource(R.string.login_privacy_dialog_text),
+                        text = loginPrivacyDialogText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,
                         lineHeight = 24.sp
@@ -438,19 +446,15 @@ fun LoginScreenContent(
                     onEvent(LoginEvent.ShowPrivacyDialog(false))
                 }) {
                     Text(
-                        stringResource(R.string.login_privacy_accept),
-                        color = colors.primary,
-                        fontWeight = FontWeight.Bold
+                        loginPrivacyAccept, color = colors.primary, fontWeight = FontWeight.Bold
                     )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { onEvent(LoginEvent.ShowPrivacyDialog(false)) }) {
-                    val text = stringResource(R.string.cancel)
-                    Text(text, color = colors.textHint)
+                    Text(loginPrivacyCancel, color = colors.textHint)
                 }
-            }
-        )
+            })
     }
 }
 
@@ -459,8 +463,6 @@ fun LoginScreenContent(
 fun LoginScreenPreview() {
     ParentControlTheme {
         LoginScreenContent(
-            state = LoginState(phoneNumber = ""),
-            onEvent = {}
-        )
+            state = LoginState(phoneNumber = ""), onEvent = {})
     }
 }

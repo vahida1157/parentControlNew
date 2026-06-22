@@ -1,19 +1,22 @@
 package com.vahak.mehrban.domain.usecase
 
-import android.content.Context
-import com.vahak.mehrban.R
 import com.vahak.mehrban.domain.repository.ProfileRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
+enum class SecuritySetupError {
+    PIN_LENGTH,
+    ANSWER_SHORT,
+    QUESTION_EMPTY
+}
+class SecuritySetupException(val error: SecuritySetupError) : Exception()
+
 class SetupSecurityUseCase @Inject constructor(
-    private val repository: ProfileRepository,
-    @ApplicationContext private val context: Context
+    private val repository: ProfileRepository
 ) {
     suspend fun execute(pin: String, question: String, answer: String): Result<Unit> {
-        if (pin.length !in 4..8) return Result.failure(Exception(context.getString(R.string.error_pin_length)))
-        if (answer.trim().length < 2) return Result.failure(Exception(context.getString(R.string.error_security_answer_short)))
-        if (question.isBlank()) return Result.failure(Exception(context.getString(R.string.error_security_question_empty)))
+        if (pin.length !in 4..8) return Result.failure(SecuritySetupException(SecuritySetupError.PIN_LENGTH))
+        if (answer.trim().length < 2) return Result.failure(SecuritySetupException(SecuritySetupError.ANSWER_SHORT))
+        if (question.isBlank()) return Result.failure(SecuritySetupException(SecuritySetupError.QUESTION_EMPTY))
 
         return repository.setupSecurity(pin, question, answer)
     }

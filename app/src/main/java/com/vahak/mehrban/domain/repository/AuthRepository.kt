@@ -1,14 +1,12 @@
 package com.vahak.mehrban.domain.repository
 
-import android.content.Context
-import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.ParentControlDatabase
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.data.remote.AuthApi
 import com.vahak.mehrban.data.remote.OtpRequestDto
 import com.vahak.mehrban.data.remote.VerifyRequestDto
-import com.vahak.mehrban.domain.usecase.OtpValidationResult
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.vahak.mehrban.domain.error.AuthError
+import com.vahak.mehrban.domain.error.AuthException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -16,7 +14,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 interface AuthRepository {
-    suspend fun requestOtp(phone: String): OtpValidationResult
+    suspend fun requestOtp(phone: String): Result<Int>
     suspend fun verifyOtp(phone: String, code: String): Result<Pair<String, Boolean>>
     suspend fun logout()
 }
@@ -24,12 +22,10 @@ interface AuthRepository {
 class AuthRepositoryImpl @Inject constructor(
     private val sessionManager: SessionManager,
     private val authApi: AuthApi,
-    private val database: ParentControlDatabase,
-    @ApplicationContext private val context: Context
+    private val database: ParentControlDatabase
 ) : AuthRepository {
 
-
-    override suspend fun requestOtp(phone: String): OtpValidationResult {
+    override suspend fun requestOtp(phone: String): Result<Int> {
         return try {
             Timber.d("Initiating OTP request")
             val response = authApi.requestOtp(OtpRequestDto(phoneNumber = phone))
@@ -37,20 +33,20 @@ class AuthRepositoryImpl @Inject constructor(
             if (response.isSuccessful) {
                 val ttl = response.body()?.expiresInSeconds ?: 120
                 Timber.i("OTP requested successfully, ttlSeconds: %d", ttl)
-                OtpValidationResult.Success(expiresInSeconds = ttl)
+                Result.success(ttl)
             } else {
                 val errorBody = response.errorBody()?.string()
                 val errorMessage = try {
                     JSONObject(errorBody!!).getString("error")
                 } catch (_: Exception) {
-                    context.getString(R.string.error_server_communication)
+                    null
                 }
                 Timber.w("Failed to request OTP, server rejection")
-                OtpValidationResult.Error(errorMessage)
+                Result.failure(AuthException(AuthError.SERVER_REJECTION, errorMessage))
             }
         } catch (e: Exception) {
             Timber.e(e, "System failure during OTP request")
-            OtpValidationResult.Error(context.getString(R.string.error_network_check_internet))
+            Result.failure(AuthException(AuthError.NETWORK_UNAVAILABLE))
         }
     }
 
@@ -73,11 +69,11 @@ class AuthRepositoryImpl @Inject constructor(
                 Result.success(Pair(body.accessToken, !(body.pinPassword.isNullOrEmpty())))
             } else {
                 Timber.w("Failed to verify OTP, invalid credentials or bad request")
-                Result.failure(Exception(context.getString(R.string.error_wrong_verification_code)))
+                Result.failure(AuthException(AuthError.WRONG_VERIFICATION_CODE))
             }
         } catch (e: Exception) {
             Timber.w(e, "Network error during OTP verification")
-            Result.failure(Exception(context.getString(R.string.error_network_connection)))
+            Result.failure(AuthException(AuthError.NETWORK_UNAVAILABLE))
         }
     }
 

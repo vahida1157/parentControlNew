@@ -2,8 +2,8 @@ package com.vahak.mehrban.domain.repository
 
 import android.content.Context
 import android.os.Environment
-import com.vahak.mehrban.R
 import com.vahak.mehrban.data.remote.AppUpdateApi
+import com.vahak.mehrban.data.remote.DownloadError
 import com.vahak.mehrban.data.remote.DownloadState
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -11,16 +11,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import okhttp3.ResponseBody
-import timber.log.Timber
 import retrofit2.Response
+import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
 
 class UpdateDownloadManager @Inject constructor(
-    @ApplicationContext private val context: Context, private val api: AppUpdateApi
+    @ApplicationContext private val context: Context, // 🚀 Kept for file system access
+    private val api: AppUpdateApi
 ) {
-
 
     fun downloadApk(fileName: String, downloadUrl: String): Flow<DownloadState> = flow {
         try {
@@ -31,7 +31,7 @@ class UpdateDownloadManager @Inject constructor(
             var downloadedLength = if (file.exists()) file.length() else 0L
             var rangeHeader = if (downloadedLength > 0) "bytes=$downloadedLength-" else null
 
-            var response: Response<ResponseBody>? = null
+            var response: Response<ResponseBody>?
 
             try {
                 Timber.d("Requesting APK file chunks, rangeHeader: %s", rangeHeader)
@@ -49,12 +49,12 @@ class UpdateDownloadManager @Inject constructor(
                 response = api.downloadApk(downloadUrl, rangeHeader)
             }
 
-            if (response == null || !response.isSuccessful || response.body() == null) {
+            if (!response.isSuccessful || response.body() == null) {
                 Timber.e(
                     "Failed to download APK, server responded with error status: %d",
-                    response?.code()
+                    response.code()
                 )
-                emit(DownloadState.Error(context.getString(R.string.error_download_connection_failed)))
+                emit(DownloadState.Error(DownloadError.CONNECTION_FAILED)) // 🚀 Clean Error
                 return@flow
             }
 
@@ -96,7 +96,7 @@ class UpdateDownloadManager @Inject constructor(
 
         } catch (e: Exception) {
             Timber.e(e, "System failure during APK download stream processing")
-            emit(DownloadState.Error(context.getString(R.string.error_download_connection_lost)))
+            emit(DownloadState.Error(DownloadError.CONNECTION_LOST))
         }
     }.flowOn(Dispatchers.IO)
 }

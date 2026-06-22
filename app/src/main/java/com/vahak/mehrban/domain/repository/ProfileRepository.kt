@@ -1,13 +1,16 @@
 package com.vahak.mehrban.domain.repository
 
-import android.content.Context
-import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.data.remote.ProfileApi
 import com.vahak.mehrban.data.remote.SetupSecurityRequestDto
-import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import javax.inject.Inject
+
+enum class ProfileError {
+    SERVER_REJECTION,
+    NETWORK_UNAVAILABLE
+}
+class ProfileException(val error: ProfileError) : Exception()
 
 interface ProfileRepository {
     suspend fun setupSecurity(pin: String, question: String, answer: String): Result<Unit>
@@ -15,11 +18,8 @@ interface ProfileRepository {
 
 class ProfileRepositoryImpl @Inject constructor(
     private val profileApi: ProfileApi,
-    private val sessionManager: SessionManager,
-    @ApplicationContext private val context: Context
+    private val sessionManager: SessionManager
 ) : ProfileRepository {
-
-    
 
     override suspend fun setupSecurity(pin: String, question: String, answer: String): Result<Unit> {
         return try {
@@ -35,11 +35,11 @@ class ProfileRepositoryImpl @Inject constructor(
                 Result.success(Unit)
             } else {
                 Timber.w("Failed to configure security profile on server, HTTP status: %d", response.code())
-                Result.failure(Exception(context.getString(R.string.error_saving_data_server)))
+                Result.failure(ProfileException(ProfileError.SERVER_REJECTION))
             }
         } catch (e: Exception) {
             Timber.w(e,"Network error during security profile configuration")
-            Result.failure(Exception(context.getString(R.string.error_network_check_internet)))
+            Result.failure(ProfileException(ProfileError.NETWORK_UNAVAILABLE))
         }
     }
 }

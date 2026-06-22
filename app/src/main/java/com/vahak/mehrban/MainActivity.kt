@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.content.FileProvider
 import androidx.navigation.compose.rememberNavController
 import com.vahak.mehrban.core.service.RestrictionEnforcerService
+import com.vahak.mehrban.core.service.SessionSyncEngine
 import com.vahak.mehrban.core.util.AppSignatureHelper
 import com.vahak.mehrban.core.util.LauncherManager
 import com.vahak.mehrban.uiv2.components.UpdateCheckerWrapper
@@ -34,14 +35,19 @@ import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 import java.util.Locale
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private val mainViewModel: MainViewModel by viewModels()
 
+    @Inject
+    lateinit var sessionSyncEngine: SessionSyncEngine
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        sessionSyncEngine.start()
 
         setContent {
             val currentTheme by mainViewModel.appTheme.collectAsState(initial = AppTheme.SYSTEM)

@@ -1,55 +1,52 @@
 package com.vahak.mehrban.presentation.setting
 
-import android.content.Context
 import androidx.lifecycle.viewModelScope
-import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.util.AppUpdateManager
 import com.vahak.mehrban.domain.repository.AuthRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
 data class AppSettingsState(
-    val parentPhoneNumber: String = "",
+    val parentPhoneNumber: String? = null,
+    val isPhoneLoaded: Boolean = false,
     val currentTheme: AppTheme = AppTheme.SYSTEM,
     val currentLanguage: String = "fa",
-    val showPrivacyDialog: Boolean = false // 🚀 Added Dialog State
+    val showPrivacyDialog: Boolean = false
 )
 
 sealed class AppSettingsEvent {
     object LogoutClicked : AppSettingsEvent()
     data class ThemeSelected(val theme: AppTheme) : AppSettingsEvent()
     data class LanguageSelected(val langCode: String) : AppSettingsEvent()
-    data class ShowPrivacyDialog(val show: Boolean) : AppSettingsEvent() // 🚀 Added Dialog Event
+    data class ShowPrivacyDialog(val show: Boolean) : AppSettingsEvent()
 }
 
 sealed class AppSettingsEffect {
     object NavigateToLogin : AppSettingsEffect()
-    data class ShowToast(val message: String) : AppSettingsEffect()
+    object ShowUpToDateToast : AppSettingsEffect() // 🚀 Specific UI trigger, no strings
 }
 
 @HiltViewModel
 class ApplicationSettingsViewModel @Inject constructor(
     private val sessionManager: SessionManager,
     private val authRepository: AuthRepository,
-    private val appUpdateManager: AppUpdateManager,
-    @ApplicationContext private val context: Context
-) : BaseViewModel<AppSettingsState, AppSettingsEvent, AppSettingsEffect>(
-    AppSettingsState(parentPhoneNumber = context.getString(R.string.settings_loading))
-) {
+    private val appUpdateManager: AppUpdateManager
+    // 🚀 Context completely removed!
+) : BaseViewModel<AppSettingsState, AppSettingsEvent, AppSettingsEffect>(AppSettingsState()) {
 
     val updateState = appUpdateManager.updateState
 
     init {
         viewModelScope.launch {
             sessionManager.userPhoneFlow.collectLatest { phone ->
-                updateState { copy(parentPhoneNumber = phone ?: context.getString(R.string.settings_phone_unknown)) }
+                // 🚀 UI can now easily decide what to show based on null/empty
+                updateState { copy(parentPhoneNumber = phone, isPhoneLoaded = true) }
             }
         }
 
@@ -77,7 +74,7 @@ class ApplicationSettingsViewModel @Inject constructor(
                 viewModelScope.launch { sessionManager.setAppLanguage(event.langCode) }
             }
             is AppSettingsEvent.ShowPrivacyDialog -> {
-                updateState { copy(showPrivacyDialog = event.show) } // 🚀 Handle Toggle
+                updateState { copy(showPrivacyDialog = event.show) }
             }
             is AppSettingsEvent.LogoutClicked -> {
                 Timber.i("Initiating user session termination via settings panel")
@@ -95,7 +92,7 @@ class ApplicationSettingsViewModel @Inject constructor(
             if (!updateFound) {
                 Timber.i("Application is currently up to date")
                 viewModelScope.launch {
-                    sendEffect(AppSettingsEffect.ShowToast(context.getString(R.string.settings_update_uptodate)))
+                    sendEffect(AppSettingsEffect.ShowUpToDateToast) // 🚀 Clean effect trigger
                 }
             } else {
                 Timber.i("New application update discovered")

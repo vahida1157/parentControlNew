@@ -1,4 +1,4 @@
-package com.vahak.mehrban.ui.component
+package com.vahak.mehrban.uiv2.components
 
 enum class PickerPresentationMode {
     BOTTOM_SHEET,

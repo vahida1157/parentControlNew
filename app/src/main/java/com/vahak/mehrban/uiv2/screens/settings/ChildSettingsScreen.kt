@@ -51,6 +51,7 @@ import com.vahak.mehrban.presentation.setting.ChildSettingsEffect
 import com.vahak.mehrban.presentation.setting.ChildSettingsEvent
 import com.vahak.mehrban.presentation.setting.ChildSettingsState
 import com.vahak.mehrban.presentation.setting.ChildSettingsViewModel
+import com.vahak.mehrban.presentation.setting.FeatureToastType.*
 import com.vahak.mehrban.ui.theme.AppIcons
 import com.vahak.mehrban.uiv2.components.header.MehrbanChildSelectionHeader
 import com.vahak.mehrban.uiv2.theme.AppTheme
@@ -91,14 +92,20 @@ fun ChildSettingsScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
+    val featureUnderDevelopmentMessage = stringResource(R.string.feature_under_development)
+    val featureComingSoonMessage = stringResource(R.string.feature_coming_soon)
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is ChildSettingsEffect.NavigateBack -> onBackClick()
                 is ChildSettingsEffect.NavigateToFeature -> onNavigateToFeature(effect.route)
-                is ChildSettingsEffect.ShowToast -> Toast.makeText(
-                    context, effect.message, Toast.LENGTH_SHORT
-                ).show()
+                is ChildSettingsEffect.ShowToast -> {
+                    val message = when(effect.type) {
+                        UNDER_DEVELOPMENT -> featureUnderDevelopmentMessage
+                        COMING_SOON -> featureComingSoonMessage
+                    }
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                }
 
                 is ChildSettingsEffect.NavigateToPermissionSlider -> onInterceptForPermissions(
                     effect.route, effect.missingPermissions

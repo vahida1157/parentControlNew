@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -59,6 +60,7 @@ import com.google.android.gms.auth.api.phone.SmsRetriever
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
 import com.vahak.mehrban.R
+import com.vahak.mehrban.domain.error.AuthError
 import com.vahak.mehrban.presentation.login.OtpEffect
 import com.vahak.mehrban.presentation.login.OtpEvent
 import com.vahak.mehrban.presentation.login.OtpState
@@ -79,16 +81,25 @@ fun OtpScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
+    val otpResentSuccessMessage = stringResource(R.string.otp_resend_success)
+
     DisposableEffect(context) {
         val smsReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 if (SmsRetriever.SMS_RETRIEVED_ACTION == intent.action) {
                     val extras = intent.extras
-                    val status = extras?.get(SmsRetriever.EXTRA_STATUS) as? Status
+                    // 🚀 THE FIX: Type-safe extraction based on the user's Android version
+                    val status: Status? =
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(SmsRetriever.EXTRA_STATUS, Status::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(SmsRetriever.EXTRA_STATUS)
+                        }
 
                     when (status?.statusCode) {
                         CommonStatusCodes.SUCCESS -> {
-                            val message = extras.getString(SmsRetriever.EXTRA_SMS_MESSAGE)
+                            val message = extras?.getString(SmsRetriever.EXTRA_SMS_MESSAGE)
                             val code = message?.let { Regex("\\d{4}").find(it)?.value }
                             if (code != null) {
                                 viewModel.onEvent(OtpEvent.OtpChanged(code))
@@ -102,10 +113,7 @@ fun OtpScreen(
 
         val intentFilter = IntentFilter(SmsRetriever.SMS_RETRIEVED_ACTION)
         ContextCompat.registerReceiver(
-            context,
-            smsReceiver,
-            intentFilter,
-            ContextCompat.RECEIVER_EXPORTED
+            context, smsReceiver, intentFilter, ContextCompat.RECEIVER_EXPORTED
         )
 
         SmsRetriever.getClient(context).startSmsRetriever()
@@ -120,11 +128,12 @@ fun OtpScreen(
             when (effect) {
                 is OtpEffect.NavigateToDashboard -> onVerifyClick()
                 is OtpEffect.NavigateToPasswordSetup -> onNavigateToPasswordSetup()
-                is OtpEffect.ShowToast -> Toast.makeText(
-                    context,
-                    effect.message,
-                    Toast.LENGTH_SHORT
-                ).show()
+                // 🚀 Matches the Clean Architecture Effect we made previously
+                is OtpEffect.ShowResendSuccessToast -> {
+                    Toast.makeText(
+                        context, otpResentSuccessMessage, Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
     }
@@ -139,50 +148,35 @@ fun OtpScreen(
 
 @Composable
 fun OtpScreenContent(
-    state: OtpState,
-    phoneNumber: String,
-    onEvent: (OtpEvent) -> Unit,
-    onBackClick: () -> Unit
+    state: OtpState, phoneNumber: String, onEvent: (OtpEvent) -> Unit, onBackClick: () -> Unit
 ) {
     val colors = LocalCustomColors.current
     val otpLength = 4
-
-    val backgroundGradient = Brush.linearGradient(
-        colors = listOf(colors.primary, colors.primaryVariant, Color(0xFF0A4F46))
-    )
 
     val goldGradient = Brush.linearGradient(
         colors = listOf(colors.yellow, colors.orange)
     )
 
     AppBackground(
-        patternAlpha = 0.06f,
-        patternScale = 2.5f,
-        patternRepeatScale = 0.5f
+        patternAlpha = 0.06f, patternScale = 2.5f, patternRepeatScale = 0.5f
     ) {
-
-        // 🚀 ROOT BOX: Handles background and keyboard padding
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
         ) {
-            // 🚀 LAYER 1: SCROLLABLE CONTENT
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(
-                        horizontal = 24.dp,
-                        vertical = 80.dp
-                    ), // Extra vertical padding to avoid the back button
-                contentAlignment = Alignment.Center
+                        horizontal = 24.dp, vertical = 80.dp
+                    ), contentAlignment = Alignment.Center
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Gold Logo Mini
                     Box(
                         modifier = Modifier
                             .size(80.dp)
@@ -232,16 +226,23 @@ fun OtpScreenContent(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    if (state.errorMessage != null) {
+                    // 🚀 Translate Domain Error State
+                    if (state.authError != null) {
+                        val errorMessage = when (state.authError) {
+                            AuthError.NETWORK_UNAVAILABLE -> stringResource(R.string.error_network_connection)
+                            AuthError.SERVER_REJECTION -> stringResource(R.string.error_server_communication)
+                            AuthError.WRONG_VERIFICATION_CODE -> stringResource(R.string.error_wrong_verification_code)
+                            AuthError.UNKNOWN -> stringResource(R.string.error_unknown)
+                        }
+
                         Text(
-                            text = state.errorMessage,
+                            text = errorMessage,
                             color = colors.redLight,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
                     }
 
-                    // OTP Input Field Wrapper
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         BasicTextField(
                             value = state.otpCode,
@@ -261,16 +262,14 @@ fun OtpScreenContent(
                             decorationBox = {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(
-                                        12.dp,
-                                        Alignment.CenterHorizontally
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
+                                        12.dp, Alignment.CenterHorizontally
+                                    ), modifier = Modifier.fillMaxWidth()
                                 ) {
                                     repeat(otpLength) { index ->
                                         val char = state.otpCode.getOrNull(index)?.toString() ?: ""
                                         val isFilled = state.otpCode.length > index
                                         val isFocused = state.otpCode.length == index
-                                        val isError = state.errorMessage != null
+                                        val isError = state.authError != null // 🚀 Check enum state
 
                                         val borderColor = when {
                                             isError -> colors.red
@@ -287,11 +286,8 @@ fun OtpScreenContent(
                                                 .size(52.dp, 60.dp)
                                                 .background(bgColor, RoundedCornerShape(12.dp))
                                                 .border(
-                                                    2.dp,
-                                                    borderColor,
-                                                    RoundedCornerShape(12.dp)
-                                                ),
-                                            contentAlignment = Alignment.Center
+                                                    2.dp, borderColor, RoundedCornerShape(12.dp)
+                                                ), contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 text = char,
@@ -302,13 +298,11 @@ fun OtpScreenContent(
                                         }
                                     }
                                 }
-                            }
-                        )
+                            })
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Timer & Resend
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         val seconds = state.timerSeconds.toString()
 
@@ -326,14 +320,12 @@ fun OtpScreenContent(
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.clickable {
                                     onEvent(OtpEvent.ResendClicked(phoneNumber))
-                                }
-                            )
+                                })
                         }
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Submit Button
                     val isEnabled = state.otpCode.length == otpLength && !state.isVerifying
                     Button(
                         onClick = { onEvent(OtpEvent.VerifyClicked(phoneNumber)) },
@@ -359,13 +351,9 @@ fun OtpScreenContent(
                                 .background(
                                     if (isEnabled) goldGradient
                                     else Brush.linearGradient(
-                                        listOf(
-                                            Color.Transparent,
-                                            Color.Transparent
-                                        )
+                                        listOf(Color.Transparent, Color.Transparent)
                                     )
-                                ),
-                            contentAlignment = Alignment.Center
+                                ), contentAlignment = Alignment.Center
                         ) {
                             if (state.isVerifying) {
                                 CircularProgressIndicator(
@@ -386,8 +374,6 @@ fun OtpScreenContent(
                 }
             }
 
-            // 🚀 LAYER 2: FIXED BACK BUTTON
-            // This is outside the scrollable Box, so it is permanently pinned to the Top Start!
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -395,8 +381,7 @@ fun OtpScreenContent(
                     .size(44.dp)
                     .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
                     .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                    .clickable { onBackClick() },
-                contentAlignment = Alignment.Center
+                    .clickable { onBackClick() }, contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = AppIcons.Back,
@@ -414,10 +399,9 @@ fun OtpScreenContent(
 fun OtpScreenPreview() {
     ParentControlTheme {
         OtpScreenContent(
-            state = OtpState(otpCode = "12", timerSeconds = 60),
+            state = OtpState(otpCode = "12", timerSeconds = 60, authError = null),
             phoneNumber = "09123456789",
             onEvent = {},
-            onBackClick = {}
-        )
+            onBackClick = {})
     }
 }

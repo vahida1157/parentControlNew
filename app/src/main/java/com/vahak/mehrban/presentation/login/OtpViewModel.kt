@@ -1,14 +1,12 @@
 package com.vahak.mehrban.presentation.login
 
-import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.vahak.mehrban.R
+import com.vahak.mehrban.domain.error.AuthError
+import com.vahak.mehrban.domain.error.AuthException
 import com.vahak.mehrban.domain.repository.AuthRepository
-import com.vahak.mehrban.domain.usecase.OtpValidationResult
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -17,7 +15,7 @@ import javax.inject.Inject
 
 data class OtpState(
     val otpCode: String = "",
-    val errorMessage: String? = null,
+    val authError: AuthError? = null,
     val isVerifying: Boolean = false,
     val timerSeconds: Int = 120,
     val canResend: Boolean = false
@@ -32,16 +30,14 @@ sealed class OtpEvent {
 sealed class OtpEffect {
     object NavigateToDashboard : OtpEffect()
     object NavigateToPasswordSetup : OtpEffect()
-    data class ShowToast(val message: String) : OtpEffect()
+    object ShowResendSuccessToast : OtpEffect()
 }
 
 @HiltViewModel
 class OtpViewModel @Inject constructor(
     private val repository: AuthRepository,
-    savedStateHandle: SavedStateHandle,
-    @ApplicationContext private val context: Context
+    savedStateHandle: SavedStateHandle
 ) : BaseViewModel<OtpState, OtpEvent, OtpEffect>(OtpState()) {
-
 
     private var timerJob: Job? = null
 
@@ -67,11 +63,8 @@ class OtpViewModel @Inject constructor(
     override fun onEvent(event: OtpEvent) {
         when (event) {
             is OtpEvent.OtpChanged -> updateState {
-                copy(
-                    otpCode = event.code, errorMessage = null
-                )
+                copy(otpCode = event.code, authError = null)
             }
-
             is OtpEvent.VerifyClicked -> verifyCode(event.phone)
             is OtpEvent.ResendClicked -> resendCode(event.phone)
         }
@@ -80,11 +73,9 @@ class OtpViewModel @Inject constructor(
     private fun verifyCode(phone: String) {
         viewModelScope.launch {
             Timber.d("Initiating OTP verification sequence")
-            updateState { copy(isVerifying = true) }
+            updateState { copy(isVerifying = true, authError = null) }
 
-            val result = repository.verifyOtp(phone, state.value.otpCode)
-
-            result.onSuccess { pair ->
+            repository.verifyOtp(phone, state.value.otpCode).onSuccess { pair ->
                 val (_, hasPinSetup) = pair
                 if (hasPinSetup) {
                     Timber.i("OTP verified successfully, session restored, routing to dashboard")
@@ -95,7 +86,12 @@ class OtpViewModel @Inject constructor(
                 }
             }.onFailure { error ->
                 Timber.w("OTP verification failed due to bad credentials or network error")
-                updateState { copy(errorMessage = error.message, isVerifying = false) }
+                updateState { copy(isVerifying = false) }
+                if (error is AuthException) {
+                    updateState { copy(authError = error.error) }
+                } else {
+                    updateState { copy(authError = AuthError.UNKNOWN) }
+                }
             }
         }
     }
@@ -105,15 +101,19 @@ class OtpViewModel @Inject constructor(
 
         viewModelScope.launch {
             Timber.d("Initiating OTP resend request")
-            val result = repository.requestOtp(phone)
+            updateState { copy(authError = null) }
 
-            if (result is OtpValidationResult.Success) {
+            repository.requestOtp(phone).onSuccess { ttl ->
                 Timber.i("OTP resent successfully")
-                sendEffect(OtpEffect.ShowToast(context.getString(R.string.otp_resend_success)))
-                startTimer(result.expiresInSeconds)
-            } else if (result is OtpValidationResult.Error) {
+                sendEffect(OtpEffect.ShowResendSuccessToast)
+                startTimer(ttl)
+            }.onFailure { error ->
                 Timber.w("OTP resend request failed")
-                updateState { copy(errorMessage = result.message) }
+                if (error is AuthException) {
+                    updateState { copy(authError = error.error) }
+                } else {
+                    updateState { copy(authError = AuthError.UNKNOWN) }
+                }
             }
         }
     }

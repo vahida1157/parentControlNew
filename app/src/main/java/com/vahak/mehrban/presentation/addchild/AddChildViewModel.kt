@@ -1,29 +1,32 @@
 package com.vahak.mehrban.presentation.addchild
 
-import android.content.Context
 import androidx.lifecycle.viewModelScope
-import com.vahak.mehrban.R
 import com.vahak.mehrban.core.util.JalaliConverter
 import com.vahak.mehrban.domain.repository.ChildRepository
+import com.vahak.mehrban.domain.usecase.ChildValidationError
 import com.vahak.mehrban.domain.usecase.ChildValidationResult
 import com.vahak.mehrban.domain.usecase.ValidateAddChildUseCase
 import com.vahak.mehrban.presentation.BaseViewModel
-import com.vahak.mehrban.ui.screens.Gender
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 import com.vahak.mehrban.core.data.local.entity.Gender as DbGender
 
+// 🚀 Created an Enum for repository/saving errors
+enum class AddChildSubmitError {
+    GENERIC_ERROR
+}
+
 data class AddChildState(
     val name: String = "",
     val phone: String = "",
     val dob: String = "",
-    val gender: Gender? = null,
+    val gender: DbGender? = null,
     val avatarId: Int = 1,
     val isAvatarSheetOpen: Boolean = false,
-    val errorMessage: String? = null,
+    val errorType: ChildValidationError? = null,
+    val submitError: AddChildSubmitError? = null, // 🚀 Replaced hardcoded string with Enum
     val isSaving: Boolean = false,
     val isDobSheetOpen: Boolean = false,
 )
@@ -34,7 +37,7 @@ sealed class AddChildEvent {
     object OpenDobSheet : AddChildEvent()
     object CloseDobSheet : AddChildEvent()
     data class DobSelected(val year: Int, val month: Int, val day: Int) : AddChildEvent()
-    data class GenderSelected(val gender: Gender) : AddChildEvent()
+    data class GenderSelected(val gender: DbGender) : AddChildEvent()
     object OpenAvatarSheet : AddChildEvent()
     object CloseAvatarSheet : AddChildEvent()
     data class AvatarSelected(val id: Int) : AddChildEvent()
@@ -43,23 +46,19 @@ sealed class AddChildEvent {
 
 sealed class AddChildEffect {
     object NavigateBack : AddChildEffect()
-    data class ShowToast(val message: String) : AddChildEffect()
+    object ShowSuccessToast : AddChildEffect() // 🚀 Removed string parameter
 }
 
 @HiltViewModel
 class AddChildViewModel @Inject constructor(
     private val validateUseCase: ValidateAddChildUseCase,
-    private val childRepository: ChildRepository,
-    @ApplicationContext private val context: Context
+    private val childRepository: ChildRepository
 ) : BaseViewModel<AddChildState, AddChildEvent, AddChildEffect>(AddChildState()) {
-
 
     override fun onEvent(event: AddChildEvent) {
         when (event) {
             is AddChildEvent.NameChanged -> updateState {
-                copy(
-                    name = event.name, errorMessage = null
-                )
+                copy(name = event.name, errorType = null, submitError = null)
             }
 
             is AddChildEvent.PhoneChanged -> updateState { copy(phone = event.phone) }
@@ -70,22 +69,23 @@ class AddChildViewModel @Inject constructor(
                 val formattedDay = event.day.toString().padStart(2, '0')
                 val formattedDob = "${event.year}/$formattedMonth/$formattedDay"
                 updateState {
-                    copy(dob = formattedDob, isDobSheetOpen = false, errorMessage = null)
+                    copy(
+                        dob = formattedDob,
+                        isDobSheetOpen = false,
+                        errorType = null,
+                        submitError = null
+                    )
                 }
             }
 
             is AddChildEvent.GenderSelected -> updateState {
-                copy(
-                    gender = event.gender, errorMessage = null
-                )
+                copy(gender = event.gender, errorType = null, submitError = null)
             }
 
             is AddChildEvent.OpenAvatarSheet -> updateState { copy(isAvatarSheetOpen = true) }
             is AddChildEvent.CloseAvatarSheet -> updateState { copy(isAvatarSheetOpen = false) }
             is AddChildEvent.AvatarSelected -> updateState {
-                copy(
-                    avatarId = event.id, isAvatarSheetOpen = false
-                )
+                copy(avatarId = event.id, isAvatarSheetOpen = false)
             }
 
             is AddChildEvent.SaveClicked -> submitData()
@@ -100,18 +100,18 @@ class AddChildViewModel @Inject constructor(
         )
 
         if (validationResult is ChildValidationResult.Error) {
-            Timber.w("Child profile validation rejected, reason: %s", validationResult.message)
-            updateState { copy(errorMessage = validationResult.message) }
+            Timber.w("Child profile validation rejected, reason: %s", validationResult.errorType)
+            updateState { copy(errorType = validationResult.errorType) }
             return
         }
 
-        updateState { copy(isSaving = true, errorMessage = null) }
+        updateState { copy(isSaving = true, errorType = null, submitError = null) }
 
         viewModelScope.launch {
             try {
                 Timber.d("Processing child profile creation payload")
                 val dbGender =
-                    if (currentState.gender == Gender.Boy) DbGender.BOY else DbGender.GIRL
+                    if (currentState.gender == DbGender.BOY) DbGender.BOY else DbGender.GIRL
 
                 val dobParts = currentState.dob.split("/")
                 val jy = dobParts[0].toInt()
@@ -131,25 +131,23 @@ class AddChildViewModel @Inject constructor(
 
                 result.onSuccess {
                     Timber.i("Child profile created and saved locally")
-                    sendEffect(AddChildEffect.ShowToast(context.getString(R.string.child_added_success)))
+                    sendEffect(AddChildEffect.ShowSuccessToast)
                     sendEffect(AddChildEffect.NavigateBack)
                 }.onFailure { error ->
                     Timber.w(error, "Failed to create child profile during repository operation")
                     updateState {
                         copy(
                             isSaving = false,
-                            errorMessage = error.message
-                                ?: context.getString(R.string.error_save_child_generic)
+                            submitError = AddChildSubmitError.GENERIC_ERROR
                         )
                     }
                 }
             } catch (e: Exception) {
-                // Catches split("/") parsing errors or Jalali conversion crashes
                 Timber.e(e, "System failure processing date conversion or child payload")
                 updateState {
                     copy(
                         isSaving = false,
-                        errorMessage = context.getString(R.string.error_save_child_generic)
+                        submitError = AddChildSubmitError.GENERIC_ERROR
                     )
                 }
             }

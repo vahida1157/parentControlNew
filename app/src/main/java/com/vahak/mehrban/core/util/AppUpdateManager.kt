@@ -2,20 +2,29 @@ package com.vahak.mehrban.core.util
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import androidx.work.*
-import com.vahak.mehrban.BuildConfig
-import com.vahak.mehrban.R
-import com.vahak.mehrban.UpdateState
+import androidx.core.net.toUri
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.vahak.mehrban.AppDownloadState
+import com.vahak.mehrban.BuildConfig
+import com.vahak.mehrban.UpdateState
+import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.UpdateCacheManager
 import com.vahak.mehrban.data.remote.AppUpdateApi
+import com.vahak.mehrban.data.remote.DownloadError
 import com.vahak.mehrban.worker.UpdateDownloadWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,8 +32,8 @@ import javax.inject.Singleton
 @Singleton
 class AppUpdateManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val appUpdateApi: AppUpdateApi,
-    private val updateCacheManager: UpdateCacheManager
+    private val appUpdateApi: AppUpdateApi, private val updateCacheManager: UpdateCacheManager,
+    private val sessionManager: SessionManager,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val workManager = WorkManager.getInstance(context)
@@ -60,8 +69,7 @@ class AppUpdateManager @Inject constructor(
     }
 
     fun checkForUpdates(
-        forceNetworkCall: Boolean = true,
-        onResult: ((updateFound: Boolean) -> Unit)? = null
+        forceNetworkCall: Boolean = true, onResult: ((updateFound: Boolean) -> Unit)? = null
     ) {
         val lastCheck = updateCacheManager.getLastCheckTime()
         val now = System.currentTimeMillis()
@@ -73,7 +81,6 @@ class AppUpdateManager @Inject constructor(
             if (forceNetworkCall) _updateState.value = UpdateState.Checking
 
             try {
-                // 🚀 PASS CURRENT VERSION TO BACKEND
                 val response = appUpdateApi.getAppVersion(BuildConfig.VERSION_CODE)
 
                 if (response.isSuccessful && response.body() != null) {
@@ -81,7 +88,8 @@ class AppUpdateManager @Inject constructor(
                     updateCacheManager.saveUpdateInfo(serverInfo, now)
 
                     if (serverInfo.latestVersionCode > BuildConfig.VERSION_CODE) {
-                        _updateState.value = UpdateState.UpdateAvailable(serverInfo, serverInfo.isForced)
+                        _updateState.value =
+                            UpdateState.UpdateAvailable(serverInfo, serverInfo.isForced)
                         if (updateCacheManager.getIgnoredVersion() != serverInfo.latestVersionCode) {
                             _isUpdateIgnored.value = false
                         }
@@ -101,22 +109,17 @@ class AppUpdateManager @Inject constructor(
         }
     }
 
-    // 🚀 THE PRE-FLIGHT CHECK
+    @Suppress("KotlinConstantConditions")
     fun startDownload(cachedUrl: String, cachedVersionName: String) {
-        // 🚀 Check which flavor is currently running
-        if (BuildConfig.FLAVOR == "store") {
+        @Suppress("SimplifyBooleanWithConstants") if (BuildConfig.FLAVOR == "store") {
             openStorePage()
             return
         }
 
-        // ==========================================
-        // WEBSITE FLAVOR: Keep your exact existing WorkManager code here
-        // ==========================================
         _appDownloadState.value = AppDownloadState.Connecting
 
         scope.launch {
             try {
-                // 1. Verify with server one last time before downloading
                 val response = appUpdateApi.getAppVersion(BuildConfig.VERSION_CODE)
 
                 val finalUrl: String
@@ -124,61 +127,58 @@ class AppUpdateManager @Inject constructor(
 
                 if (response.isSuccessful && response.body() != null) {
                     val serverInfo = response.body()!!
-                    // 1a. If server says up to date suddenly (rollback), abort.
                     if (serverInfo.latestVersionCode <= BuildConfig.VERSION_CODE) {
-                        _appDownloadState.value = AppDownloadState.Error(context.getString(R.string.update_cancelled_already_latest))
+                        _appDownloadState.value =
+                            AppDownloadState.Error(DownloadError.ALREADY_LATEST) // 🚀 Clean Error
                         _updateState.value = UpdateState.UpToDate
                         return@launch
                     }
-                    // 1b. Use the absolute freshest data
                     finalUrl = serverInfo.downloadUrl
                     finalVersionName = serverInfo.latestVersionName
                 } else {
-                    // 1c. If server fails, fallback to the cache we passed in
                     finalUrl = cachedUrl
                     finalVersionName = cachedVersionName
                 }
 
-                // 2. Fire the WorkManager with the verified URL
+                val currentLang = sessionManager.appLanguageFlow.first()
                 val fileName = "mehrban-update-v$finalVersionName.apk"
-                val downloadRequest = OneTimeWorkRequestBuilder<UpdateDownloadWorker>()
-                    .setInputData(workDataOf("url" to finalUrl, "fileName" to fileName))
-                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                    .build()
+                val downloadRequest =
+                    OneTimeWorkRequestBuilder<UpdateDownloadWorker>().setInputData(
+                        workDataOf(
+                            "url" to finalUrl, "fileName" to fileName, "lang" to currentLang
+                        )
+                    ).setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST).build()
 
                 workManager.enqueueUniqueWork(
-                    "app_update_download",
-                    ExistingWorkPolicy.REPLACE,
-                    downloadRequest
+                    "app_update_download", ExistingWorkPolicy.REPLACE, downloadRequest
                 )
 
             } catch (_: Exception) {
-                // If offline during pre-flight, fallback to cached data and try anyway
                 val fileName = "mehrban-update-v$cachedVersionName.apk"
-                val downloadRequest = OneTimeWorkRequestBuilder<UpdateDownloadWorker>()
-                    .setInputData(workDataOf("url" to cachedUrl, "fileName" to fileName))
-                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                    .build()
+                val downloadRequest =
+                    OneTimeWorkRequestBuilder<UpdateDownloadWorker>().setInputData(
+                        workDataOf(
+                            "url" to cachedUrl, "fileName" to fileName
+                        )
+                    ).setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST).build()
 
-                workManager.enqueueUniqueWork("app_update_download", ExistingWorkPolicy.REPLACE, downloadRequest)
+                workManager.enqueueUniqueWork(
+                    "app_update_download", ExistingWorkPolicy.REPLACE, downloadRequest
+                )
             }
         }
     }
 
     private fun openStorePage() {
         try {
-            // Opens Bazaar, Myket, or Google Play depending on what the user chooses
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse("market://details?id=${context.packageName}")
+                data = "market://details?id=${context.packageName}".toUri()
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             context.startActivity(intent)
-
-            // Dismiss the dialog after sending them to the store
             _updateState.value = UpdateState.UpToDate
         } catch (_: Exception) {
-            // Fallback if they somehow have no app stores installed
-            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://mehr-banan.ir/download"))
+            val webIntent = Intent(Intent.ACTION_VIEW, "https://mehr-banan.ir/download".toUri())
             webIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
             context.startActivity(webIntent)
         }
@@ -206,13 +206,11 @@ class AppUpdateManager @Inject constructor(
             workManager.getWorkInfosForUniqueWorkFlow("app_update_download").collect { workInfos ->
                 val workInfo = workInfos.firstOrNull() ?: return@collect
 
-                // 🚀 THE FIX: Check if the app is already running the updated version
                 val cachedInfo = updateCacheManager.getCachedUpdateInfo()
-                val isAlreadyUpdated = cachedInfo != null && BuildConfig.VERSION_CODE >= cachedInfo.latestVersionCode
+                val isAlreadyUpdated =
+                    cachedInfo != null && BuildConfig.VERSION_CODE >= cachedInfo.latestVersionCode
 
-                // If we are already updated, ignore stale "SUCCEEDED" or "FAILED" states from the old version
                 if (isAlreadyUpdated && workInfo.state.isFinished) {
-                    // Optional but recommended: Clear the old finished work from the database
                     workManager.pruneWork()
                     return@collect
                 }
@@ -221,17 +219,30 @@ class AppUpdateManager @Inject constructor(
                     WorkInfo.State.ENQUEUED -> _appDownloadState.value = AppDownloadState.Connecting
                     WorkInfo.State.RUNNING -> {
                         val progress = workInfo.progress.getInt("progress", -1)
-                        if (progress >= 0) _appDownloadState.value = AppDownloadState.Downloading(progress)
+                        if (progress >= 0) _appDownloadState.value =
+                            AppDownloadState.Downloading(progress)
                     }
+
                     WorkInfo.State.SUCCEEDED -> {
                         val path = workInfo.outputData.getString("filePath") ?: ""
                         _appDownloadState.value = AppDownloadState.Success(path)
                         _downloadedFilePath.value = path
                     }
+
                     WorkInfo.State.FAILED -> {
-                        val errorMsg = workInfo.outputData.getString("error") ?: context.getString(R.string.download_error_generic)
-                        _appDownloadState.value = AppDownloadState.Error(errorMsg)
+                        // Read the enum string the worker sent back
+                        val errorString = workInfo.outputData.getString("error")
+
+                        // Convert it back into the Enum safely, fallback to GENERIC_ERROR if it fails
+                        val finalError = try {
+                            if (errorString != null) DownloadError.valueOf(errorString) else DownloadError.GENERIC_ERROR
+                        } catch (_: Exception) {
+                            DownloadError.GENERIC_ERROR
+                        }
+
+                        _appDownloadState.value = AppDownloadState.Error(finalError)
                     }
+
                     else -> {}
                 }
             }

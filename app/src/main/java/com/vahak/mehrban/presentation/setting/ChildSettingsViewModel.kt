@@ -3,7 +3,6 @@ package com.vahak.mehrban.presentation.setting
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.GlobalSettingsEntity
@@ -14,13 +13,15 @@ import com.vahak.mehrban.domain.repository.ChildRepository
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
+
+// 🚀 Pure enum for UI Toast handling
+enum class FeatureToastType { UNDER_DEVELOPMENT, COMING_SOON }
 
 data class ChildSettingsState(
     val activeChild: ChildEntity? = null,
@@ -43,7 +44,7 @@ sealed class ChildSettingsEvent {
 sealed class ChildSettingsEffect {
     object NavigateBack : ChildSettingsEffect()
     data class NavigateToFeature(val route: String) : ChildSettingsEffect()
-    data class ShowToast(val message: String) : ChildSettingsEffect()
+    data class ShowToast(val type: FeatureToastType) : ChildSettingsEffect() // 🚀 Clean UI Trigger
     data class NavigateToPermissionSlider(val route: String, val missingPermissions: List<String>) :
         ChildSettingsEffect()
 }
@@ -54,8 +55,8 @@ class ChildSettingsViewModel @Inject constructor(
     private val childRepository: ChildRepository,
     private val settingsRepository: SettingsRepository,
     private val appRuleRepository: AppRuleRepository,
-    private val sessionManager: SessionManager,
-    @ApplicationContext private val context: Context
+    private val sessionManager: SessionManager
+    // 🚀 Context Removed
 ) : BaseViewModel<ChildSettingsState, ChildSettingsEvent, ChildSettingsEffect>(ChildSettingsState()) {
 
     private val currentChildIdFlow =
@@ -116,9 +117,7 @@ class ChildSettingsViewModel @Inject constructor(
             is ChildSettingsEvent.BackClicked -> sendEffect(ChildSettingsEffect.NavigateBack)
             is ChildSettingsEvent.HelpClicked -> sendEffect(
                 ChildSettingsEffect.ShowToast(
-                    context.getString(
-                        R.string.feature_under_development
-                    )
+                    FeatureToastType.UNDER_DEVELOPMENT
                 )
             )
 
@@ -141,7 +140,7 @@ class ChildSettingsViewModel @Inject constructor(
                         "site_management"
                     )
                 ) {
-                    sendEffect(ChildSettingsEffect.ShowToast(context.getString(R.string.feature_coming_soon)))
+                    sendEffect(ChildSettingsEffect.ShowToast(FeatureToastType.COMING_SOON))
                     return
                 }
 

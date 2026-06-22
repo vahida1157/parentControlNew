@@ -12,12 +12,21 @@ import retrofit2.http.Url
 
 import java.io.File
 
-sealed class DownloadState {
-    object Idle : DownloadState()
-    data class Downloading(val progress: Int, val downloadedBytes: Long, val totalBytes: Long) : DownloadState()
-    data class Success(val apkFile: File) : DownloadState()
-    data class Error(val message: String) : DownloadState()
+enum class DownloadError {
+    CONNECTION_FAILED,
+    CONNECTION_LOST,
+    ALREADY_LATEST,
+    GENERIC_ERROR
 }
+
+sealed class DownloadState {
+    data class Downloading(val progress: Int, val currentLength: Long, val totalLength: Long) :
+        DownloadState()
+
+    data class Success(val file: File) : DownloadState()
+    data class Error(val error: DownloadError) : DownloadState()
+}
+
 data class AppVersionDto(
     @SerializedName("latestVersionCode")
     val latestVersionCode: Int,
