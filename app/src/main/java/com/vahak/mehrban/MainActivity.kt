@@ -15,7 +15,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember // 🚀 Added
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -67,15 +67,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // 1. Create the localized configuration
-            val locale = Locale(appLanguage)
+            // 🚀 THE FIX: Modern Locale Builder (No deprecation warnings!)
+            val locale = Locale.Builder().setLanguage(appLanguage).build()
             val configuration = android.content.res.Configuration(LocalConfiguration.current).apply {
                 setLocale(locale)
                 setLayoutDirection(locale)
             }
 
-            // 🚀 THE FIX: Wrap the Activity Context!
-            // This forces Compose to use localized strings, but allows Hilt to still find the Activity.
+            // Wrap the Activity Context
             val localizedContext = remember(appLanguage) {
                 object : android.content.ContextWrapper(this@MainActivity) {
                     val configContext = createConfigurationContext(configuration)
@@ -85,7 +84,7 @@ class MainActivity : AppCompatActivity() {
 
             val layoutDirection = if (appLanguage == "en") LayoutDirection.Ltr else LayoutDirection.Rtl
 
-            // 3. Inject it into Compose Globally
+            // Inject it into Compose Globally
             CompositionLocalProvider(
                 LocalContext provides localizedContext,
                 LocalConfiguration provides configuration,
