@@ -34,17 +34,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.vahak.mehrban.BuildConfig
 import com.vahak.mehrban.AppDownloadState
+import com.vahak.mehrban.BuildConfig
 import com.vahak.mehrban.MainViewModel
 import com.vahak.mehrban.R
 import com.vahak.mehrban.UpdateState
+import com.vahak.mehrban.data.remote.DownloadError
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 
 @Composable
 fun UpdateCheckerWrapper(
-    viewModel: MainViewModel,
-    content: @Composable () -> Unit
+    viewModel: MainViewModel, content: @Composable () -> Unit
 ) {
     val updateState by viewModel.updateState.collectAsState()
     val isUpdateIgnored by viewModel.isUpdateIgnored.collectAsState()
@@ -67,8 +67,7 @@ fun UpdateCheckerWrapper(
                 if (!updateData.isForced && downloadState !is AppDownloadState.Connecting && downloadState !is AppDownloadState.Downloading) {
                     viewModel.dismissOptionalUpdate()
                 }
-            },
-            properties = DialogProperties(
+            }, properties = DialogProperties(
                 dismissOnBackPress = !updateData.isForced,
                 dismissOnClickOutside = !updateData.isForced
             )
@@ -114,8 +113,7 @@ fun UpdateCheckerWrapper(
                             Button(
                                 onClick = {
                                     viewModel.startDownload(
-                                        info.downloadUrl,
-                                        info.latestVersionName
+                                        info.downloadUrl, info.latestVersionName
                                     )
                                 },
                                 modifier = Modifier
@@ -124,7 +122,9 @@ fun UpdateCheckerWrapper(
                                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                                 shape = RoundedCornerShape(14.dp)
                             ) {
-                                val buttonText = if (BuildConfig.FLAVOR == "store") {
+                                @Suppress(
+                                    "SimplifyBooleanWithConstants", "KotlinConstantConditions"
+                                ) val buttonText = if (BuildConfig.FLAVOR == "store") {
                                     stringResource(R.string.update_download_from_store)
                                 } else {
                                     stringResource(R.string.update_download_install)
@@ -140,8 +140,7 @@ fun UpdateCheckerWrapper(
                         is AppDownloadState.Connecting -> {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(
-                                    color = colors.primary,
-                                    modifier = Modifier.size(32.dp)
+                                    color = colors.primary, modifier = Modifier.size(32.dp)
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
@@ -174,10 +173,18 @@ fun UpdateCheckerWrapper(
                         }
 
                         is AppDownloadState.Error -> {
-                            val errMsg = (downloadState as AppDownloadState.Error).message
+                            // 🚀 THE FIX: Translate the Enum to a Compose localized string
+                            val errorEnum = (downloadState as AppDownloadState.Error).error
+                            val errMsg = when (errorEnum) {
+                                DownloadError.CONNECTION_FAILED -> stringResource(R.string.error_download_connection_failed)
+                                DownloadError.CONNECTION_LOST -> stringResource(R.string.error_download_connection_lost)
+                                DownloadError.ALREADY_LATEST -> stringResource(R.string.update_cancelled_already_latest)
+                                DownloadError.GENERIC_ERROR -> stringResource(R.string.download_error_generic)
+                            }
+
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    errMsg,
+                                    text = errMsg,
                                     color = colors.red,
                                     fontSize = 12.sp,
                                     textAlign = TextAlign.Center
@@ -186,8 +193,7 @@ fun UpdateCheckerWrapper(
                                 Button(
                                     onClick = {
                                         viewModel.startDownload(
-                                            info.downloadUrl,
-                                            info.latestVersionName
+                                            info.downloadUrl, info.latestVersionName
                                         )
                                     },
                                     modifier = Modifier

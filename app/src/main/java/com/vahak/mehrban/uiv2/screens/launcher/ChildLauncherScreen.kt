@@ -82,6 +82,7 @@ fun ChildLauncherScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val launcherExitToast = stringResource(R.string.launcher_exit_toast)
+    val launcherTimeExpiredMessage = stringResource(R.string.launcher_time_expired)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -91,9 +92,11 @@ fun ChildLauncherScreen(
                     onExitLauncherClick()
                 }
 
-                is LauncherEffectV2.ShowToast -> Toast.makeText(
-                    context, "${effect.icon} ${effect.message}", Toast.LENGTH_SHORT
-                ).show()
+                is LauncherEffectV2.ShowTimeLimitExpiredToast -> {
+                    Toast.makeText(
+                        context, "⏳ $launcherTimeExpiredMessage", Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
     }
@@ -149,8 +152,10 @@ fun ChildLauncherContentV2(
         }
 
         if (state.showRecoveryDialog) {
+            val questionText =
+                state.securityQuestion ?: stringResource(R.string.recovery_question_not_set)
             LauncherRecoveryDialog(
-                question = state.securityQuestion,
+                question = questionText,
                 answerInput = state.recoveryAnswerInput,
                 isError = state.recoveryError,
                 onAnswerChange = { onEvent(LauncherEventV2.RecoveryAnswerChanged(it)) },
@@ -179,26 +184,28 @@ fun AnimatedBackgroundOrbs() {
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier
-            .offset { IntOffset(100, offsetY1.toInt() - 100) }
-            .size(300.dp)
-            .background(
-                Brush.radialGradient(
-                    listOf(
-                        colors.primary.copy(alpha = 0.2f), Color.Transparent
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(100, offsetY1.toInt() - 100) }
+                .size(300.dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(
+                            colors.primary.copy(alpha = 0.2f), Color.Transparent
+                        )
                     )
-                )
-            ), contentAlignment = Alignment.Center) {}
-        Box(modifier = Modifier
-            .offset { IntOffset(-100, offsetY2.toInt() + 500) }
-            .size(350.dp)
-            .background(
-                Brush.radialGradient(
-                    listOf(
-                        colors.orange.copy(alpha = 0.15f), Color.Transparent
+                ), contentAlignment = Alignment.Center) {}
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(-100, offsetY2.toInt() + 500) }
+                .size(350.dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(
+                            colors.orange.copy(alpha = 0.15f), Color.Transparent
+                        )
                     )
-                )
-            ), contentAlignment = Alignment.Center) {}
+                ), contentAlignment = Alignment.Center) {}
     }
 }
 

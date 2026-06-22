@@ -59,12 +59,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.mehrban.R
+import com.vahak.mehrban.core.data.local.entity.Gender
+import com.vahak.mehrban.domain.usecase.ChildValidationError.DOB_EMPTY
+import com.vahak.mehrban.domain.usecase.ChildValidationError.GENDER_EMPTY
+import com.vahak.mehrban.domain.usecase.ChildValidationError.NAME_EMPTY
 import com.vahak.mehrban.presentation.addchild.AddChildEffect
 import com.vahak.mehrban.presentation.addchild.AddChildEvent
 import com.vahak.mehrban.presentation.addchild.AddChildState
+import com.vahak.mehrban.presentation.addchild.AddChildSubmitError
 import com.vahak.mehrban.presentation.addchild.AddChildViewModel
-import com.vahak.mehrban.ui.component.PickerPresentationMode
-import com.vahak.mehrban.ui.screens.Gender
+import com.vahak.mehrban.uiv2.components.PickerPresentationMode
 import com.vahak.mehrban.uiv2.components.DynamicDatePickerV2
 import com.vahak.mehrban.uiv2.components.header.HeaderAction
 import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
@@ -78,14 +82,18 @@ fun AddChildScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val childAddedSuccessMessage = stringResource(R.string.child_added_success)
+
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is AddChildEffect.NavigateBack -> onBackClick()
-                is AddChildEffect.ShowToast -> Toast.makeText(
-                    context, effect.message, Toast.LENGTH_SHORT
-                ).show()
+                is AddChildEffect.ShowSuccessToast -> {
+                    Toast.makeText(
+                        context, childAddedSuccessMessage, Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
     }
@@ -233,13 +241,26 @@ fun AddChildScreenContent(
                     HorizontalDivider(color = colors.divider.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    if (state.errorMessage != null) {
-                        Text(
-                            text = state.errorMessage,
-                            color = colors.red,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
+                    // 🚀 Translation of Domain Enums to UI Strings
+                    if (state.errorType != null || state.submitError != null) {
+                        val message = when {
+                            state.errorType == NAME_EMPTY -> stringResource(R.string.error_child_name_empty)
+                            state.errorType == DOB_EMPTY -> stringResource(R.string.error_child_dob_empty)
+                            state.errorType == GENDER_EMPTY -> stringResource(R.string.error_child_gender_empty)
+                            state.submitError == AddChildSubmitError.GENERIC_ERROR -> stringResource(
+                                R.string.error_save_child_generic
+                            )
+
+                            else -> ""
+                        }
+                        if (message.isNotEmpty()) {
+                            Text(
+                                text = message,
+                                color = colors.red,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
+                        }
                     }
 
                     FormInputGroup(label = stringResource(R.string.field_name)) {
@@ -253,7 +274,7 @@ fun AddChildScreenContent(
                                 )
                             },
                             singleLine = true,
-                            isError = state.errorMessage?.contains("نام") == true,
+                            isError = state.errorType?.equals(NAME_EMPTY) == true,
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -290,7 +311,10 @@ fun AddChildScreenContent(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     disabledTextColor = colors.textPrimary,
                                     disabledContainerColor = colors.cardInnerBG,
-                                    disabledBorderColor = if (state.errorMessage?.contains("تاریخ") == true) colors.red else colors.divider,
+                                    disabledBorderColor = if (state.errorType?.equals(
+                                            DOB_EMPTY
+                                        ) == true
+                                    ) colors.red else colors.divider,
                                 )
                             )
                         }
@@ -340,20 +364,20 @@ fun AddChildScreenContent(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         GenderChipV2(
-                            isSelected = state.gender == Gender.Boy,
+                            isSelected = state.gender == Gender.BOY,
                             title = stringResource(R.string.gender_boy),
                             emoji = "👦",
                             activeColor = colors.blue,
                             modifier = Modifier.weight(1f)
-                        ) { onEvent(AddChildEvent.GenderSelected(Gender.Boy)) }
+                        ) { onEvent(AddChildEvent.GenderSelected(Gender.BOY)) }
 
                         GenderChipV2(
-                            isSelected = state.gender == Gender.Girl,
+                            isSelected = state.gender == Gender.GIRL,
                             title = stringResource(R.string.gender_girl),
                             emoji = "👧",
                             activeColor = colors.red,
                             modifier = Modifier.weight(1f)
-                        ) { onEvent(AddChildEvent.GenderSelected(Gender.Girl)) }
+                        ) { onEvent(AddChildEvent.GenderSelected(Gender.GIRL)) }
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))

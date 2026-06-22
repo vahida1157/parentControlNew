@@ -71,13 +71,17 @@ fun ApplicationSettingsScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
+    val settingsUpdateUpToDateMessage = stringResource(R.string.settings_update_uptodate)
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is AppSettingsEffect.NavigateToLogin -> onLogoutComplete()
-                is AppSettingsEffect.ShowToast -> Toast.makeText(
-                    context, effect.message, Toast.LENGTH_SHORT
-                ).show()
+                is AppSettingsEffect.ShowUpToDateToast -> {
+                    Toast.makeText(
+                        context, settingsUpdateUpToDateMessage, Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
     }
@@ -164,8 +168,13 @@ fun ApplicationSettingsContent(
                         fontWeight = FontWeight.Black
                     )
                     Spacer(modifier = Modifier.height(4.dp))
+                    val phoneText = when {
+                        !state.isPhoneLoaded -> stringResource(R.string.settings_loading) // Still fetching from DB
+                        state.parentPhoneNumber.isNullOrEmpty() -> stringResource(R.string.settings_phone_unknown) // Fetched but empty
+                        else -> state.parentPhoneNumber
+                    }
                     Text(
-                        text = state.parentPhoneNumber,
+                        text = phoneText,
                         color = Color.White.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.bodyMedium,
                         letterSpacing = 1.sp
@@ -262,7 +271,8 @@ fun ApplicationSettingsContent(
                     iconTintColor = colors.orange,
                     title = stringResource(R.string.settings_help_support),
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, "https://mehr-ban.com/support".toUri())
+                        val intent =
+                            Intent(Intent.ACTION_VIEW, "https://mehr-ban.com/support".toUri())
                         context.startActivity(intent)
                     })
 
@@ -580,7 +590,7 @@ fun ThemeOptionButton(
 fun ApplicationSettingsScreenPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         ApplicationSettingsContent(
-            state = AppSettingsState("9368630582", AppTheme.LIGHT, "fa"),
+            state = AppSettingsState("9368630582", false, AppTheme.LIGHT, "fa"),
             updateState = UpdateState.UpToDate,
             onEvent = {},
             onCheckForUpdates = {},
@@ -597,7 +607,7 @@ fun ApplicationSettingsScreenPreviewLight() {
 fun ApplicationSettingsScreenPreviewDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         ApplicationSettingsContent(
-            state = AppSettingsState("9368630582", AppTheme.DARK, "en"),
+            state = AppSettingsState("9368630582", true, AppTheme.DARK, "en"),
             updateState = UpdateState.UpToDate,
             onEvent = {},
             onCheckForUpdates = {},

@@ -1,14 +1,11 @@
 package com.vahak.mehrban.presentation.appselection
 
-import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.vahak.mehrban.R
 import com.vahak.mehrban.core.util.AppFetchManager
 import com.vahak.mehrban.domain.repository.AppRuleRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -17,6 +14,9 @@ import timber.log.Timber
 import javax.inject.Inject
 
 enum class AppFilterTab { BLOCKED, ALLOWED, ALL }
+
+// 🚀 Pure enum for UI Toast handling
+enum class AppSelectionToastType { SAVED, SERVER_ERROR }
 
 data class AppSelectionStateV2(
     val isLoading: Boolean = true,
@@ -50,19 +50,19 @@ sealed class AppSelectionEventV2 {
 
 sealed class AppSelectionEffectV2 {
     object NavigateBack : AppSelectionEffectV2()
-    data class ShowToast(val message: String) : AppSelectionEffectV2()
+    data class ShowToast(val type: AppSelectionToastType) :
+        AppSelectionEffectV2() // 🚀 Clean UI Trigger
 }
 
 @HiltViewModel
 class AppSelectionViewModelV2 @Inject constructor(
     private val appRuleRepository: AppRuleRepository,
     private val appFetchManager: AppFetchManager,
-    savedStateHandle: SavedStateHandle,
-    @ApplicationContext private val context: Context
+    savedStateHandle: SavedStateHandle
+    // 🚀 Context Removed
 ) : BaseViewModel<AppSelectionStateV2, AppSelectionEventV2, AppSelectionEffectV2>(
     AppSelectionStateV2()
 ) {
-
 
     private val currentChildId: String = checkNotNull(savedStateHandle["childId"])
     private var allInstalledAppsOnDevice: List<AppItemUi> = emptyList()
@@ -122,12 +122,11 @@ class AppSelectionViewModelV2 @Inject constructor(
                         updateState { copy(isSaving = false) }
                         if (result.isSuccess) {
                             Timber.i("Application rules manually pushed to server successfully")
-                            sendEffect(AppSelectionEffectV2.ShowToast(context.getString(R.string.app_access_saved)))
+                            sendEffect(AppSelectionEffectV2.ShowToast(AppSelectionToastType.SAVED))
                             sendEffect(AppSelectionEffectV2.NavigateBack)
                         } else {
-                            // Using warn because offline-first architecture will auto-retry later
                             Timber.w("Manual rule push failed, retaining local dirty state")
-                            sendEffect(AppSelectionEffectV2.ShowToast(context.getString(R.string.error_server_communication)))
+                            sendEffect(AppSelectionEffectV2.ShowToast(AppSelectionToastType.SERVER_ERROR))
                         }
                     }
                 }

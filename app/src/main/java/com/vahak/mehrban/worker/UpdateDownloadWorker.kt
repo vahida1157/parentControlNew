@@ -11,11 +11,13 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.vahak.mehrban.R
 import com.vahak.mehrban.data.remote.DownloadState
 import com.vahak.mehrban.domain.repository.UpdateDownloadManager
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.collectLatest
+import java.util.Locale
 
 @HiltWorker
 class UpdateDownloadWorker @AssistedInject constructor(
@@ -47,44 +49,55 @@ class UpdateDownloadWorker @AssistedInject constructor(
 
                 is DownloadState.Success -> {
                     // Send the final file path to the UI so it can trigger the installation
-                    result = Result.success(workDataOf("filePath" to state.apkFile.absolutePath))
+                    result = Result.success(workDataOf("filePath" to state.file.absolutePath))
                 }
 
                 is DownloadState.Error -> {
-                    result = Result.failure(workDataOf("error" to state.message))
+                    // 🚀 FIX: Pass the pure Enum name across the WorkManager boundary
+                    result = Result.failure(workDataOf("error" to state.error.name))
                 }
 
-                else -> {}
             }
         }
         return result
     }
 
+    private fun getLocalizedContext(): Context {
+        // Read the language we passed in from AppUpdateManager (default to Persian)
+        val langCode = inputData.getString("lang") ?: "fa"
+
+        val locale = Locale.Builder().setLanguage(langCode).build()
+        val configuration = android.content.res.Configuration(context.resources.configuration)
+        configuration.setLocale(locale)
+
+        return context.createConfigurationContext(configuration)
+    }
+
     private fun createForegroundInfo(progress: Int): ForegroundInfo {
-        val notification = NotificationCompat.Builder(context, "update_channel")
-            .setContentTitle("Downloading Update")
-            .setContentText("$progress%")
-            .setSmallIcon(android.R.drawable.stat_sys_download) // Ensure this icon exists!
+        // 🚀 Get the context that speaks the correct language
+        val localizedContext = getLocalizedContext()
+
+        val notification = NotificationCompat.Builder(localizedContext, "update_channel")
+            .setContentTitle(localizedContext.getString(R.string.app_name))
+            .setContentText(localizedContext.getString(R.string.update_downloading, progress))
+            .setSmallIcon(android.R.drawable.stat_sys_download)
             .setProgress(100, progress, false)
             .setOngoing(true)
             .build()
 
-        // 🚀 Fix: Android 14+ (API 34) requires an explicit Foreground Service Type
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ForegroundInfo(
-                1001,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
+            ForegroundInfo(1001, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
             ForegroundInfo(1001, notification)
         }
     }
 
     private fun createNotificationChannel() {
+        val localizedContext = getLocalizedContext()
+
         val channel = NotificationChannel(
             "update_channel",
-            "App Updates",
+            localizedContext.getString(R.string.settings_update_check),
             NotificationManager.IMPORTANCE_LOW
         )
         notificationManager.createNotificationChannel(channel)

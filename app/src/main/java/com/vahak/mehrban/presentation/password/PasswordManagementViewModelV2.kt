@@ -1,13 +1,12 @@
 package com.vahak.mehrban.presentation.password
 
-import android.content.Context
 import androidx.lifecycle.viewModelScope
-import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.SessionManager
+import com.vahak.mehrban.domain.usecase.SecuritySetupError
+import com.vahak.mehrban.domain.usecase.SecuritySetupException
 import com.vahak.mehrban.domain.usecase.SetupSecurityUseCase
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -23,7 +22,8 @@ data class PasswordStateV2(
     val selectedQuestion: String = "",
     val securityAnswer: String = "",
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorType: SecuritySetupError? = null, // 🚀 Pure Enum
+    val isGenericError: Boolean = false        // 🚀 Fallback error boolean
 ) {
     val passwordStrength: PasswordStrength
         get() = when {
@@ -56,48 +56,34 @@ sealed class PasswordEventV2 {
 sealed class PasswordEffectV2 {
     object NavigateBack : PasswordEffectV2()
     object NavigateToDashboard : PasswordEffectV2()
-    data class ShowToast(val message: String) : PasswordEffectV2()
+    object ShowSuccessToast : PasswordEffectV2() // 🚀 Specific UI trigger, no strings
 }
 
 @HiltViewModel
 class PasswordViewModelV2 @Inject constructor(
     private val sessionManager: SessionManager,
-    private val setupSecurityUseCase: SetupSecurityUseCase,
-    @ApplicationContext private val context: Context
+    private val setupSecurityUseCase: SetupSecurityUseCase
+    // 🚀 Context completely removed!
 ) : BaseViewModel<PasswordStateV2, PasswordEventV2, PasswordEffectV2>(PasswordStateV2()) {
-
-    val questionsList = listOf(
-        context.getString(R.string.security_question_1),
-        context.getString(R.string.security_question_2),
-        context.getString(R.string.security_question_3)
-    )
 
     override fun onEvent(event: PasswordEventV2) {
         when (event) {
             is PasswordEventV2.PasswordChanged -> updateState {
-                copy(
-                    passwordInput = event.value, errorMessage = null
-                )
+                copy(passwordInput = event.value, errorType = null, isGenericError = false)
             }
 
             is PasswordEventV2.ConfirmPasswordChanged -> updateState {
-                copy(
-                    confirmPasswordInput = event.value, errorMessage = null
-                )
+                copy(confirmPasswordInput = event.value, errorType = null, isGenericError = false)
             }
 
             PasswordEventV2.TogglePasswordVisibility -> updateState { copy(isPasswordVisible = !isPasswordVisible) }
             PasswordEventV2.ToggleConfirmPasswordVisibility -> updateState {
-                copy(
-                    isConfirmPasswordVisible = !isConfirmPasswordVisible
-                )
+                copy(isConfirmPasswordVisible = !isConfirmPasswordVisible)
             }
 
             is PasswordEventV2.QuestionSelected -> updateState { copy(selectedQuestion = event.question) }
             is PasswordEventV2.AnswerChanged -> updateState {
-                copy(
-                    securityAnswer = event.answer, errorMessage = null
-                )
+                copy(securityAnswer = event.answer, errorType = null, isGenericError = false)
             }
 
             PasswordEventV2.SubmitClicked -> submitForm()
@@ -112,7 +98,7 @@ class PasswordViewModelV2 @Inject constructor(
             return
         }
 
-        updateState { copy(isLoading = true, errorMessage = null) }
+        updateState { copy(isLoading = true, errorType = null, isGenericError = false) }
 
         viewModelScope.launch {
             Timber.d("Initiating security profile setup submission")
@@ -133,7 +119,7 @@ class PasswordViewModelV2 @Inject constructor(
                 sessionManager.parentPinFlow.first { emittedPin -> emittedPin == currentState.passwordInput }
 
                 Timber.i("Security profile configured successfully")
-                sendEffect(PasswordEffectV2.ShowToast(context.getString(R.string.password_setup_success)))
+                sendEffect(PasswordEffectV2.ShowSuccessToast)
                 sendEffect(PasswordEffectV2.NavigateToDashboard)
 
             }.onFailure { error ->
@@ -141,7 +127,9 @@ class PasswordViewModelV2 @Inject constructor(
                 updateState {
                     copy(
                         isLoading = false,
-                        errorMessage = error.message ?: context.getString(R.string.error_unknown)
+                        // 🚀 Safely unbox the custom exception or flag a generic error
+                        errorType = (error as? SecuritySetupException)?.error,
+                        isGenericError = error !is SecuritySetupException
                     )
                 }
             }

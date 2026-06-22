@@ -1,17 +1,23 @@
 package com.vahak.mehrban.domain.usecase
 
-import android.content.Context
-import com.vahak.mehrban.R
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
-class ValidatePhoneUseCase @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
+enum class PhoneValidationError {
+    EMPTY,
+    INVALID_FORMAT,
+    PRIVACY_NOT_ACCEPTED
+}
+
+sealed class PhoneValidationResult {
+    object Success : PhoneValidationResult()
+    data class Error(val error: PhoneValidationError) : PhoneValidationResult()
+}
+
+class ValidatePhoneUseCase @Inject constructor() {
     fun execute(phone: String): PhoneValidationResult {
-        if (phone.isBlank()) return PhoneValidationResult.Error(context.getString(R.string.error_phone_empty))
+        if (phone.isBlank()) return PhoneValidationResult.Error(PhoneValidationError.EMPTY)
         if (phone.length != 10 || !phone.startsWith("9")) {
-            return PhoneValidationResult.Error(context.getString(R.string.error_phone_invalid_format))
+            return PhoneValidationResult.Error(PhoneValidationError.INVALID_FORMAT)
         }
         return PhoneValidationResult.Success
     }

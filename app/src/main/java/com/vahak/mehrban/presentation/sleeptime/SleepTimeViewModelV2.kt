@@ -1,13 +1,10 @@
 package com.vahak.mehrban.presentation.sleeptime
 
-import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.vahak.mehrban.R
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
@@ -51,16 +48,14 @@ sealed class SleepTimeEventV2 {
 
 sealed class SleepTimeEffectV2 {
     object NavigateBack : SleepTimeEffectV2()
-    data class ShowToast(val message: String) : SleepTimeEffectV2()
+    object ShowSavedToast : SleepTimeEffectV2() // 🚀 Clean UI Trigger
 }
 
 @HiltViewModel
 class SleepTimeViewModelV2 @Inject constructor(
-    savedStateHandle: SavedStateHandle,
-    private val settingsRepository: SettingsRepository,
-    @ApplicationContext private val context: Context
+    savedStateHandle: SavedStateHandle, private val settingsRepository: SettingsRepository
+    // 🚀 Context Removed
 ) : BaseViewModel<SleepTimeStateV2, SleepTimeEventV2, SleepTimeEffectV2>(SleepTimeStateV2()) {
-
 
     private val childId: String = checkNotNull(savedStateHandle["childId"])
 
@@ -118,7 +113,7 @@ class SleepTimeViewModelV2 @Inject constructor(
             delay(500.milliseconds)
 
             updateState { copy(isSaving = false) }
-            sendEffect(SleepTimeEffectV2.ShowToast(context.getString(R.string.sleep_settings_saved)))
+            sendEffect(SleepTimeEffectV2.ShowSavedToast)
             sendEffect(SleepTimeEffectV2.NavigateBack)
         }
     }

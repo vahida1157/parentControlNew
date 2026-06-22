@@ -72,13 +72,16 @@ fun SleepTimeScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
+    val sleepSettingsSavedMessage = stringResource(R.string.sleep_settings_saved)
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is SleepTimeEffectV2.NavigateBack -> onBackClick()
-                is SleepTimeEffectV2.ShowToast -> Toast.makeText(
-                    context, effect.message, Toast.LENGTH_SHORT
-                ).show()
+                is SleepTimeEffectV2.ShowSavedToast -> {
+                    Toast.makeText(
+                        context, sleepSettingsSavedMessage, Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
     }

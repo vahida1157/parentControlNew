@@ -52,8 +52,8 @@ import com.vahak.mehrban.presentation.timelimit.TimeLimitEffectV2
 import com.vahak.mehrban.presentation.timelimit.TimeLimitEventV2
 import com.vahak.mehrban.presentation.timelimit.TimeLimitStateV2
 import com.vahak.mehrban.presentation.timelimit.TimeLimitViewModelV2
-import com.vahak.mehrban.ui.component.PickerPresentationMode
 import com.vahak.mehrban.uiv2.components.DynamicTimePickerV2
+import com.vahak.mehrban.uiv2.components.PickerPresentationMode
 import com.vahak.mehrban.uiv2.components.header.HeaderAction
 import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
 import com.vahak.mehrban.uiv2.theme.AppTheme
@@ -66,13 +66,14 @@ fun TimeLimitScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val timeSettingsSavedMessage = stringResource(R.string.time_settings_saved)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is TimeLimitEffectV2.NavigateBack -> onBackClick()
-                is TimeLimitEffectV2.ShowToast -> Toast.makeText(
-                    context, effect.message, Toast.LENGTH_SHORT
+                is TimeLimitEffectV2.ShowSavedToast -> Toast.makeText(
+                    context, timeSettingsSavedMessage, Toast.LENGTH_SHORT
                 ).show()
             }
         }
@@ -228,8 +229,18 @@ fun TimeLimitContent(
                                     color = colors.textSecondary,
                                     fontWeight = FontWeight.Bold
                                 )
+                                val hourLabel = stringResource(R.string.hour)
+                                val minuteLabel = stringResource(R.string.minute)
+                                val noLimit = stringResource(R.string.unlimited)
+
+                                val previewText = when {
+                                    state.hours > 0 && state.minutes > 0 -> "${state.hours} $hourLabel و ${state.minutes} $minuteLabel"
+                                    state.hours > 0 -> "${state.hours} $hourLabel"
+                                    state.minutes > 0 -> "${state.minutes} $minuteLabel"
+                                    else -> noLimit
+                                }
                                 Text(
-                                    state.previewText,
+                                    previewText,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Black,
                                     color = colors.primary

@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,6 +67,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.mehrban.R
+import com.vahak.mehrban.domain.usecase.SecuritySetupError.ANSWER_SHORT
+import com.vahak.mehrban.domain.usecase.SecuritySetupError.PIN_LENGTH
+import com.vahak.mehrban.domain.usecase.SecuritySetupError.QUESTION_EMPTY
 import com.vahak.mehrban.presentation.password.PasswordEffectV2
 import com.vahak.mehrban.presentation.password.PasswordEventV2
 import com.vahak.mehrban.presentation.password.PasswordStateV2
@@ -85,13 +87,22 @@ fun PasswordManagementScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
+    val questionsList = listOf(
+        stringResource(R.string.security_question_1),
+        stringResource(R.string.security_question_2),
+        stringResource(R.string.security_question_3)
+    )
+    val successLoginMessage = stringResource(R.string.password_setup_success)
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is PasswordEffectV2.NavigateToDashboard -> onNavigateToDashboard()
-                is PasswordEffectV2.ShowToast -> Toast.makeText(
-                    context, effect.message, Toast.LENGTH_SHORT
-                ).show()
+                is PasswordEffectV2.ShowSuccessToast -> {
+                    Toast.makeText(
+                        context, successLoginMessage, Toast.LENGTH_SHORT
+                    ).show()
+                }
 
                 PasswordEffectV2.NavigateBack -> {}
             }
@@ -99,7 +110,7 @@ fun PasswordManagementScreen(
     }
 
     PasswordManagementScreenContent(
-        state = state, questionsList = viewModel.questionsList, onEvent = viewModel::onEvent
+        state = state, questionsList = questionsList, onEvent = viewModel::onEvent
     )
 }
 
@@ -108,7 +119,6 @@ fun PasswordManagementScreenContent(
     state: PasswordStateV2, questionsList: List<String>, onEvent: (PasswordEventV2) -> Unit
 ) {
     val colors = LocalCustomColors.current
-    val isDark = isSystemInDarkTheme()
     val focusManager = LocalFocusManager.current
 
     val backgroundGradient = Brush.linearGradient(
@@ -240,7 +250,12 @@ fun PasswordManagementScreenContent(
                     OutlinedTextField(
                         value = state.securityAnswer,
                         onValueChange = { onEvent(PasswordEventV2.AnswerChanged(it.trim())) },
-                        placeholder = { Text(stringResource(R.string.password_answer_placeholder), color = colors.textHint) },
+                        placeholder = {
+                            Text(
+                                stringResource(R.string.password_answer_placeholder),
+                                color = colors.textHint
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(
                             onNext = { focusManager.moveFocus(FocusDirection.Down) }
@@ -457,9 +472,16 @@ fun PasswordManagementScreenContent(
                         }
                     }
 
-                    if (state.errorMessage != null) {
+                    if (state.errorType != null || state.isGenericError) {
+                        val message = when (state.errorType) {
+                            PIN_LENGTH -> stringResource(R.string.error_pin_length)
+                            ANSWER_SHORT -> stringResource(R.string.error_security_answer_short)
+                            QUESTION_EMPTY -> stringResource(R.string.error_security_question_empty)
+                            null -> stringResource(R.string.error_unknown)
+                        }
+
                         Text(
-                            text = state.errorMessage,
+                            text = message,
                             color = colors.red,
                             style = MaterialTheme.typography.labelMedium,
                             modifier = Modifier.padding(top = 12.dp)

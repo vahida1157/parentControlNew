@@ -2,7 +2,6 @@ package com.vahak.mehrban.presentation.launcher
 
 import android.content.Context
 import androidx.lifecycle.viewModelScope
-import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.dao.AppRuleDao
 import com.vahak.mehrban.core.data.local.dao.ChildSettingsDao
@@ -46,7 +45,7 @@ data class LauncherStateV2(
 
     // Recovery Dialog State
     val showRecoveryDialog: Boolean = false,
-    val securityQuestion: String = "",
+    val securityQuestion: String? = null, // 🚀 Changed to nullable. Null = "Not Set"
     val recoveryAnswerInput: String = "",
     val recoveryError: Boolean = false
 )
@@ -70,12 +69,12 @@ sealed class LauncherEventV2 {
 
 sealed class LauncherEffectV2 {
     object RequestExit : LauncherEffectV2()
-    data class ShowToast(val icon: String, val message: String) : LauncherEffectV2()
+    object ShowTimeLimitExpiredToast : LauncherEffectV2() // 🚀 Clean UI Trigger
 }
 
 @HiltViewModel
 class LauncherViewModelV2 @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @ApplicationContext private val context: Context, // Kept ONLY for AppManager system calls
     private val appRuleDao: AppRuleDao,
     private val sessionManager: SessionManager,
     private val childRepository: ChildRepository,
@@ -147,11 +146,7 @@ class LauncherViewModelV2 @Inject constructor(
                             "Application launch blocked, time limit expired, packageName: %s",
                             event.packageName
                         )
-                        sendEffect(
-                            LauncherEffectV2.ShowToast(
-                                "⏳", context.getString(R.string.launcher_time_expired)
-                            )
-                        )
+                        sendEffect(LauncherEffectV2.ShowTimeLimitExpiredToast)
                         return
                     }
                 }
@@ -159,17 +154,12 @@ class LauncherViewModelV2 @Inject constructor(
                 AppManager.launchApp(context, event.packageName)
             }
 
-            // PIN Events
             is LauncherEventV2.ExitLauncherClicked -> updateState {
-                copy(
-                    showExitDialog = true, enteredPin = "", pinError = false
-                )
+                copy(showExitDialog = true, enteredPin = "", pinError = false)
             }
 
             is LauncherEventV2.DismissExitDialog -> updateState {
-                copy(
-                    showExitDialog = false, enteredPin = "", pinError = false
-                )
+                copy(showExitDialog = false, enteredPin = "", pinError = false)
             }
 
             is LauncherEventV2.PinDigitEntered -> {
@@ -188,16 +178,14 @@ class LauncherViewModelV2 @Inject constructor(
 
             is LauncherEventV2.SubmitExitPin -> verifyPin(event.pin)
 
-            // Recovery Events
             is LauncherEventV2.ForgotPinClicked -> {
                 viewModelScope.launch {
                     val question = sessionManager.securityQuestionFlow.firstOrNull()
-                        ?: context.getString(R.string.recovery_question_not_set)
                     updateState {
                         copy(
                             showExitDialog = false,
                             showRecoveryDialog = true,
-                            securityQuestion = question,
+                            securityQuestion = question, // Pass null if it doesn't exist
                             recoveryAnswerInput = "",
                             recoveryError = false
                         )
@@ -206,15 +194,11 @@ class LauncherViewModelV2 @Inject constructor(
             }
 
             is LauncherEventV2.DismissRecoveryDialog -> updateState {
-                copy(
-                    showRecoveryDialog = false, recoveryAnswerInput = "", recoveryError = false
-                )
+                copy(showRecoveryDialog = false, recoveryAnswerInput = "", recoveryError = false)
             }
 
             is LauncherEventV2.RecoveryAnswerChanged -> updateState {
-                copy(
-                    recoveryAnswerInput = event.answer, recoveryError = false
-                )
+                copy(recoveryAnswerInput = event.answer, recoveryError = false)
             }
 
             is LauncherEventV2.SubmitRecoveryAnswer -> verifyRecoveryAnswer()
