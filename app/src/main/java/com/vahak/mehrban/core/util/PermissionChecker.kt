@@ -25,6 +25,7 @@ object PermissionChecker {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun hasUsageStatsPermission(context: Context): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
