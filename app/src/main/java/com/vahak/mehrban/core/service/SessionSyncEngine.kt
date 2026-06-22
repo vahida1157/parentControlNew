@@ -11,8 +11,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,45 +24,52 @@ class SessionSyncEngine @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val appRuleRepository: AppRuleRepository,
     private val usageRepository: UsageRepository,
-    private val notificationRepository: NotificationRepository // 🚀 Inject this
+    private val notificationRepository: NotificationRepository
 ) {
     private val engineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun start() {
         engineScope.launch {
-            childRepository.syncChildrenFromServer()
-        }
+            // 🚀 THE MAGIC: collectLatest will automatically CANCEL the inner blocks
+            // if the user logs out (phone becomes null).
+            sessionManager.userPhoneFlow.distinctUntilChanged().collectLatest { phone ->
+                if (phone != null) {
+                    Timber.d("Valid session detected. Booting all background sync targets.")
 
-        // 🚀 SYNC TARGET 1: The child the parent is currently managing in the UI
-        engineScope.launch {
-            sessionManager.viewedChildIdFlow
-                .distinctUntilChanged()
-                .collectLatest { childId ->
-                    if (childId != null) {
-                        launch { settingsRepository.syncSettingsFromServer(childId) }
-                        launch { appRuleRepository.syncRulesFromServer(childId) }
-                        launch { usageRepository.syncUnsyncedData(childId, forcePing = true) }
-                    }
-                }
-        }
+                    // 1. Initial One-Time Fetches
+                    launch { childRepository.syncChildrenFromServer() }
+                    launch { notificationRepository.syncNotificationsFromServer() }
 
-        // 🚀 SYNC TARGET 2: The child currently being restricted (if Launcher/VPN is on)
-        engineScope.launch {
-            sessionManager.activeChildIdFlow
-                .distinctUntilChanged()
-                .collectLatest { childId ->
-                    // Only sync if it's different from the viewed child to avoid double-fetching
-                    val viewedId = sessionManager.viewedChildIdFlow.first()
-                    if (childId != null && childId != viewedId) {
-                        launch { settingsRepository.syncSettingsFromServer(childId) }
-                        launch { appRuleRepository.syncRulesFromServer(childId) }
+                    // 2. Viewed Child Sync (Runs when Parent is using the Dashboard)
+                    launch {
+                        sessionManager.viewedChildIdFlow
+                            .distinctUntilChanged()
+                            .collectLatest { childId ->
+                                if (childId != null) {
+                                    launch { settingsRepository.syncSettingsFromServer(childId) }
+                                    launch { appRuleRepository.syncRulesFromServer(childId) }
+                                    launch { usageRepository.syncUnsyncedData(childId, forcePing = true) }
+                                }
+                            }
                     }
+
+                    // 3. Active Child Sync (Runs when Child is using the Launcher)
+                    launch {
+                        sessionManager.activeChildIdFlow
+                            .distinctUntilChanged()
+                            .collectLatest { childId ->
+                                val viewedId = sessionManager.viewedChildIdFlow.firstOrNull()
+                                // Sync if it's the launcher AND we aren't already viewing it
+                                if (childId != null && childId != viewedId) {
+                                    launch { settingsRepository.syncSettingsFromServer(childId) }
+                                    launch { appRuleRepository.syncRulesFromServer(childId) }
+                                }
+                            }
+                    }
+                } else {
+                    Timber.d("No active session. Sync engine is going to sleep.")
                 }
-        }
-        // 🚀 SYNC TARGET 3: Account-wide Notifications
-        engineScope.launch {
-            // Push any offline read receipts, then fetch new messages
-            notificationRepository.syncNotificationsFromServer()
+            }
         }
     }
 }
