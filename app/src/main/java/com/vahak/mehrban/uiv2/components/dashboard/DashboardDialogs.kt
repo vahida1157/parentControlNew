@@ -27,11 +27,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,154 +63,166 @@ fun LauncherConfirmSheet(
     val colors = LocalCustomColors.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // 🚀 THE FIX: Capture the localized environment from MainActivity before the Sheet opens
+    val layoutDirection = LocalLayoutDirection.current
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = colors.background,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        // 🚀 THE FIX: Inject the localized environment back into the new BottomSheet Window!
+        CompositionLocalProvider(
+            LocalLayoutDirection provides layoutDirection,
+            LocalContext provides context,
+            LocalConfiguration provides configuration
         ) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .size(80.dp)
-                    .background(
-                        Brush.linearGradient(listOf(colors.red, Color(0xFFD44245))),
-                        RoundedCornerShape(24.dp)
-                    )
-                    .shadow(
-                        16.dp,
-                        RoundedCornerShape(24.dp),
-                        spotColor = colors.red.copy(alpha = 0.4f)
-                    ), contentAlignment = Alignment.Center
-            ) {
-                Text("🛡️", fontSize = 40.sp)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                stringResource(R.string.launcher_safe_activation_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-                color = colors.textPrimary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.launcher_safe_activation_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.textSecondary,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.surface, RoundedCornerShape(16.dp))
-                    .border(1.dp, colors.primary.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                    .padding(12.dp), verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .background(colors.cardInnerBG, RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
+                        .size(80.dp)
+                        .background(
+                            Brush.linearGradient(listOf(colors.red, Color(0xFFD44245))),
+                            RoundedCornerShape(24.dp)
+                        )
+                        .shadow(
+                            16.dp,
+                            RoundedCornerShape(24.dp),
+                            spotColor = colors.red.copy(alpha = 0.4f)
+                        ), contentAlignment = Alignment.Center
                 ) {
-                    Text(if (activeChild.gender == Gender.BOY) "👦" else "👧", fontSize = 24.sp)
+                    Text("🛡️", fontSize = 40.sp)
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.launcher_activation_for_child),
-                        fontSize = 11.sp,
-                        color = colors.textSecondary
-                    )
-                    Text(
-                        activeChild.name,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Black,
-                        color = colors.primary
-                    )
-                }
-                TextButton(onClick = onChangeChildClick) {
-                    Text(
-                        stringResource(R.string.change),
-                        color = colors.primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.orangeLight, RoundedCornerShape(12.dp))
-                    .border(1.dp, colors.orange.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                    .padding(12.dp), verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("⚠️", fontSize = 20.sp)
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    stringResource(R.string.launcher_exit_warning),
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFE65100),
-                    lineHeight = 18.sp
+                    stringResource(R.string.launcher_safe_activation_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = colors.textPrimary
                 )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = onActivateClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .shadow(
-                        8.dp,
-                        RoundedCornerShape(14.dp),
-                        spotColor = colors.red.copy(alpha = 0.3f)
-                    ),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Brush.linearGradient(listOf(colors.red, Color(0xFFD44245)))),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        stringResource(R.string.launcher_activate_button),
-                        color = Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 15.sp
-                    )
-                }
-            }
-
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            ) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    stringResource(R.string.cancel),
+                    stringResource(R.string.launcher_safe_activation_desc),
+                    style = MaterialTheme.typography.bodySmall,
                     color = colors.textSecondary,
-                    fontWeight = FontWeight.Bold
+                    textAlign = TextAlign.Center
                 )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.surface, RoundedCornerShape(16.dp))
+                        .border(1.dp, colors.primary.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                        .padding(12.dp), verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(colors.cardInnerBG, RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(if (activeChild.gender == Gender.BOY) "👦" else "👧", fontSize = 24.sp)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.launcher_activation_for_child),
+                            fontSize = 11.sp,
+                            color = colors.textSecondary
+                        )
+                        Text(
+                            activeChild.name,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Black,
+                            color = colors.primary
+                        )
+                    }
+                    TextButton(onClick = onChangeChildClick) {
+                        Text(
+                            stringResource(R.string.change),
+                            color = colors.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.orangeLight, RoundedCornerShape(12.dp))
+                        .border(1.dp, colors.orange.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                        .padding(12.dp), verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("⚠️", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.launcher_exit_warning),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE65100),
+                        lineHeight = 18.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = onActivateClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .shadow(
+                            8.dp,
+                            RoundedCornerShape(14.dp),
+                            spotColor = colors.red.copy(alpha = 0.3f)
+                        ),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Brush.linearGradient(listOf(colors.red, Color(0xFFD44245)))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            stringResource(R.string.launcher_activate_button),
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 15.sp
+                        )
+                    }
+                }
+
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    Text(
+                        stringResource(R.string.cancel),
+                        color = colors.textSecondary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -214,75 +230,88 @@ fun LauncherConfirmSheet(
 @Composable
 fun PinRequiredDialog(onDismiss: () -> Unit, onSetupPassword: () -> Unit) {
     val colors = LocalCustomColors.current
+
+    // 🚀 THE FIX: Capture the localized environment from MainActivity before the Dialog opens
+    val layoutDirection = LocalLayoutDirection.current
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = colors.surface),
-            elevation = CardDefaults.cardElevation(16.dp)
+        // 🚀 THE FIX: Inject the localized environment back into the new Dialog Window!
+        CompositionLocalProvider(
+            LocalLayoutDirection provides layoutDirection,
+            LocalContext provides context,
+            LocalConfiguration provides configuration
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                elevation = CardDefaults.cardElevation(16.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(70.dp)
-                        .background(colors.primary.copy(alpha = 0.1f), CircleShape)
-                        .border(2.dp, colors.primary.copy(alpha = 0.2f), CircleShape),
-                    contentAlignment = Alignment.Center
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        AppIcons.LockBadge,
-                        contentDescription = null,
-                        tint = colors.primary,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
+                    Box(
+                        modifier = Modifier
+                            .size(70.dp)
+                            .background(colors.primary.copy(alpha = 0.1f), CircleShape)
+                            .border(2.dp, colors.primary.copy(alpha = 0.2f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            AppIcons.LockBadge,
+                            contentDescription = null,
+                            tint = colors.primary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(20.dp))
-                Text(
-                    text = stringResource(R.string.pin_required_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                    color = colors.textPrimary,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.pin_required_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.textSecondary,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 22.sp
-                )
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                Button(
-                    onClick = onSetupPassword,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
+                    Spacer(modifier = Modifier.height(20.dp))
                     Text(
-                        stringResource(R.string.set_password_button),
-                        color = colors.textOnPrimaryVariant,
-                        fontWeight = FontWeight.Bold
+                        text = stringResource(R.string.pin_required_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = colors.textPrimary,
+                        textAlign = TextAlign.Center
                     )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        stringResource(R.string.cancel),
-                        color = colors.textHint,
-                        fontWeight = FontWeight.Bold
+                        text = stringResource(R.string.pin_required_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 22.sp
                     )
+
+                    Spacer(modifier = Modifier.height(28.dp))
+
+                    Button(
+                        onClick = onSetupPassword,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text(
+                            stringResource(R.string.set_password_button),
+                            color = colors.textOnPrimaryVariant,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            stringResource(R.string.cancel),
+                            color = colors.textHint,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -292,7 +321,6 @@ fun PinRequiredDialog(onDismiss: () -> Unit, onSetupPassword: () -> Unit) {
 // ==========================================
 // PREVIEWS
 // ==========================================
-
 
 private val mockChildDialog = ChildEntity(
     id = "1",

@@ -9,11 +9,15 @@ import com.vahak.mehrban.core.data.local.dao.ChildDao
 import com.vahak.mehrban.core.data.local.dao.ChildSettingsDao
 import com.vahak.mehrban.core.data.local.dao.CrashLogDao
 import com.vahak.mehrban.core.data.local.dao.NotificationDao
+import com.vahak.mehrban.core.data.local.dao.SafeBrowserDao
 import com.vahak.mehrban.core.data.local.dao.UsageDao
 import com.vahak.mehrban.core.data.local.dao.WebDao
 import com.vahak.mehrban.core.data.local.entity.AppRuleEntity
 import com.vahak.mehrban.core.data.local.entity.AppUsageRecordEntity
 import com.vahak.mehrban.core.data.local.entity.BlockedDomainEntity
+import com.vahak.mehrban.core.data.local.entity.BrowserHistoryEntity
+import com.vahak.mehrban.core.data.local.entity.BrowserKeywordEntity
+import com.vahak.mehrban.core.data.local.entity.BrowserWhitelistEntity
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.CrashLogEntity
 import com.vahak.mehrban.core.data.local.entity.DailyUsageEntity
@@ -30,8 +34,11 @@ import com.vahak.mehrban.core.data.local.entity.NotificationEntity
         BlockedDomainEntity::class,
         CrashLogEntity::class,
         NotificationEntity::class,
+        BrowserWhitelistEntity::class,
+        BrowserKeywordEntity::class,
+        BrowserHistoryEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)
@@ -43,4 +50,5 @@ abstract class ParentControlDatabase : RoomDatabase() {
     abstract val webDao: WebDao
     abstract val crashLogDao: CrashLogDao
     abstract val notificationDao: NotificationDao
+    abstract val safeBrowserDao: SafeBrowserDao
 }

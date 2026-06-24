@@ -131,11 +131,9 @@ class ChildSettingsViewModel @Inject constructor(
             is ChildSettingsEvent.GridItemClicked -> {
                 if (event.route in listOf(
                         "location",
-                        "safe_search",
                         "prevent_delete",
                         "eye_protect",
-                        "content_movies",
-                        "site_management"
+                        "content_movies"
                     )
                 ) {
                     sendEffect(ChildSettingsEffect.ShowToast(FeatureToastType.COMING_SOON))

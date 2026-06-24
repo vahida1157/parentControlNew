@@ -16,6 +16,8 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object FamilyManagement : Screen("family_management")
     object ChildSettings : Screen("child_settings")
+    object BrowserSettings : Screen("browser_settings")
+
     object TimeLimit : Screen("time_limit")
     object SleepTime : Screen("sleep_time")
     object AppLock : Screen("app_lock")

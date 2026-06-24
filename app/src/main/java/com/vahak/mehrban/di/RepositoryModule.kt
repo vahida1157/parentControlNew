@@ -10,6 +10,8 @@ import com.vahak.mehrban.domain.repository.NotificationRepository
 import com.vahak.mehrban.domain.repository.NotificationRepositoryImpl
 import com.vahak.mehrban.domain.repository.ProfileRepository
 import com.vahak.mehrban.domain.repository.ProfileRepositoryImpl
+import com.vahak.mehrban.domain.repository.SafeBrowserRepository
+import com.vahak.mehrban.domain.repository.SafeBrowserRepositoryImpl
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.domain.repository.SettingsRepositoryImpl
 import com.vahak.mehrban.domain.repository.UsageRepository
@@ -73,4 +75,10 @@ abstract class RepositoryModule {
     abstract fun bindNotificationRepository(
         notificationRepositoryImpl: NotificationRepositoryImpl
     ): NotificationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSafeBrowserRepository(
+        notificationRepositoryImpl: SafeBrowserRepositoryImpl
+    ): SafeBrowserRepository
 }
