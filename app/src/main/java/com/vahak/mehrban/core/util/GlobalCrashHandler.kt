@@ -30,9 +30,17 @@ class GlobalCrashHandler(
                 stackTrace = stackTrace
             )
 
-            // 3. Save to Room synchronously (We are dying, no time for async!)
-            crashLogDao.insertCrashLogSync(crashLog)
-            Log.e("MehrbanTelemetry", "Crash saved to local database successfully.")
+            // 3. 🚀 THE FIX: Use a raw Thread to satisfy Room's background rule
+            val dbThread = Thread {
+                crashLogDao.insertCrashLogSync(crashLog)
+                Log.e("MehrbanTelemetry", "Crash saved to local database successfully.")
+            }
+
+            dbThread.start()
+
+            // 🚀 Force the crashing thread to wait for the DB write to finish.
+            // We give it a maximum of 2000ms (2 seconds) so the app doesn't freeze forever.
+            dbThread.join(2000)
 
         } catch (e: Exception) {
             // If the crash handler itself crashes, we just print to logcat

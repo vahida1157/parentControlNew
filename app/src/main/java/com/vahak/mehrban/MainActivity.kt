@@ -15,7 +15,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -30,6 +32,7 @@ import com.vahak.mehrban.core.util.AppSignatureHelper
 import com.vahak.mehrban.core.util.LauncherManager
 import com.vahak.mehrban.uiv2.components.UpdateCheckerWrapper
 import com.vahak.mehrban.uiv2.navigation.ParentControlNavGraph
+import com.vahak.mehrban.uiv2.screens.browser.SafeBrowserScreen
 import com.vahak.mehrban.uiv2.screens.launcher.ChildLauncherScreen
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
@@ -64,6 +67,9 @@ class MainActivity : AppCompatActivity() {
             val appLanguage by mainViewModel.appLanguage.collectAsState()
             val navController = rememberNavController()
 
+            // 🚀 NEW: Secure State for the Child's Browser
+            var showChildBrowser by remember { mutableStateOf(false) }
+
             AppSignatureHelper(applicationContext).getAppSignatures()
 
             LaunchedEffect(downloadedFilePath) {
@@ -73,7 +79,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // 🚀 THE FIX: Modern Locale Builder (No deprecation warnings!)
             val locale = Locale.Builder().setLanguage(appLanguage).build()
             val configuration =
                 android.content.res.Configuration(LocalConfiguration.current).apply {
@@ -81,7 +86,6 @@ class MainActivity : AppCompatActivity() {
                     setLayoutDirection(locale)
                 }
 
-            // Wrap the Activity Context
             val localizedContext = remember(appLanguage) {
                 object : android.content.ContextWrapper(this@MainActivity) {
                     val configContext = createConfigurationContext(configuration)
@@ -92,7 +96,6 @@ class MainActivity : AppCompatActivity() {
             val layoutDirection =
                 if (appLanguage == "en") LayoutDirection.Ltr else LayoutDirection.Rtl
 
-            // Inject it into Compose Globally
             CompositionLocalProvider(
                 LocalContext provides localizedContext,
                 LocalConfiguration provides configuration,
@@ -106,25 +109,32 @@ class MainActivity : AppCompatActivity() {
                                 .background(MaterialTheme.colorScheme.background)
                         )
                     } else if (activeChildId != null) {
-                        LaunchedEffect(Unit) {
-                            analytics.logScreenView("child_launcher")
+                        // 🚀 SANDBOX MODE: Either show Browser OR Launcher
+                        if (showChildBrowser) {
+                            SafeBrowserScreen(
+                                onCloseClick = { showChildBrowser = false }
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                analytics.logScreenView("child_launcher")
+                            }
+                            ChildLauncherScreen(
+                                onExitLauncherClick = {
+                                    LauncherManager.disableLauncherMode(this@MainActivity)
+                                    val stopIntent = Intent(this@MainActivity, RestrictionEnforcerService::class.java).apply {
+                                        action = RestrictionEnforcerService.ACTION_STOP
+                                    }
+                                    startService(stopIntent)
+                                    val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                                        addCategory(Intent.CATEGORY_HOME)
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    }
+                                    startActivity(homeIntent)
+                                    mainViewModel.clearActiveLauncherSession()
+                                },
+                                onOpenBrowserClick = { showChildBrowser = true }
+                            )
                         }
-                        ChildLauncherScreen(
-                            onExitLauncherClick = {
-                                LauncherManager.disableLauncherMode(this@MainActivity)
-                                val stopIntent = Intent(
-                                    this@MainActivity, RestrictionEnforcerService::class.java
-                                ).apply {
-                                    action = RestrictionEnforcerService.ACTION_STOP
-                                }
-                                startService(stopIntent)
-                                val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-                                    addCategory(Intent.CATEGORY_HOME)
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                }
-                                startActivity(homeIntent)
-                                mainViewModel.clearActiveLauncherSession()
-                            })
                     } else {
                         UpdateCheckerWrapper(viewModel = mainViewModel) {
                             ParentControlNavGraph(

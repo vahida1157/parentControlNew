@@ -8,6 +8,7 @@ import com.vahak.mehrban.core.data.local.dao.ChildDao
 import com.vahak.mehrban.core.data.local.dao.ChildSettingsDao
 import com.vahak.mehrban.core.data.local.dao.CrashLogDao
 import com.vahak.mehrban.core.data.local.dao.NotificationDao
+import com.vahak.mehrban.core.data.local.dao.SafeBrowserDao
 import com.vahak.mehrban.core.data.local.dao.UsageDao
 import com.vahak.mehrban.core.data.local.dao.WebDao
 import dagger.Module
@@ -58,4 +59,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideNotificationDao(db: ParentControlDatabase): NotificationDao = db.notificationDao
+
+    @Provides
+    @Singleton
+    fun provideSafeBrowserDao(db: ParentControlDatabase): SafeBrowserDao = db.safeBrowserDao
+
 }

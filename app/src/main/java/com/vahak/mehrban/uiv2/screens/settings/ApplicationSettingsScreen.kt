@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,7 +39,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -116,7 +119,10 @@ fun ApplicationSettingsContent(
     val isDark = isSystemInDarkTheme()
     val scrollState = rememberScrollState()
 
+    // 🚀 THE FIX: Capture the localized environment before the Dialog opens
     val context = LocalContext.current
+    val layoutDirection = LocalLayoutDirection.current
+    val configuration = LocalConfiguration.current
 
     val headerGradient = Brush.linearGradient(
         colors = listOf(colors.primary, colors.primaryVariant)
@@ -299,36 +305,43 @@ fun ApplicationSettingsContent(
     }
 
     if (state.showPrivacyDialog) {
-        AlertDialog(
-            onDismissRequest = { onEvent(AppSettingsEvent.ShowPrivacyDialog(false)) },
-            containerColor = colors.surface,
-            title = {
-                Text(
-                    text = stringResource(R.string.login_privacy_dialog_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = colors.textPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        // 🚀 THE FIX: Inject the localized environment back into the new Dialog Window!
+        CompositionLocalProvider(
+            LocalLayoutDirection provides layoutDirection,
+            LocalContext provides context,
+            LocalConfiguration provides configuration
+        ) {
+            AlertDialog(
+                onDismissRequest = { onEvent(AppSettingsEvent.ShowPrivacyDialog(false)) },
+                containerColor = colors.surface,
+                title = {
                     Text(
-                        text = stringResource(R.string.login_privacy_dialog_text),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.textSecondary,
-                        lineHeight = 24.sp
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { onEvent(AppSettingsEvent.ShowPrivacyDialog(false)) }) {
-                    Text(
-                        text = stringResource(R.string.close),
-                        color = colors.primary,
+                        text = stringResource(R.string.login_privacy_dialog_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = colors.textPrimary,
                         fontWeight = FontWeight.Bold
                     )
-                }
-            })
+                },
+                text = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        Text(
+                            text = stringResource(R.string.login_privacy_dialog_text),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.textSecondary,
+                            lineHeight = 24.sp
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { onEvent(AppSettingsEvent.ShowPrivacyDialog(false)) }) {
+                        Text(
+                            text = stringResource(R.string.close),
+                            color = colors.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                })
+        }
     }
 }
 

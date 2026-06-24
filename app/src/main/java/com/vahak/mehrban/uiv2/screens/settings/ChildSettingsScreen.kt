@@ -219,35 +219,48 @@ fun ChildSettingsContent(
                 onClick = { onEvent(ChildSettingsEvent.GridItemClicked("app_lock", localContext)) })
 
             ChildSettingsRowItemV2(
-                title = stringResource(R.string.child_settings_site_filter),
-                desc = stringResource(R.string.child_settings_site_filter_desc),
+                title = stringResource(R.string.browser_settings_title),
+                desc = stringResource(R.string.browser_settings_subtitle),
                 iconEmoji = "🌐",
                 iconBg = Color(0xFFE3F2FD),
-                valueBadge = stringResource(R.string.coming_soon),
-                badgeBgColor = soonBg,
-                badgeTextColor = soonText,
+                valueBadge = stringResource(R.string.active), // "فعال"
+                isInactive = false, // It's fully functional now!
                 onClick = {
-                    onEvent(
-                        ChildSettingsEvent.GridItemClicked(
-                            "site_management", localContext
-                        )
-                    )
-                })
-            ChildSettingsRowItemV2(
-                title = stringResource(R.string.child_settings_safe_search),
-                desc = stringResource(R.string.child_settings_safe_search_desc),
-                iconEmoji = "🔍",
-                iconBg = Color(0xFFE8F5E9),
-                valueBadge = stringResource(R.string.coming_soon),
-                badgeBgColor = soonBg,
-                badgeTextColor = soonText,
-                onClick = {
-                    onEvent(
-                        ChildSettingsEvent.GridItemClicked(
-                            "safe_search", localContext
-                        )
-                    )
-                })
+                    // This route name exactly matches what we wrote in Screen.kt
+                    onEvent(ChildSettingsEvent.GridItemClicked("browser_settings", localContext))
+                }
+            )
+
+//            ChildSettingsRowItemV2(
+//                title = stringResource(R.string.child_settings_site_filter),
+//                desc = stringResource(R.string.child_settings_site_filter_desc),
+//                iconEmoji = "🌐",
+//                iconBg = Color(0xFFE3F2FD),
+//                valueBadge = stringResource(R.string.coming_soon),
+//                badgeBgColor = soonBg,
+//                badgeTextColor = soonText,
+//                onClick = {
+//                    onEvent(
+//                        ChildSettingsEvent.GridItemClicked(
+//                            "site_management", localContext
+//                        )
+//                    )
+//                })
+//            ChildSettingsRowItemV2(
+//                title = stringResource(R.string.child_settings_safe_search),
+//                desc = stringResource(R.string.child_settings_safe_search_desc),
+//                iconEmoji = "🔍",
+//                iconBg = Color(0xFFE8F5E9),
+//                valueBadge = stringResource(R.string.coming_soon),
+//                badgeBgColor = soonBg,
+//                badgeTextColor = soonText,
+//                onClick = {
+//                    onEvent(
+//                        ChildSettingsEvent.GridItemClicked(
+//                            "safe_search", localContext
+//                        )
+//                    )
+//                })
             ChildSettingsRowItemV2(
                 title = stringResource(R.string.child_settings_block_ads),
                 desc = stringResource(R.string.child_settings_block_ads_desc),

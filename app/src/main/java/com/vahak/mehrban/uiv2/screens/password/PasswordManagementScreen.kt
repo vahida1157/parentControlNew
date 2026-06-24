@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -132,6 +133,7 @@ fun PasswordManagementScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
             .background(backgroundGradient)
     ) {
         Column(
@@ -558,7 +560,9 @@ fun PreviewPasswordManagementLight() {
     }
 }
 
-@Preview(showBackground = true, locale = "fa", name = "2. Password Setup V2 (Dark, Filled)")
+@Preview(showBackground = true, locale = "fa", name = "2. Password Setup V2 (Dark, Filled)",
+    showSystemUi = false, device = "id:pixel_5"
+)
 @Composable
 fun PreviewPasswordManagementDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {

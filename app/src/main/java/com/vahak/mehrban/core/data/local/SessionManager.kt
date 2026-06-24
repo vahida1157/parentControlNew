@@ -34,6 +34,7 @@ class SessionManager @Inject constructor(
         private val SECURITY_ANSWER = stringPreferencesKey("security_answer")
         private val DEVICE_ID = stringPreferencesKey("device_id")
         private val VIEWED_CHILD_ID = stringPreferencesKey("viewed_child_id")
+        private val SEARCH_ENGINE = stringPreferencesKey("search_engine")
     }
 
     val appLanguageFlow: Flow<String> = context.dataStore.data.map { prefs ->
@@ -51,6 +52,8 @@ class SessionManager @Inject constructor(
     val securityQuestionFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_QUESTION] }
     val securityAnswerFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_ANSWER] }
     val viewedChildIdFlow: Flow<String?> = context.dataStore.data.map { it[VIEWED_CHILD_ID] }
+
+    val searchEngineFlow: Flow<String?> = context.dataStore.data.map { it[SEARCH_ENGINE] }
 
     suspend fun saveSession(
         token: String,
@@ -135,6 +138,11 @@ class SessionManager @Inject constructor(
     suspend fun setViewedChildId(childId: String) {
         context.dataStore.edit { prefs ->
             prefs[VIEWED_CHILD_ID] = childId
+        }
+    }
+    suspend fun setSearchEngine(engine: String){
+        context.dataStore.edit { prefs ->
+            prefs[SEARCH_ENGINE] = engine
         }
     }
 }

@@ -7,6 +7,7 @@
     <string name="confirm">تأیید</string>
     <string name="select_date">انتخاب تاریخ</string>
     <string name="change">تغییر</string>
+    <string name="active">فعال</string>
 
     <!-- Dashboard -->
     <string name="dashboard_title">تنظیمات نظارتی</string>
@@ -443,4 +444,27 @@
     <string name="language_english">English</string>
     <string name="notification_empty_title">شما پیام جدیدی ندارید</string>
     <string name="notification_empty_description">تمامی اعلان‌ها و هشدارهای مربوط به استفاده فرزندان در اینجا نمایش داده می‌شود.</string>
+
+    <string name="browser_search_hint">جستجو یا تایپ آدرس…</string>
+    <string name="browser_close_desc">بستن مرورگر</string>
+    <string name="browser_reload_desc">بارگذاری مجدد</string>
+
+    <string name="browser_settings_title">تنظیمات مرورگر</string>
+    <string name="browser_settings_subtitle">مدیریت دسترسی‌های وب</string>
+    <string name="browser_tab_sites">سایت‌های مجاز</string>
+    <string name="browser_tab_keywords">کلمات ممنوعه</string>
+    <string name="browser_add_site_title">افزودن سایت مجاز</string>
+    <string name="browser_site_url_hint">آدرس سایت (مثال: aparat.com)</string>
+    <string name="browser_site_name_hint">نام سایت</string>
+    <string name="browser_add_keyword_title">افزودن کلمه ممنوعه</string>
+    <string name="browser_keyword_hint">کلمه یا عبارت</string>
+    <string name="save">ذخیره</string>
+    <string name="remove_desc">حذف</string>
+
+    <string name="browser_url_not_allowed">این آدرس مجاز نیست</string>
+    <string name="browser_engine_shaadbin">شادبین (Shaadbin)</string>
+    <string name="browser_engine_kiddle">کیدل (Kiddle)</string>
+    <string name="browser_engine_duckduckgo">داک‌داک‌گو (DuckDuckGo)</string>
+    <string name="browser_engine_google">گوگل (Google)</string>
+    <string name="browser_allowed_sites">سایت‌های مجاز</string>
 </resources>

@@ -1,9 +1,11 @@
 package com.vahak.mehrban.di
 
+
 import com.vahak.mehrban.BuildConfig
 import com.vahak.mehrban.data.remote.AppUpdateApi
 import com.vahak.mehrban.data.remote.ApplicationCrashApi
 import com.vahak.mehrban.data.remote.AuthApi
+import com.vahak.mehrban.data.remote.SafeBrowserApi
 import com.vahak.mehrban.data.remote.ChildApi
 import com.vahak.mehrban.data.remote.NotificationApi
 import com.vahak.mehrban.data.remote.ProfileApi
@@ -100,4 +102,9 @@ object NetworkModule {
     @Singleton
     fun provideNotificationApi(retrofit: Retrofit): NotificationApi =
         retrofit.create(NotificationApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSafeBrowserApi(retrofit: Retrofit): SafeBrowserApi =
+        retrofit.create(SafeBrowserApi::class.java)
 }

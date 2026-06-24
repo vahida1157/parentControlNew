@@ -26,10 +26,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -77,7 +79,9 @@ import java.util.Locale
 
 @Composable
 fun ChildLauncherScreen(
-    viewModel: LauncherViewModelV2 = hiltViewModel(), onExitLauncherClick: () -> Unit
+    viewModel: LauncherViewModelV2 = hiltViewModel(),
+    onExitLauncherClick: () -> Unit,
+    onOpenBrowserClick: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -101,19 +105,21 @@ fun ChildLauncherScreen(
         }
     }
 
-    ChildLauncherContentV2(state = state, onEvent = viewModel::onEvent)
+    ChildLauncherContentV2(
+        state = state,
+        onEvent = viewModel::onEvent,
+        onOpenBrowserClick = onOpenBrowserClick,
+    )
 }
 
 @Composable
 fun ChildLauncherContentV2(
-    state: LauncherStateV2, onEvent: (LauncherEventV2) -> Unit
+    state: LauncherStateV2, onEvent: (LauncherEventV2) -> Unit, onOpenBrowserClick: () -> Unit,
 ) {
     val colors = LocalCustomColors.current
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding()
+        modifier = Modifier.fillMaxSize().systemBarsPadding()
             .background(Brush.linearGradient(listOf(colors.background, colors.surface)))
     ) {
         AnimatedBackgroundOrbs()
@@ -129,6 +135,27 @@ fun ChildLauncherContentV2(
                 limitMins = state.timeLimitMins,
                 isActive = state.isTimeLimitActive
             )
+
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = onOpenBrowserClick,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp).height(64.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1D9E75) // Safe Green
+                )
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🌐", fontSize = 28.sp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "مرورگر امن خانواده", // Safe Family Browser
+                        color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -185,27 +212,25 @@ fun AnimatedBackgroundOrbs() {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Box(
-            modifier = Modifier
-                .offset { IntOffset(100, offsetY1.toInt() - 100) }
-                .size(300.dp)
+            modifier = Modifier.offset { IntOffset(100, offsetY1.toInt() - 100) }.size(300.dp)
                 .background(
                     Brush.radialGradient(
                         listOf(
                             colors.primary.copy(alpha = 0.2f), Color.Transparent
                         )
                     )
-                ), contentAlignment = Alignment.Center) {}
+                ), contentAlignment = Alignment.Center
+        ) {}
         Box(
-            modifier = Modifier
-                .offset { IntOffset(-100, offsetY2.toInt() + 500) }
-                .size(350.dp)
+            modifier = Modifier.offset { IntOffset(-100, offsetY2.toInt() + 500) }.size(350.dp)
                 .background(
                     Brush.radialGradient(
                         listOf(
                             colors.orange.copy(alpha = 0.15f), Color.Transparent
                         )
                     )
-                ), contentAlignment = Alignment.Center) {}
+                ), contentAlignment = Alignment.Center
+        ) {}
     }
 }
 
@@ -221,9 +246,7 @@ fun LauncherStatusBar() {
         }
     }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 22.dp, vertical = 14.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -261,12 +284,9 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 10.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp)
             .background(colors.surface.copy(alpha = 0.85f), RoundedCornerShape(22.dp))
-            .border(1.dp, colors.divider, RoundedCornerShape(22.dp))
-            .padding(16.dp)
+            .border(1.dp, colors.divider, RoundedCornerShape(22.dp)).padding(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -314,16 +334,12 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
+                modifier = Modifier.fillMaxWidth().height(10.dp)
                     .background(colors.divider, RoundedCornerShape(6.dp))
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth(if (isActive && limitMins > 0) progress else 0f)
-                        .fillMaxHeight()
-                        .background(barColor, RoundedCornerShape(6.dp))
+                    modifier = Modifier.fillMaxWidth(if (isActive && limitMins > 0) progress else 0f)
+                        .fillMaxHeight().background(barColor, RoundedCornerShape(6.dp))
                 )
             }
         }
@@ -349,9 +365,7 @@ fun LauncherAppGrid(apps: List<AppInfo>, onAppClick: (String) -> Unit) {
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(4),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 18.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
@@ -361,15 +375,13 @@ fun LauncherAppGrid(apps: List<AppInfo>, onAppClick: (String) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.clickable { onAppClick(app.packageName) }) {
                 Box(
-                    modifier = Modifier
-                        .size(64.dp)
+                    modifier = Modifier.size(64.dp)
                         .background(colors.surface.copy(alpha = 0.8f), RoundedCornerShape(18.dp))
                         .shadow(
                             4.dp,
                             RoundedCornerShape(18.dp),
                             spotColor = colors.textPrimary.copy(alpha = 0.15f)
-                        )
-                        .padding(8.dp), contentAlignment = Alignment.Center
+                        ).padding(8.dp), contentAlignment = Alignment.Center
                 ) {
                     val safeBitmap = remember(app.icon) {
                         try {
@@ -408,9 +420,7 @@ fun LauncherBottomDock(modifier: Modifier = Modifier) {
     val colors = LocalCustomColors.current
 
     Row(
-        modifier = modifier
-            .padding(start = 18.dp, end = 18.dp, bottom = 24.dp)
-            .fillMaxWidth()
+        modifier = modifier.padding(start = 18.dp, end = 18.dp, bottom = 24.dp).fillMaxWidth()
             .background(colors.surface.copy(alpha = 0.9f), RoundedCornerShape(24.dp))
             .border(1.dp, colors.divider, RoundedCornerShape(24.dp))
             .padding(horizontal = 16.dp, vertical = 10.dp),
@@ -430,9 +440,7 @@ fun DockItem(icon: String, label: String, bgTint: Color) {
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
-            modifier = Modifier
-                .size(46.dp)
-                .background(bgTint, RoundedCornerShape(14.dp)),
+            modifier = Modifier.size(46.dp).background(bgTint, RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center
         ) {
             Text(icon, fontSize = 22.sp)
@@ -462,14 +470,11 @@ fun LauncherPinDialog(
 
     Dialog(onDismissRequest = onCancelClick) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.surface, RoundedCornerShape(26.dp))
+            modifier = Modifier.fillMaxWidth().background(colors.surface, RoundedCornerShape(26.dp))
                 .padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                modifier = Modifier
-                    .size(64.dp)
+                modifier = Modifier.size(64.dp)
                     .background(colors.red.copy(alpha = 0.15f), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
@@ -493,12 +498,8 @@ fun LauncherPinDialog(
 
             val x = if (isError) (-offsetX).dp else offsetX.dp
             Box(
-                modifier = Modifier
-                    .offset(x = x)
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .background(colors.cardInnerBG, RoundedCornerShape(12.dp))
-                    .border(
+                modifier = Modifier.offset(x = x).fillMaxWidth().height(56.dp)
+                    .background(colors.cardInnerBG, RoundedCornerShape(12.dp)).border(
                         1.dp, when {
                             isError -> colors.red
                             enteredPin.isNotEmpty() -> colors.primary
@@ -548,25 +549,20 @@ fun LauncherPinDialog(
                         val isPinLengthValid = enteredPin.length in 4..8
 
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .background(
-                                    if (isActionBtn) Color.Transparent else colors.cardInnerBG,
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .border(
-                                    1.dp,
-                                    if (isActionBtn) Color.Transparent else colors.divider,
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .clickable {
-                                    when (btn) {
-                                        "✓" -> if (isPinLengthValid) onSubmitClick()
-                                        "⌫" -> onBackspaceClick()
-                                        else -> if (enteredPin.length < 8) onDigitClick(btn)
-                                    }
-                                }, contentAlignment = Alignment.Center
+                            modifier = Modifier.fillMaxWidth().height(56.dp).background(
+                                if (isActionBtn) Color.Transparent else colors.cardInnerBG,
+                                RoundedCornerShape(14.dp)
+                            ).border(
+                                1.dp,
+                                if (isActionBtn) Color.Transparent else colors.divider,
+                                RoundedCornerShape(14.dp)
+                            ).clickable {
+                                when (btn) {
+                                    "✓" -> if (isPinLengthValid) onSubmitClick()
+                                    "⌫" -> onBackspaceClick()
+                                    else -> if (enteredPin.length < 8) onDigitClick(btn)
+                                }
+                            }, contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = btn,
@@ -617,14 +613,11 @@ fun LauncherRecoveryDialog(
 
     Dialog(onDismissRequest = onCancelClick) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.surface, RoundedCornerShape(26.dp))
+            modifier = Modifier.fillMaxWidth().background(colors.surface, RoundedCornerShape(26.dp))
                 .padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                modifier = Modifier
-                    .size(64.dp)
+                modifier = Modifier.size(64.dp)
                     .background(colors.orangeLight.copy(alpha = 0.5f), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
@@ -654,9 +647,7 @@ fun LauncherRecoveryDialog(
                 fontSize = 14.sp,
                 color = colors.primary,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp, bottom = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 16.dp),
                 textAlign = TextAlign.Start
             )
 
@@ -688,9 +679,7 @@ fun LauncherRecoveryDialog(
                     color = colors.red,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .fillMaxWidth(),
+                    modifier = Modifier.padding(top = 8.dp).fillMaxWidth(),
                     textAlign = TextAlign.Start
                 )
             }
@@ -699,9 +688,7 @@ fun LauncherRecoveryDialog(
 
             androidx.compose.material3.Button(
                 onClick = onSubmitClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                     containerColor = colors.primary, disabledContainerColor = colors.divider
                 ),
@@ -743,12 +730,12 @@ fun ChildLauncherPreviewLightV2() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         ChildLauncherContentV2(
             state = LauncherStateV2(
-                childName = "محمدمهدی",
-                gender = Gender.BOY,
-                isTimeLimitActive = true,
-                timeLimitMins = 120,
-                usageSeconds = 3600
-            ), onEvent = {})
+            childName = "محمدمهدی",
+            gender = Gender.BOY,
+            isTimeLimitActive = true,
+            timeLimitMins = 120,
+            usageSeconds = 3600
+        ), onEvent = {}, onOpenBrowserClick = {})
     }
 }
 
@@ -758,10 +745,10 @@ fun ChildLauncherDialogPreviewV2() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         ChildLauncherContentV2(
             state = LauncherStateV2(
-                childName = "محمدمهدی",
-                gender = Gender.BOY,
-                showExitDialog = true,
-                enteredPin = "12"
-            ), onEvent = {})
+            childName = "محمدمهدی",
+            gender = Gender.BOY,
+            showExitDialog = true,
+            enteredPin = "12"
+        ), onEvent = {}, onOpenBrowserClick = {})
     }
 }

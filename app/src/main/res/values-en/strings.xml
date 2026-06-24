@@ -7,6 +7,7 @@
     <string name="confirm">Confirm</string>
     <string name="select_date">Select Date</string>
     <string name="change">Change</string>
+    <string name="active">Active</string>
 
     <!-- Dashboard -->
     <string name="dashboard_title">Monitoring Settings</string>
@@ -443,4 +444,27 @@
 
     <string name="notification_empty_title">You have no new messages</string>
     <string name="notification_empty_description">All notifications and alerts about your children’s usage will appear here.</string>
+
+    <string name="browser_search_hint">Search or type web address…</string>
+    <string name="browser_close_desc">Close Browser</string>
+    <string name="browser_reload_desc">Reload Page</string>
+
+    <string name="browser_settings_title">Browser Settings</string>
+    <string name="browser_settings_subtitle">Manage web access</string>
+    <string name="browser_tab_sites">Allowed Sites</string>
+    <string name="browser_tab_keywords">Blocked Words</string>
+    <string name="browser_add_site_title">Add Allowed Site</string>
+    <string name="browser_site_url_hint">Website URL (e.g. pbskids.org)</string>
+    <string name="browser_site_name_hint">Website Name</string>
+    <string name="browser_add_keyword_title">Add Blocked Word</string>
+    <string name="browser_keyword_hint">Word or Phrase</string>
+    <string name="save">Save</string>
+    <string name="remove_desc">Remove</string>
+
+    <string name="browser_url_not_allowed">This address is not allowed</string>
+    <string name="browser_engine_shaadbin">Shaadbin (Student Safe)</string>
+    <string name="browser_engine_kiddle">Kiddle (Kids Safe)</string>
+    <string name="browser_engine_duckduckgo">DuckDuckGo</string>
+    <string name="browser_engine_google">Google</string>
+    <string name="browser_allowed_sites">Allowed Sites</string>
 </resources>
