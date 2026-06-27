@@ -76,6 +76,7 @@ import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun ChildLauncherScreen(
@@ -242,7 +243,7 @@ fun LauncherStatusBar() {
     LaunchedEffect(Unit) {
         while (true) {
             currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-            kotlinx.coroutines.delay(1000)
+            kotlinx.coroutines.delay(1000.milliseconds)
         }
     }
     Row(
@@ -262,9 +263,11 @@ fun LauncherStatusBar() {
 @Composable
 fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
     val colors = LocalCustomColors.current
+    var showSeconds by remember { mutableStateOf(false) } // 🚀 State to track click toggle
 
     val usageHours = usageSeconds / 3600
     val usageMins = (usageSeconds % 3600) / 60
+    val usageSecs = usageSeconds % 60
 
     val totalLimitSeconds = if (isActive && limitMins > 0) limitMins * 60 else 1
     val progress =
@@ -275,6 +278,7 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
     val remainSeconds = maxOf(0, (limitMins * 60) - usageSeconds)
     val remainHours = remainSeconds / 3600
     val remainMins = (remainSeconds % 3600) / 60
+    val remainSecs = remainSeconds % 60
 
     val barColor = when {
         !isActive || limitMins == 0 -> colors.green
@@ -284,9 +288,13 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 10.dp)
             .background(colors.surface.copy(alpha = 0.85f), RoundedCornerShape(22.dp))
-            .border(1.dp, colors.divider, RoundedCornerShape(22.dp)).padding(16.dp)
+            .border(1.dp, colors.divider, RoundedCornerShape(22.dp))
+            .clickable { showSeconds = !showSeconds } // 🚀 Toggle seconds on click
+            .padding(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -300,8 +308,15 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
                 color = colors.textSecondary
             )
             Row(verticalAlignment = Alignment.Bottom) {
+                // 🚀 Format based on toggle state
+                val usageText = if (showSeconds) {
+                    String.format("%d:%02d:%02d", usageHours, usageMins, usageSecs)
+                } else {
+                    String.format("%d:%02d", usageHours, usageMins)
+                }
+
                 Text(
-                    String.format("%d:%02d", usageHours, usageMins),
+                    text = usageText,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Black,
                     color = colors.primary
@@ -347,8 +362,13 @@ fun LauncherTimeCard(usageSeconds: Int, limitMins: Int, isActive: Boolean) {
         Spacer(modifier = Modifier.height(10.dp))
 
         if (isActive && limitMins > 0) {
-            val remainText =
+            // 🚀 Add seconds dynamically to the remaining text if toggled
+            val remainText = if (showSeconds) {
+                "$remainHours ساعت و $remainMins دقیقه و $remainSecs ثانیه باقی‌مانده"
+            } else {
                 stringResource(R.string.launcher_remaining_time, remainHours, remainMins)
+            }
+
             Text(
                 text = remainText,
                 fontSize = 11.sp,
@@ -462,6 +482,13 @@ fun LauncherPinDialog(
 ) {
     val colors = LocalCustomColors.current
 
+    val launcherParentPinText = stringResource(R.string.launcher_parent_pin)
+    val launcherPinDescriptionText = stringResource(R.string.launcher_pin_description)
+    val launcherPinPlaceholderText = stringResource(R.string.launcher_pin_placeholder)
+    val launcherPinErrorText = stringResource(R.string.launcher_pin_error)
+    val launcherForgotPinText = stringResource(R.string.launcher_forgot_pin)
+    val cancelText = stringResource(R.string.cancel)
+
     val offsetX by animateIntAsState(
         targetValue = if (isError) 15 else 0,
         animationSpec = tween(durationMillis = 100, easing = LinearEasing),
@@ -483,13 +510,13 @@ fun LauncherPinDialog(
 
             Spacer(modifier = Modifier.height(14.dp))
             Text(
-                stringResource(R.string.launcher_parent_pin),
+                launcherParentPinText,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
                 color = colors.textPrimary
             )
             Text(
-                stringResource(R.string.launcher_pin_description),
+                launcherPinDescriptionText,
                 fontSize = 12.sp,
                 color = colors.textSecondary,
                 textAlign = TextAlign.Center,
@@ -509,7 +536,7 @@ fun LauncherPinDialog(
             ) {
                 if (enteredPin.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.launcher_pin_placeholder),
+                        text = launcherPinPlaceholderText,
                         color = colors.textHint,
                         fontSize = 14.sp
                     )
@@ -527,7 +554,7 @@ fun LauncherPinDialog(
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                if (isError) stringResource(R.string.launcher_pin_error) else "",
+                if (isError) launcherPinErrorText else "",
                 color = colors.red,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
@@ -583,7 +610,7 @@ fun LauncherPinDialog(
 
             TextButton(onClick = onForgotPinClick, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    stringResource(R.string.launcher_forgot_pin),
+                    launcherForgotPinText,
                     color = colors.primary,
                     fontWeight = FontWeight.Bold
                 )
@@ -591,7 +618,7 @@ fun LauncherPinDialog(
 
             TextButton(onClick = onCancelClick, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    stringResource(R.string.cancel),
+                    cancelText,
                     color = colors.textHint,
                     fontWeight = FontWeight.Bold
                 )
@@ -686,7 +713,7 @@ fun LauncherRecoveryDialog(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            androidx.compose.material3.Button(
+            Button(
                 onClick = onSubmitClick,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(

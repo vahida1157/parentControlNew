@@ -14,8 +14,8 @@ import com.vahak.mehrban.ui.screens.settings.SiteManagementScreen
 import com.vahak.mehrban.uiv2.screens.MainParentScreen
 import com.vahak.mehrban.uiv2.screens.addchild.AddChildScreen
 import com.vahak.mehrban.uiv2.screens.applimit.AppSelectionScreen
-import com.vahak.mehrban.uiv2.screens.browser.BrowserSettingsScreen
 import com.vahak.mehrban.uiv2.screens.browser.SafeBrowserScreen
+import com.vahak.mehrban.uiv2.screens.browser.BrowserSettingsScreen
 import com.vahak.mehrban.uiv2.screens.family.FamilyManagementScreen
 import com.vahak.mehrban.uiv2.screens.login.LoginScreen
 import com.vahak.mehrban.uiv2.screens.login.OtpScreen

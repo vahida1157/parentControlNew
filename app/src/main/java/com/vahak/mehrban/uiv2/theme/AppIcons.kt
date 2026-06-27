@@ -43,4 +43,6 @@ object AppIcons {
     val Smartphone: Painter @Composable get() = painterResource(R.drawable.ic_smartphone)
     val DeleteForever: Painter @Composable get() = painterResource(R.drawable.ic_delete_forever)
     val Refresh: Painter @Composable get() = painterResource(R.drawable.ic_refresh)
+    val Warning: Painter @Composable get() = painterResource(R.drawable.ic_warning)
+    val Copy: Painter @Composable get() = painterResource(R.drawable.ic_copy)
 }

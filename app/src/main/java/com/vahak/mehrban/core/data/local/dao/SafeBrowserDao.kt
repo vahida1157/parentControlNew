@@ -4,57 +4,95 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.vahak.mehrban.core.data.local.entity.BrowserHistoryEntity
-import com.vahak.mehrban.core.data.local.entity.BrowserKeywordEntity
-import com.vahak.mehrban.core.data.local.entity.BrowserWhitelistEntity
+import androidx.room.Transaction
+import com.vahak.mehrban.core.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SafeBrowserDao {
 
-    // --- Whitelist ---
-    @Query("SELECT * FROM browser_whitelist WHERE child_id = :childId AND is_active = 1")
-    fun observeActiveWhitelist(childId: String): Flow<List<BrowserWhitelistEntity>>
+    @Transaction
+    @Query("SELECT * FROM browser_settings WHERE child_id = :childId")
+    fun observeFullProfile(childId: String): Flow<FullBrowserProfile?>
+
+    // --- SETTINGS ---
+    @Query("SELECT * FROM browser_settings WHERE child_id = :childId LIMIT 1")
+    suspend fun getSettingsSync(childId: String): BrowserSettingsEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertWhitelistItem(item: BrowserWhitelistEntity)
+    suspend fun upsertSettings(settings: BrowserSettingsEntity)
+
+    @Query("SELECT * FROM browser_settings WHERE child_id = :childId AND is_synced = 0 LIMIT 1")
+    suspend fun getUnsyncedSettings(childId: String): BrowserSettingsEntity?
+
+    @Query("UPDATE browser_settings SET is_synced = 1 WHERE child_id = :childId")
+    suspend fun markSettingsAsSynced(childId: String)
+
+    // --- ALLOWED SITES ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAllowedSite(item: BrowserAllowedSiteEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertWhitelistItems(items: List<BrowserWhitelistEntity>)
+    suspend fun upsertAllowedSites(items: List<BrowserAllowedSiteEntity>)
 
-    @Query("SELECT * FROM browser_whitelist WHERE child_id = :childId AND is_synced = 0")
-    suspend fun getUnsyncedWhitelist(childId: String): List<BrowserWhitelistEntity>
+    @Query("UPDATE browser_allowed_sites SET is_active = 0, is_synced = 0, updated_at = :timestamp WHERE child_id = :childId AND url = :url")
+    suspend fun softDeleteAllowedSite(childId: String, url: String, timestamp: Long)
 
-    @Query("UPDATE browser_whitelist SET is_synced = 1 WHERE child_id = :childId AND url_prefix IN (:urls)")
-    suspend fun markWhitelistAsSynced(childId: String, urls: List<String>)
+    @Query("SELECT * FROM browser_allowed_sites WHERE child_id = :childId AND is_synced = 0")
+    suspend fun getUnsyncedAllowedSites(childId: String): List<BrowserAllowedSiteEntity>
 
-    // --- Keywords ---
-    @Query("SELECT * FROM browser_keywords WHERE child_id = :childId AND is_active = 1")
-    fun observeActiveKeywords(childId: String): Flow<List<BrowserKeywordEntity>>
+    @Query("UPDATE browser_allowed_sites SET is_synced = 1 WHERE child_id = :childId AND url IN (:urls)")
+    suspend fun markAllowedSitesAsSynced(childId: String, urls: List<String>)
+
+    // --- BLOCKED SITES ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertBlockedSite(item: BrowserBlockedSiteEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertKeyword(item: BrowserKeywordEntity)
+    suspend fun upsertBlockedSites(items: List<BrowserBlockedSiteEntity>)
+
+    @Query("UPDATE browser_blocked_sites SET is_active = 0, is_synced = 0, updated_at = :timestamp WHERE child_id = :childId AND url = :url")
+    suspend fun softDeleteBlockedSite(childId: String, url: String, timestamp: Long)
+
+    @Query("SELECT * FROM browser_blocked_sites WHERE child_id = :childId AND is_synced = 0")
+    suspend fun getUnsyncedBlockedSites(childId: String): List<BrowserBlockedSiteEntity>
+
+    @Query("UPDATE browser_blocked_sites SET is_synced = 1 WHERE child_id = :childId AND url IN (:urls)")
+    suspend fun markBlockedSitesAsSynced(childId: String, urls: List<String>)
+
+    // --- BLOCKED KEYWORDS ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertBlockedKeyword(item: BrowserBlockedKeywordEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertKeywords(items: List<BrowserKeywordEntity>)
+    suspend fun upsertBlockedKeywords(items: List<BrowserBlockedKeywordEntity>)
 
-    @Query("SELECT * FROM browser_keywords WHERE child_id = :childId AND is_synced = 0")
-    suspend fun getUnsyncedKeywords(childId: String): List<BrowserKeywordEntity>
+    @Query("UPDATE browser_blocked_keywords SET is_active = 0, is_synced = 0, updated_at = :timestamp WHERE child_id = :childId AND keyword = :keyword")
+    suspend fun softDeleteBlockedKeyword(childId: String, keyword: String, timestamp: Long)
 
-    @Query("UPDATE browser_keywords SET is_synced = 1 WHERE child_id = :childId AND keyword IN (:keywords)")
-    suspend fun markKeywordsAsSynced(childId: String, keywords: List<String>)
+    @Query("SELECT * FROM browser_blocked_keywords WHERE child_id = :childId AND is_synced = 0")
+    suspend fun getUnsyncedBlockedKeywords(childId: String): List<BrowserBlockedKeywordEntity>
 
-    // --- History ---
+    @Query("UPDATE browser_blocked_keywords SET is_synced = 1 WHERE child_id = :childId AND keyword IN (:keywords)")
+    suspend fun markBlockedKeywordsAsSynced(childId: String, keywords: List<String>)
+
+    // --- HISTORY ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHistory(item: BrowserHistoryEntity)
+
+    @Query("SELECT * FROM browser_history WHERE child_id = :childId ORDER BY timestamp DESC LIMIT 100")
+    fun observeHistory(childId: String): Flow<List<BrowserHistoryEntity>>
+
+    @Query("SELECT * FROM browser_history WHERE child_id = :childId AND timestamp BETWEEN :startOfDay AND :endOfDay ORDER BY timestamp DESC")
+    fun observeHistoryForDate(
+        childId: String,
+        startOfDay: Long,
+        endOfDay: Long
+    ): Flow<List<BrowserHistoryEntity>>
 
     @Query("SELECT * FROM browser_history WHERE child_id = :childId AND is_synced = 0 LIMIT 100")
     suspend fun getUnsyncedHistory(childId: String): List<BrowserHistoryEntity>
 
     @Query("UPDATE browser_history SET is_synced = 1 WHERE child_id = :childId AND id IN (:ids)")
     suspend fun markHistoryAsSynced(childId: String, ids: List<Long>)
-    
-    // Cleanup old history locally to save space
-    @Query("DELETE FROM browser_history WHERE child_id = :childId AND is_synced = 1 AND timestamp < :olderThanTime")
-    suspend fun deleteOldSyncedHistory(childId: String, olderThanTime: Long)
 }
