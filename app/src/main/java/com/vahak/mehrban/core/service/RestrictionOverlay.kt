@@ -15,6 +15,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.vahak.mehrban.core.util.BrowserUsageTracker
 import com.vahak.mehrban.ui.screens.overlay.SleepTimeOverlayScreen
 import com.vahak.mehrban.ui.screens.overlay.DizzyPhoneScreen
 import com.vahak.mehrban.ui.theme.ParentControlTheme
@@ -115,6 +116,9 @@ class RestrictionOverlay(
 
     // 4. PRO FIX: Extracted for clean reuse across all screens
     private fun navigateHome() {
+        // 🚀 Kills the browser in the background when the overlay is dismissed
+        BrowserUsageTracker.triggerForceClose()
+
         val intent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK

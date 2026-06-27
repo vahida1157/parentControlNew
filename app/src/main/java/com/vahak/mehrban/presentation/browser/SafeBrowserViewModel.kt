@@ -3,13 +3,11 @@ package com.vahak.mehrban.presentation.browser
 import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.SessionManager
-import com.vahak.mehrban.core.data.local.entity.BrowserKeywordEntity
-import com.vahak.mehrban.core.data.local.entity.BrowserWhitelistEntity
+import com.vahak.mehrban.core.data.local.entity.*
 import com.vahak.mehrban.domain.repository.SafeBrowserRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -17,30 +15,32 @@ import javax.inject.Inject
 
 data class BrowserState(
     val childId: String = "",
-    val isProtectionEnabled: Boolean = true,
     val currentUrl: String = "",
     val inputText: String = "",
     val isLoading: Boolean = false,
     val progress: Float = 0f,
     val canGoBack: Boolean = false,
     val canGoForward: Boolean = false,
+
+    // Extracted from FullBrowserProfile
     val searchEngine: String = "kiddle",
-    val isEngineMenuOpen: Boolean = false,
-    val whitelist: List<BrowserWhitelistEntity> = emptyList(),
-    val keywords: List<BrowserKeywordEntity> = emptyList()
+    val isCartoonWorldEnabled: Boolean = true,
+    val filterMode: FilterMode = FilterMode.WHITELIST_ONLY,
+    val allowedSites: List<BrowserAllowedSiteEntity> = emptyList(),
+    val blockedSites: List<BrowserBlockedSiteEntity> = emptyList(),
+    val blockedKeywords: List<BrowserBlockedKeywordEntity> = emptyList()
 )
 
 sealed class BrowserEvent {
     data class InputChanged(val text: String) : BrowserEvent()
     object SubmitSearch : BrowserEvent()
     data class WebStateUpdated(val url: String?, val progress: Int, val canGoBack: Boolean, val canGoForward: Boolean) : BrowserEvent()
-    data class SetEngineMenuOpen(val isOpen: Boolean) : BrowserEvent()
-    data class ChangeSearchEngine(val engineId: String) : BrowserEvent()
-    data class LogHistory(val url: String, val title: String) : BrowserEvent() // 🚀 History Event
+    data class LogHistory(val url: String, val title: String) : BrowserEvent()
+    object GoHome : BrowserEvent()
 }
 
 sealed class BrowserEffect {
-    data class ShowToast(val messageResId: Int) : BrowserEffect() // 🚀 Fixed to use String Resource ID
+    data class ShowToast(val messageResId: Int) : BrowserEffect()
 }
 
 @HiltViewModel
@@ -51,28 +51,30 @@ class SafeBrowserViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val language = sessionManager.appLanguageFlow.first()
-            val savedEngine = sessionManager.searchEngineFlow.first()
-            val activeEngine = savedEngine ?: if (language == "fa") "shaadbin" else "kiddle"
-
             val childId = sessionManager.activeChildIdFlow.firstOrNull() ?: return@launch
 
-            updateState {
-                copy(
-                    childId = childId,
-                    searchEngine = activeEngine,
-                    currentUrl = getEngineHomeUrl(activeEngine),
-                    inputText = displayUrl(getEngineHomeUrl(activeEngine))
-                )
+            // 🚀 Observe the unified profile directly from the DB!
+            browserRepository.observeFullProfile(childId).collectLatest { profile ->
+                if (profile != null) {
+                    updateState {
+                        copy(
+                            childId = childId,
+                            searchEngine = profile.settings.searchEngine,
+                            isCartoonWorldEnabled = profile.settings.isCartoonWorldEnabled,
+                            filterMode = profile.settings.filterMode,
+                            allowedSites = profile.allowedSites.filter { it.isActive },
+                            blockedSites = profile.blockedSites.filter { it.isActive },
+                            blockedKeywords = profile.blockedKeywords.filter { it.isActive }
+                        )
+                    }
+                }
             }
-
-            launch { browserRepository.observeWhitelist(childId).collectLatest { updateState { copy(whitelist = it) } } }
-            launch { browserRepository.observeKeywords(childId).collectLatest { updateState { copy(keywords = it) } } }
         }
     }
 
     override fun onEvent(event: BrowserEvent) {
         when (event) {
+            is BrowserEvent.GoHome -> updateState { copy(currentUrl = "", inputText = "") }
             is BrowserEvent.InputChanged -> updateState { copy(inputText = event.text) }
 
             is BrowserEvent.SubmitSearch -> {
@@ -82,7 +84,7 @@ class SafeBrowserViewModel @Inject constructor(
                 val finalUrl = if (looksLikeUrl(input)) ensureScheme(input) else buildSearchUrl(input)
 
                 if (!isUrlAllowed(finalUrl)) {
-                    sendEffect(BrowserEffect.ShowToast(R.string.browser_url_not_allowed)) // 🚀 Uses string resource!
+                    sendEffect(BrowserEffect.ShowToast(R.string.browser_url_not_allowed))
                     return
                 }
 
@@ -102,24 +104,8 @@ class SafeBrowserViewModel @Inject constructor(
                 }
             }
 
-            is BrowserEvent.SetEngineMenuOpen -> updateState { copy(isEngineMenuOpen = event.isOpen) }
-
-            is BrowserEvent.ChangeSearchEngine -> {
-                val newHomeUrl = getEngineHomeUrl(event.engineId)
-                updateState {
-                    copy(
-                        searchEngine = event.engineId,
-                        isEngineMenuOpen = false,
-                        currentUrl = newHomeUrl,
-                        inputText = displayUrl(newHomeUrl)
-                    )
-                }
-                viewModelScope.launch { sessionManager.setSearchEngine(event.engineId) }
-            }
-
             is BrowserEvent.LogHistory -> {
                 viewModelScope.launch {
-                    // Only log if we have a valid URL (ignore blank pages or internal data URIs)
                     if (state.value.childId.isNotEmpty() && event.url.startsWith("http")) {
                         browserRepository.logHistory(state.value.childId, event.url, event.title)
                     }
@@ -128,59 +114,60 @@ class SafeBrowserViewModel @Inject constructor(
         }
     }
 
+    // 🚀 FULLY UPDATED FILTERING LOGIC
     fun isUrlAllowed(url: String?): Boolean {
-        if (url == null || url.isEmpty()) return false
-        if (!state.value.isProtectionEnabled) return true
+        if (url.isNullOrEmpty()) return false
+        if (state.value.filterMode == FilterMode.DISABLED) return true
 
         val normalized = normalizeUrl(url)
-        val hasKeyword = state.value.keywords.any { normalized.contains(it.keyword.lowercase()) }
-        if (hasKeyword) return false
-        if (isSearchPage(normalized)) return true
-        return state.value.whitelist.any { normalized.startsWith(normalizeUrl(it.urlPrefix)) }
-    }
 
-    private fun getEngineHomeUrl(engine: String) = when (engine) {
-        "shaadbin" -> "https://shaadbin.ir"
-        "duckduckgo" -> "https://duckduckgo.com"
-        "google" -> "https://www.google.com"
-        else -> "https://www.kiddle.co"
+        // 1. ALWAYS block keywords (Overrides everything)
+        if (state.value.blockedKeywords.any { normalized.contains(it.keyword.lowercase()) }) return false
+
+        // 2. ALWAYS block blacklisted sites (Overrides everything)
+        if (state.value.blockedSites.any { normalized.startsWith(normalizeUrl(it.url)) }) return false
+
+        // 3. ALWAYS allow Safe Search Engine URLs
+        if (isSearchPage(normalized)) return true
+
+        // 4. ALWAYS allow Cartoon World if enabled
+        if (state.value.isCartoonWorldEnabled && normalized.startsWith("telewebion.ir")) return true
+
+        // 5. Evaluate Whitelist Mode
+        if (state.value.filterMode == FilterMode.WHITELIST_ONLY) {
+            if (state.value.allowedSites.isEmpty()) {
+                return true
+            }
+            return state.value.allowedSites.any { normalized.startsWith(normalizeUrl(it.url)) }
+        }
+
+        // If it's BLACKLIST_ONLY, and we didn't hit a blacklist above, it's allowed.
+        return true
     }
 
     private fun isSearchPage(normalized: String): Boolean {
         return normalized.startsWith("google.com/search") ||
-                normalized.startsWith("bing.com/search") ||
                 normalized.startsWith("duckduckgo.com") ||
                 normalized.startsWith("shaadbin.ir") ||
                 normalized.startsWith("kiddle.co")
     }
 
-    private fun normalizeUrl(url: String): String {
-        return url.trim().lowercase().replace(Regex("^https?://"), "").replace(Regex("^www\\."), "").removeSuffix("/")
-    }
-
+    private fun normalizeUrl(url: String) = url.trim().lowercase().replace(Regex("^https?://"), "").replace(Regex("^www\\."), "").removeSuffix("/")
     private fun looksLikeUrl(input: String): Boolean {
         val s = input.trim()
         if (s.contains(" ")) return false
         if (s.startsWith("http://") || s.startsWith("https://")) return true
         return s.contains(".") && !s.endsWith(".")
     }
-
-    private fun ensureScheme(url: String): String {
-        val s = url.trim()
-        return if (!s.startsWith("http://") && !s.startsWith("https://")) "https://$s" else s
-    }
-
-    private fun displayUrl(url: String): String {
-        return url.replace(Regex("^https?://"), "").replace(Regex("^www\\."), "")
-    }
-
+    private fun ensureScheme(url: String) = if (!url.trim().startsWith("http://") && !url.trim().startsWith("https://")) "https://${url.trim()}" else url.trim()
+    private fun displayUrl(url: String) = url.replace(Regex("^https?://"), "").replace(Regex("^www\\."), "")
     private fun buildSearchUrl(query: String): String {
-        val q = try { URLEncoder.encode(query, "UTF-8") } catch (e: Exception) { query.replace(" ", "+") }
+        val q = try { URLEncoder.encode(query, "UTF-8") } catch (_: Exception) { query.replace(" ", "+") }
         return when (state.value.searchEngine) {
-            "shaadbin" -> "https://shaadbin.ir/search?q=$q"
+            "kiddle" -> "https://www.kiddle.co/s/?q=$q"
             "duckduckgo" -> "https://duckduckgo.com/?q=$q&kp=1"
             "google" -> "https://www.google.com/search?q=$q&safe=active"
-            else -> "https://www.kiddle.co/s/?q=$q"
+            else -> "https://shaadbin.ir/search?q=$q"
         }
     }
 }

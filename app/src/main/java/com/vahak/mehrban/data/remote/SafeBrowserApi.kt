@@ -8,11 +8,17 @@ import retrofit2.http.GET
 import retrofit2.http.PUT
 import retrofit2.http.Path
 
-data class BrowserWhitelistDto(
-    @SerializedName("urlPrefix") val urlPrefix: String,
-    @SerializedName("label") val label: String,
-    @SerializedName("colorKey") val colorKey: String,
-    @SerializedName("iconKey") val iconKey: String,
+// --- DTOs ---
+data class BrowserSettingsDto(
+    @SerializedName("searchEngine") val searchEngine: String,
+    @SerializedName("isCartoonWorldEnabled") val isCartoonWorldEnabled: Boolean,
+    @SerializedName("filterMode") val filterMode: String, // "WHITELIST_ONLY", "BLACKLIST_ONLY", "DISABLED"
+    @SerializedName("updatedAt") val updatedAt: Long
+)
+
+data class BrowserSiteDto(
+    @SerializedName("url") val url: String,
+    @SerializedName("label") val label: String?, // Nullable for blocked sites
     @SerializedName("isActive") val isActive: Boolean,
     @SerializedName("updatedAt") val updatedAt: Long
 )
@@ -29,15 +35,21 @@ data class BrowserHistoryDto(
     @SerializedName("timestamp") val timestamp: Long
 )
 
+// Used for pushing data to the server
 data class BulkBrowserRequestDto(
-    @SerializedName("whitelist") val whitelist: List<BrowserWhitelistDto> = emptyList(),
-    @SerializedName("keywords") val keywords: List<BrowserKeywordDto> = emptyList(),
+    @SerializedName("settings") val settings: BrowserSettingsDto? = null,
+    @SerializedName("allowedSites") val allowedSites: List<BrowserSiteDto> = emptyList(),
+    @SerializedName("blockedSites") val blockedSites: List<BrowserSiteDto> = emptyList(),
+    @SerializedName("blockedKeywords") val blockedKeywords: List<BrowserKeywordDto> = emptyList(),
     @SerializedName("history") val history: List<BrowserHistoryDto> = emptyList()
 )
 
+// Used for pulling data from the server
 data class BrowserSyncResponseDto(
-    @SerializedName("whitelist") val whitelist: List<BrowserWhitelistDto>,
-    @SerializedName("keywords") val keywords: List<BrowserKeywordDto>
+    @SerializedName("settings") val settings: BrowserSettingsDto?,
+    @SerializedName("allowedSites") val allowedSites: List<BrowserSiteDto>,
+    @SerializedName("blockedSites") val blockedSites: List<BrowserSiteDto>,
+    @SerializedName("blockedKeywords") val blockedKeywords: List<BrowserKeywordDto>
 )
 
 @Keep

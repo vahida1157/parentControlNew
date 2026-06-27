@@ -1,46 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- General -->
     <string name="app_name">مهر بان</string>
     <string name="cancel">انصراف</string>
     <string name="close">بستن</string>
     <string name="confirm">تأیید</string>
-    <string name="select_date">انتخاب تاریخ</string>
+    <string name="save">ذخیره</string>
+    <string name="delete">حذف</string>
     <string name="change">تغییر</string>
     <string name="active">فعال</string>
+    <string name="today">امروز</string>
+    <string name="select_date">انتخاب تاریخ</string>
+    <string name="coming_soon">به زودی در دسترس خواهد بود</string>
+    <string name="feature_under_development">این ویژگی در دست توسعه است.</string>
+    <string name="feature_coming_soon">این ویژگی به زودی در دسترس خواهد بود!</string>
+    <string name="yesterday">دیروز</string>
+    <string name="previous_day">روز قبل</string>
+    <string name="next_day">روز بعد</string>
 
-    <!-- Dashboard -->
-    <string name="dashboard_title">تنظیمات نظارتی</string>
-    <string name="dashboard_subtitle">مدیریت کامل دسترسی‌های فرزند در این بخش انجام می‌شود</string>
-    <string name="menu_family_settings">تنظیمات خانواده</string>
-    <string name="menu_activity_report">گزارش فعالیت‌ها</string>
-    <string name="slider_instruction">برای فعال‌سازی سرویس بکشید</string>
-    <string name="slider_activated">سرویس فعال شد</string>
-
-    <!-- Navigation -->
     <string name="nav_profile">پروفایل</string>
     <string name="nav_stats">آمار</string>
     <string name="nav_sub">اشتراک</string>
     <string name="nav_home">خانه</string>
     <string name="nav_children">فرزندان</string>
+    <string name="menu_family_settings">تنظیمات خانواده</string>
+    <string name="menu_activity_report">گزارش فعالیت‌ها</string>
 
-    <!-- Child Theme & Categories -->
-    <string name="kid_theme_title">پوسته کودکانه</string>
-    <string name="status_active">فعال شده</string>
-    <string name="status_inactive">غیرفعال</string>
-    <string name="section_access">دسترسی و محتوا</string>
-    <string name="cat_games">بازی‌ها</string>
-    <string name="cat_movies">فیلم</string>
-    <string name="cat_music">موسیقی</string>
-    <string name="accessibility_description">سرویس نظارت خانواده برای محافظت از کودکان</string>
-
-    <!-- Login -->
     <string name="login_subtitle">پنل مدیریت هوشمند والدین</string>
     <string name="login_phone_label">شماره تلفن همراه</string>
     <string name="login_phone_prefix">+98</string>
     <string name="login_phone_hint">9123456789</string>
     <string name="login_phone_helper">با ۹ شروع کنید (مثال: ۹۱۲۳۴۵۶۷۸۹)</string>
     <string name="login_button_text">دریافت کد تأیید</string>
+
     <string name="login_terms_prefix">با ورود، </string>
     <string name="login_terms_rules">قوانین</string>
     <string name="login_terms_and"> و </string>
@@ -61,10 +52,9 @@
 
     ۳. تعهد به حفظ امنیت اطلاعات
     ما صراحتاً تعهد می‌دهیم که تمامی اطلاعات شخصی شما و فرزندانتان نزد توسعه‌دهنده کاملاً محرمانه و محفوظ است. این اطلاعات تحت هیچ شرایطی فروخته نخواهد شد، مورد سوءاستفاده قرار نخواهد گرفت و در اختیار هیچ شخص، سازمان یا نهاد ثالثی جهت مقاصد تبلیغاتی یا تجاری قرار نمی‌گیرد. تمامی داده‌ها با استفاده از پروتکل‌های امن (رمزنگاری) بین دستگاه شما و سرورهای ما منتقل می‌شوند.
-]]></string>
+    ]]></string>
     <string name="login_privacy_accept">می‌پذیرم</string>
 
-    <!-- OTP -->
     <string name="otp_title">تأیید شماره تلفن</string>
     <string name="otp_subtitle_prefix">کد ارسال شده به </string>
     <string name="otp_subtitle_suffix"> را وارد کنید</string>
@@ -75,24 +65,63 @@
     <string name="otp_verify_code_button">تأیید کد</string>
     <string name="otp_verifying">درحال بررسی…</string>
 
-    <!-- Time Picker -->
-    <string name="time_minute_label">دقیقه</string>
-    <string name="time_hour_label">ساعت</string>
-    <string name="time_limit_title">تعیین سقف مصرف روزانه</string>
+    <string name="password_setup_title">ساخت رمز عبور</string>
+    <string name="password_setup_subtitle">برای امنیت حساب، فرم زیر را کامل کنید</string>
+    <string name="password_security_question_label">سوال بازیابی</string>
+    <string name="password_answer_placeholder">پاسخ شما</string>
+    <string name="password_label">رمز عبور (۴ تا ۸ رقم)</string>
+    <string name="password_strength_none">رمز را وارد کنید</string>
+    <string name="password_strength_weak">خیلی کوتاه</string>
+    <string name="password_strength_medium">متوسط</string>
+    <string name="password_strength_strong">قوی ✓</string>
+    <string name="password_confirm_label">تکرار رمز عبور</string>
+    <string name="password_match_success">✓ رمزها مطابقت دارند</string>
+    <string name="password_match_error">✕ رمزها یکسان نیستند</string>
+    <string name="password_submit_button">تأیید و ورود به اپ</string>
+    <string name="password_footer_note">🔐 این رمز برای خروج از حالت فرزند استفاده می‌شود</string>
 
-    <!-- Update -->
-    <string name="update_new_version_available">🚀 نسخه جدید در دسترس است</string>
-    <string name="update_download_install">دانلود و نصب مستقیم</string>
-    <string name="update_download_from_store">بروزرسانی از فروشگاه</string>
-    <string name="update_connecting">در حال اتصال به سرور دانلود...</string>
-    <string name="update_downloading">در حال دریافت فایل: %d%%</string>
-    <string name="update_retry">تلاش مجدد</string>
-    <string name="update_success_installing">دریافت کامل شد. در حال اجرای نصاب...</string>
-    <string name="update_exit_app">خروج از برنامه</string>
-    <string name="update_remind_later">بعداً یادآوری کن</string>
-    <string name="update_available_banner">نسخه جدید مهربان در دسترس است. برای مشاهده و بروزرسانی کلیک کنید.</string>
+    <string name="security_question_1">نام اولین معلم شما چیست؟</string>
+    <string name="security_question_2">نام حیوان خانگی مورد علاقه شما در کودکی؟</string>
+    <string name="security_question_3">نام شهر محل تولد مادرتان چیست؟</string>
 
-    <!-- Add Child -->
+    <string name="pin_required_title">تنظیم رمز عبور الزامی است</string>
+    <string name="pin_required_description">برای فعال‌سازی حالت محافظت و قفل کردن محیط کودک، ابتدا باید رمز عبور والدین را تنظیم کنید.</string>
+    <string name="set_password_button">تنظیم رمز عبور</string>
+
+    <string name="dashboard_title">تنظیمات نظارتی</string>
+    <string name="dashboard_subtitle">مدیریت کامل دسترسی‌های فرزند در این بخش انجام می‌شود</string>
+    <string name="complete_security">تکمیل امنیت</string>
+    <string name="hello_greeting">سلام 👋</string>
+    <string name="dear_parent">والد گرامی</string>
+    <string name="slider_instruction">برای فعال‌سازی سرویس بکشید</string>
+    <string name="slider_activated">سرویس فعال شد</string>
+
+    <string name="banner_official_channel">کانال رسمی مهربان</string>
+    <string name="banner_official_channel_desc">آخرین بروزرسانی‌ها و نکات والدگری</string>
+    <string name="banner_support">پشتیبانی ۲۴ ساعته</string>
+    <string name="banner_support_desc">سوال یا مشکلی دارید؟ تیم پشتیبانی در خدمت شماست</string>
+    <string name="banner_offer">پیشنهاد ویژه اشتراک</string>
+    <string name="banner_offer_desc">۳۰٪ تخفیف اشتراک سالانه مهربان پلاس</string>
+
+    <string name="settings_full">تنظیمات کامل</string>
+    <string name="settings_full_desc">زمان، فیلتر و قفل</string>
+    <string name="report_performance">گزارش عملکرد</string>
+    <string name="report_performance_desc">آمار و فعالیت هفتگی</string>
+    <string name="instant_time_lock">قفل زمان فوری</string>
+    <string name="instant_time_lock_desc">قفل دستگاه همین حالا</string>
+    <string name="live_location">موقعیت لحظه‌ای</string>
+    <string name="live_location_desc">مشاهده روی نقشه</string>
+
+    <string name="manage_children">مدیریت فرزندان</string>
+    <string name="your_children">فرزندان شما</string>
+    <string name="add_new_child">افزودن فرزند جدید</string>
+    <string name="select_child">انتخاب فرزند</string>
+    <string name="tap_child_for_settings">روی هر فرزند بزنید تا تنظیمات او باز شود</string>
+    <string name="no_children_added">هنوز فرزندی اضافه نشده است.</string>
+
+    <string name="first_child_add_title">اولین فرزند خود را اضافه کنید</string>
+    <string name="first_child_add_desc">برای دسترسی به تنظیمات، گزارش‌ها و ابزارهای محافظتی، ابتدا پروفایل فرزندتان را بسازید.</string>
+
     <string name="add_child_title">افزودن فرزند جدید</string>
     <string name="add_child_subtitle">مدیریت فرزندان</string>
     <string name="avatar_selection">انتخاب آواتار</string>
@@ -112,36 +141,157 @@
     <string name="button_add_child">افزودن فرزند ✅</string>
     <string name="dob_picker_title">تاریخ تولد فرزند</string>
 
-    <!-- App Lock -->
+    <string name="delete_child_title">حذف فرزند</string>
+    <string name="delete_child_message">آیا از حذف این پروفایل اطمینان دارید؟ تمام تنظیمات مربوط به این فرزند حذف خواهند شد.</string>
+    <string name="age_years">%d ساله</string>
+    <string name="age_less_than_one">کمتر از یک سال</string>
+
+    <string name="child_settings_header_title">⚙️ تنظیمات کامل</string>
+    <string name="child_settings_header_subtitle">پیکربندی محافظت</string>
+    <string name="child_settings_header_child_label">تنظیمات اعمال می‌شود برای</string>
+
+    <string name="child_settings_inactive">غیرفعال</string>
+    <string name="child_settings_section_time">مدیریت زمان</string>
+    <string name="child_settings_daily_time_lock">قفل زمان روزانه</string>
+    <string name="child_settings_daily_time_lock_desc">سقف زمان استفاده در شبانه‌روز</string>
+    <string name="child_settings_sleep_mode">حالت خواب</string>
+    <string name="child_settings_sleep_mode_desc">قفل خودکار شبانه</string>
+
+    <string name="child_settings_section_apps">کنترل برنامه و اینترنت</string>
+    <string name="child_settings_app_lock">قفل برنامه‌ها</string>
+    <string name="child_settings_app_lock_desc">مدیریت دسترسی به اپلیکیشن‌ها</string>
+    <string name="child_settings_site_filter">فیلتر سایت‌ها</string>
+    <string name="child_settings_site_filter_desc">مدیریت لیست سایت‌های مسدود/مجاز</string>
+    <string name="child_settings_safe_search">جستجوی ایمن</string>
+    <string name="child_settings_safe_search_desc">فیلتر نتایج جستجوی نامناسب</string>
+    <string name="child_settings_block_ads">مسدود تبلیغات</string>
+    <string name="child_settings_block_ads_desc">حذف تبلیغات در وب و برنامه‌ها</string>
+
+    <string name="child_settings_section_content">محتوای مجاز</string>
+    <string name="child_settings_movies">فیلم و انیمیشن</string>
+    <string name="child_settings_movies_desc">کتابخانه محتوای امن متناسب با سن</string>
+
+    <string name="child_settings_section_health">سلامت و امنیت</string>
+    <string name="child_settings_eye_protection">محافظ چشم</string>
+    <string name="child_settings_eye_protection_desc">فیلتر نور آبی و یادآور استراحت</string>
+    <string name="child_settings_location">موقعیت مکانی</string>
+    <string name="child_settings_location_desc">ردیابی لحظه‌ای و محدوده امن</string>
+    <string name="child_settings_prevent_delete">جلوگیری از حذف</string>
+    <string name="child_settings_prevent_delete_desc">قفل امنیتی برای حذف برنامه</string>
+
+    <string name="child_settings_all_blocked">همه غیرمجاز</string>
+    <string name="child_settings_apps_allowed">%d برنامه مجاز</string>
+
     <string name="app_lock_title">قفل برنامه‌ها</string>
     <string name="app_lock_subtitle">تنظیمات دسترسی</string>
-    <string name="search_hint">جستجوی برنامه...</string>
+    <string name="search_hint">جستجوی برنامه…</string>
     <string name="tab_blocked">مسدود شده</string>
     <string name="tab_allowed">مجاز</string>
     <string name="tab_all">همه برنامه‌ها</string>
     <string name="no_apps_found">برنامه‌ای یافت نشد.</string>
     <string name="button_save_settings">ذخیره تنظیمات</string>
 
-    <!-- Dashboard Home -->
-    <string name="complete_security">تکمیل امنیت</string>
-    <string name="hello_greeting">سلام 👋</string>
-    <string name="dear_parent">والد گرامی</string>
-    <string name="select_child">انتخاب فرزند</string>
-    <string name="first_child_add_title">اولین فرزند خود را اضافه کنید</string>
-    <string name="first_child_add_desc">برای دسترسی به تنظیمات، گزارش‌ها و ابزارهای محافظتی، ابتدا پروفایل فرزندتان را بسازید.</string>
-    <string name="coming_soon">به زودی در دسترس خواهد بود</string>
-
-    <!-- Usage / Time -->
-    <string name="age_years">%d ساله</string>
-    <string name="age_less_than_one">کمتر از یک سال</string>
-    <string name="unlimited">نامحدود</string>
     <string name="hour">ساعت</string>
     <string name="minute">دقیقه</string>
+    <string name="time_hour_label">ساعت</string>
+    <string name="time_minute_label">دقیقه</string>
+    <string name="unlimited">نامحدود</string>
     <string name="usage_today_label">زمان استفاده امروز</string>
     <string name="usage_today_value_with_limit">%1$s از %2$s</string>
     <string name="usage_today_value_unlimited">%s (نامحدود)</string>
 
-    <!-- Launcher Activation -->
+    <string name="timelimit_title">مدیریت زمان استفاده</string>
+    <string name="timelimit_subtitle">تنظیمات</string>
+    <string name="time_limit_title">تعیین سقف مصرف روزانه</string>
+    <string name="timelimit_activate_title">فعال‌سازی محدودیت زمان</string>
+    <string name="timelimit_activate_desc">اعمال سقف استفاده روزانه</string>
+    <string name="timelimit_quick_select">انتخاب سریع</string>
+    <string name="timelimit_30min">۳۰ دقیقه</string>
+    <string name="timelimit_1hour">۱ ساعت</string>
+    <string name="timelimit_2hours">۲ ساعت</string>
+    <string name="timelimit_3hours">۳ ساعت</string>
+    <string name="timelimit_custom_time">یا زمان دلخواه را وارد کنید</string>
+    <string name="timelimit_daily_allowed">زمان مجاز روزانه:</string>
+
+    <string name="sleeptime_title">زمان خواب</string>
+    <string name="sleeptime_subtitle">تنظیمات</string>
+    <string name="sleeptime_activate_title">فعال‌سازی زمان خواب</string>
+    <string name="sleeptime_activate_desc">قفل خودکار دستگاه در زمان مشخص</string>
+    <string name="sleeptime_start_label">زمان شروع خواب</string>
+    <string name="sleeptime_end_label">زمان بیداری</string>
+    <string name="sleeptime_picker_start_title">زمان شروع خواب</string>
+    <string name="sleeptime_picker_end_title">زمان بیداری</string>
+
+    <string name="browser_settings_title">تنظیمات مرورگر</string>
+    <string name="browser_settings_subtitle">مدیریت دسترسی وب فرزند</string>
+    <string name="browser_back_to_menu">بازگشت به منو</string>
+    <string name="browser_link_copied">لینک کپی شد</string>
+    <string name="browser_link_error">خطا در باز کردن لینک</string>
+
+    <string name="browser_filter_mode">حالت فیلترینگ</string>
+    <string name="browser_whitelist">لیست سفید</string>
+    <string name="browser_whitelist_desc">فقط سایت‌های مجاز</string>
+    <string name="browser_blacklist">لیست سیاه</string>
+    <string name="browser_blacklist_desc">مسدودسازی موارد خاص</string>
+    <string name="browser_filter_disabled">خاموش</string>
+    <string name="browser_filter_disabled_desc">بدون محدودیت</string>
+
+    <string name="browser_search_engine">موتور جستجوی پیش‌فرض</string>
+    <string name="browser_select_search_engine">انتخاب موتور جستجو</string>
+    <string name="browser_engine_shaadbin">شادبین (Shaadbin)</string>
+    <string name="browser_engine_kiddle">کیدل (Kiddle)</string>
+    <string name="browser_engine_duckduckgo">داک‌داک‌گو (DuckDuckGo)</string>
+    <string name="browser_engine_google">گوگل (Google)</string>
+
+    <string name="browser_cartoon_world">دنیای کارتون</string>
+    <string name="browser_cartoon_world_desc">نمایش دکمه تلوبیون کودک در خانه</string>
+
+    <string name="browser_access_management">مدیریت دسترسی‌ها</string>
+    <string name="browser_allowed_sites">سایت‌های مجاز</string>
+    <string name="browser_blocked_sites">سایت‌های مسدود</string>
+    <string name="browser_blocked_keywords">کلمات ممنوعه</string>
+    <string name="browser_history">تاریخچه بازدید</string>
+    <string name="browser_view_activity">مشاهده فعالیت‌ها</string>
+
+    <string name="browser_sites_count">%1$d سایت</string>
+    <string name="browser_keywords_count">%1$d کلمه</string>
+    <string name="browser_no_history">تاریخچه‌ای ثبت نشده است</string>
+    <string name="browser_empty_whitelist_warning">توجه: لیست سفید فعال است اما سایتی اضافه نشده. مرورگر تا زمان افزودن سایت، دسترسی را باز می‌گذارد.</string>
+
+    <string name="browser_tab_sites">سایت‌های مجاز</string>
+    <string name="browser_tab_keywords">کلمات ممنوعه</string>
+
+    <string name="browser_add_site_title">افزودن سایت مجاز</string>
+    <string name="browser_site_url_hint">آدرس سایت (مثال: aparat.com)</string>
+    <string name="browser_site_name_hint">نام سایت (مثال: آپارات)</string>
+
+    <string name="browser_add_blocked_site_title">افزودن سایت مسدود</string>
+    <string name="browser_site_address_hint">آدرس سایت (مثال: example.com)</string>
+
+    <string name="browser_add_keyword_title">افزودن کلمه ممنوعه</string>
+    <string name="browser_keyword_hint">کلمه (مثال: بازی)</string>
+    <string name="remove_desc">حذف</string>
+
+    <string name="browser_unsaved_changes">تغییرات ذخیره نشده</string>
+    <string name="browser_unsaved_desc">تغییراتی در این صفحه دارید. آیا می‌خواهید قبل از خروج آن‌ها را ذخیره کنید؟</string>
+    <string name="browser_save_and_exit">ذخیره و خروج</string>
+    <string name="browser_save_changes">ذخیره و همگام‌سازی</string>
+    <string name="browser_discard_and_exit">خروج بدون ذخیره</string>
+    <string name="browser_discard">خروج بدون ذخیره</string>
+
+    <string name="browser_search_hint">جستجو یا تایپ آدرس…</string>
+    <string name="browser_close_desc">بستن مرورگر</string>
+    <string name="browser_reload_desc">بارگذاری مجدد</string>
+    <string name="browser_url_not_allowed">این آدرس مجاز نیست</string>
+
+    <string name="kid_theme_title">پوسته کودکانه</string>
+    <string name="status_active">فعال شده</string>
+    <string name="status_inactive">غیرفعال</string>
+    <string name="section_access">دسترسی و محتوا</string>
+    <string name="cat_games">بازی‌ها</string>
+    <string name="cat_movies">فیلم</string>
+    <string name="cat_music">موسیقی</string>
+
     <string name="launcher_safe_activation_title">فعال‌سازی لانچر امن</string>
     <string name="launcher_safe_activation_desc">پس از فعال‌سازی، دستگاه فقط برنامه‌های تأیید شده را نمایش می‌دهد و خروج از این حالت نیاز به رمز والد دارد.</string>
     <string name="launcher_activation_for_child">فعال‌سازی برای فرزند</string>
@@ -152,41 +302,6 @@
     <string name="protecting_child">در حال محافظت از %s</string>
     <string name="activate_safe_environment_for">فعال‌سازی محیط امن برای %s</string>
 
-    <!-- PIN / Password -->
-    <string name="pin_required_title">تنظیم رمز عبور الزامی است</string>
-    <string name="pin_required_description">برای فعال‌سازی حالت محافظت و قفل کردن محیط کودک، ابتدا باید رمز عبور والدین را تنظیم کنید.</string>
-    <string name="set_password_button">تنظیم رمز عبور</string>
-
-    <!-- Action Grid -->
-    <string name="settings_full">تنظیمات کامل</string>
-    <string name="settings_full_desc">زمان، فیلتر و قفل</string>
-    <string name="report_performance">گزارش عملکرد</string>
-    <string name="report_performance_desc">آمار و فعالیت هفتگی</string>
-    <string name="instant_time_lock">قفل زمان فوری</string>
-    <string name="instant_time_lock_desc">قفل دستگاه همین حالا</string>
-    <string name="live_location">موقعیت لحظه‌ای</string>
-    <string name="live_location_desc">مشاهده روی نقشه</string>
-
-    <!-- Banners -->
-    <string name="banner_official_channel">کانال رسمی مهربان</string>
-    <string name="banner_official_channel_desc">آخرین بروزرسانی‌ها و نکات والدگری</string>
-    <string name="banner_support">پشتیبانی ۲۴ ساعته</string>
-    <string name="banner_support_desc">سوال یا مشکلی دارید؟ تیم پشتیبانی در خدمت شماست</string>
-    <string name="banner_offer">پیشنهاد ویژه اشتراک</string>
-    <string name="banner_offer_desc">۳۰٪ تخفیف اشتراک سالانه مهربان پلاس</string>
-
-    <!-- Family Management -->
-    <string name="delete_child_title">حذف فرزند</string>
-    <string name="delete_child_message">آیا از حذف این پروفایل اطمینان دارید؟ تمام تنظیمات مربوط به این فرزند حذف خواهند شد.</string>
-    <string name="delete">حذف</string>
-    <string name="tap_child_for_settings">روی هر فرزند بزنید تا تنظیمات او باز شود</string>
-    <string name="no_children_added">هنوز فرزندی اضافه نشده است.</string>
-    <string name="manage_children">مدیریت فرزندان</string>
-    <string name="your_children">فرزندان شما</string>
-    <string name="add_new_child">افزودن فرزند جدید</string>
-    <string name="today">امروز</string>
-
-    <!-- Launcher Child Screen -->
     <string name="launcher_exit_toast">خروج از محیط امن</string>
     <string name="launcher_greeting">سلام،</string>
     <string name="launcher_default_child_name">فرزند</string>
@@ -198,42 +313,92 @@
     <string name="launcher_camera">دوربین</string>
     <string name="launcher_gallery">گالری</string>
     <string name="launcher_home">خانه</string>
+
     <string name="launcher_parent_pin">رمز والد</string>
     <string name="launcher_pin_description">برای خروج از حالت لانچر، رمز والد را وارد کنید</string>
     <string name="launcher_pin_placeholder">رمز عبور (۴ تا ۸ رقم)</string>
     <string name="launcher_pin_error">رمز اشتباه است. دوباره تلاش کنید.</string>
     <string name="launcher_forgot_pin">رمز عبور را فراموش کرده‌اید؟</string>
+
     <string name="launcher_recovery_title">بازیابی رمز عبور</string>
     <string name="launcher_recovery_question_label">سوال امنیتی:</string>
     <string name="launcher_recovery_answer_placeholder">پاسخ شما</string>
     <string name="launcher_recovery_error">پاسخ اشتباه است.</string>
     <string name="launcher_recovery_submit">بررسی و خروج</string>
 
-    <!-- Password Setup -->
-    <string name="password_setup_title">ساخت رمز عبور</string>
-    <string name="password_setup_subtitle">برای امنیت حساب، فرم زیر را کامل کنید</string>
-    <string name="password_security_question_label">سوال بازیابی</string>
-    <string name="password_answer_placeholder">پاسخ شما</string>
-    <string name="password_label">رمز عبور (۴ تا ۸ رقم)</string>
-    <string name="password_strength_none">رمز را وارد کنید</string>
-    <string name="password_strength_weak">خیلی کوتاه</string>
-    <string name="password_strength_medium">متوسط</string>
-    <string name="password_strength_strong">قوی ✓</string>
-    <string name="password_confirm_label">تکرار رمز عبور</string>
-    <string name="password_match_success">✓ رمزها مطابقت دارند</string>
-    <string name="password_match_error">✕ رمزها یکسان نیستند</string>
-    <string name="password_submit_button">تأیید و ورود به اپ</string>
-    <string name="password_footer_note">🔐 این رمز برای خروج از حالت فرزند استفاده می‌شود</string>
+    <string name="report_header_title">📊 آمار استفاده</string>
+    <string name="report_header_subtitle">گزارش عملکرد</string>
+    <string name="report_child_label">گزارش برای</string>
+    <string name="report_change_child">تغییر فرزند</string>
 
-    <!-- Permissions Slider -->
+    <string name="report_most_used_apps">پرکاربردترین برنامه‌ها</string>
+    <string name="report_show_details">جزئیات ←</string>
+    <string name="report_show_less">بستن ↑</string>
+    <string name="report_no_app_usage">هیچ برنامه‌ای امروز استفاده نشده است.</string>
+
+    <string name="report_weekly_title">زمان استفاده هفته (ساعت)</string>
+    <string name="report_average_label">میانگین: %s</string>
+    <string name="report_weekly_insight_title">نکته این هفته</string>
+    <string name="report_weekly_insight_text">زمان استفاده روزانه در حد تعادل است. این روند به ترشح طبیعی دوپامین و حفظ تمرکز کمک می‌کند.</string>
+
+    <string name="week_day_sat">ش</string>
+    <string name="week_day_sun">ی</string>
+    <string name="week_day_mon">د</string>
+    <string name="week_day_tue">س</string>
+    <string name="week_day_wed">چ</string>
+    <string name="week_day_thu">پ</string>
+    <string name="week_day_fri">ج</string>
+
+    <string name="settings_password_settings">تنظیمات رمز عبور</string>
+    <string name="settings_notifications">اعلان‌ها</string>
+    <string name="settings_privacy">حریم خصوصی</string>
+    <string name="settings_update_available">نسخه جدید در دسترس است!</string>
+    <string name="settings_update_checking">در حال بررسی بروزرسانی…</string>
+    <string name="settings_update_check">بررسی بروزرسانی برنامه</string>
+    <string name="settings_help_support">راهنما و پشتیبانی</string>
+    <string name="help_section_under_construction">بخش راهنما در حال ساخت است</string>
+    <string name="settings_export_logs">ارسال گزارش سیستم (Debug)</string>
+    <string name="settings_logout">خروج از حساب کاربری</string>
+    <string name="settings_theme_title">ظاهر برنامه</string>
+    <string name="settings_theme_light">روشن</string>
+    <string name="settings_theme_dark">تیره</string>
+    <string name="settings_theme_system">سیستم</string>
+    <string name="settings_loading">در حال بارگذاری…</string>
+    <string name="settings_phone_unknown">شماره نامشخص</string>
+    <string name="settings_update_uptodate">شما از آخرین نسخه استفاده می‌کنید.</string>
+
+    <string name="app_language_title">زبان برنامه</string>
+    <string name="language_persian">فارسی</string>
+    <string name="language_english">English</string>
+
+    <string name="notification_channel_name">نظارت خانواده</string>
+    <string name="notification_family_protection_title">محافظت خانواده فعال است</string>
+    <string name="notification_family_protection_text">گوشی در حالت امن کودک قرار دارد.</string>
+    <string name="notification_empty_title">شما پیام جدیدی ندارید</string>
+    <string name="notification_empty_description">تمامی اعلان‌ها و هشدارهای مربوط به استفاده فرزندان در اینجا نمایش داده می‌شود.</string>
+
+    <string name="update_new_version_available">🚀 نسخه جدید در دسترس است</string>
+    <string name="update_download_install">دانلود و نصب مستقیم</string>
+    <string name="update_download_from_store">بروزرسانی از فروشگاه</string>
+    <string name="update_connecting">در حال اتصال به سرور دانلود…</string>
+    <string name="update_downloading">در حال دریافت فایل: %d%%</string>
+    <string name="update_retry">تلاش مجدد</string>
+    <string name="update_success_installing">دریافت کامل شد. در حال اجرای نصاب…</string>
+    <string name="update_exit_app">خروج از برنامه</string>
+    <string name="update_remind_later">بعداً یادآوری کن</string>
+    <string name="update_available_banner">نسخه جدید مهربان در دسترس است. برای مشاهده و بروزرسانی کلیک کنید.</string>
+
     <string name="permission_setup_header">راه‌اندازی دسترسی‌ها</string>
     <string name="permission_grant_access">اعطای دسترسی</string>
+    <string name="permission_final_confirm">تایید نهایی و ورود</string>
+    <string name="accessibility_description">سرویس نظارت خانواده برای محافظت از کودکان</string>
+
     <string name="permission_info_accessibility_usage">این دسترسی هیچ اطلاعات شخصی را جمع‌آوری نمی‌کند. فقط نام اپ‌های فعال را می‌بیند.</string>
     <string name="permission_warning_device_admin">توجه: این دسترسی فقط با رمز والدین قابل لغو است.</string>
     <string name="permission_info_vpn">این VPN هیچ داده‌ای به اینترنت ارسال نمی‌کند و فقط برای فیلتر داخلی استفاده می‌شود.</string>
     <string name="permission_device_admin_explanation">برای جلوگیری از حذف برنامه توسط کودک، این دسترسی الزامی است.</string>
+    <string name="device_admin_disable_warning">هشدار: غیرفعال کردن این بخش باعث اطلاع‌رسانی فوری به والدین و مسدود شدن دستگاه می‌شود. آیا مطمئن هستید؟</string>
 
-    <!-- Permission Details -->
     <string name="permission_usage_stats_title">آمار کارکرد برنامه‌ها</string>
     <string name="permission_usage_stats_desc">برای مدیریت زمان استفاده از گوشی، این دسترسی حیاتی است.</string>
     <string name="permission_usage_stats_step1">۱. روی اعطای دسترسی کلیک کن</string>
@@ -270,124 +435,33 @@
     <string name="permission_location_step2">۲. گزینه Allow all the time رو انتخاب کن</string>
     <string name="permission_location_step3">۳. دسترسی تایید شد</string>
 
-    <!-- Report Screen -->
-    <string name="report_most_used_apps">پرکاربردترین برنامه‌ها</string>
-    <string name="report_show_details">جزئیات ←</string>
-    <string name="report_show_less">بستن ↑</string>
-    <string name="report_no_app_usage">هیچ برنامه‌ای امروز استفاده نشده است.</string>
-    <string name="report_weekly_insight_title">نکته این هفته</string>
-    <string name="report_weekly_insight_text">زمان استفاده روزانه در حد تعادل است. این روند به ترشح طبیعی دوپامین و حفظ تمرکز کمک می‌کند.</string>
-    <string name="report_header_subtitle">گزارش عملکرد</string>
-    <string name="report_header_title">📊 آمار استفاده</string>
-    <string name="report_child_label">گزارش برای</string>
-    <string name="report_change_child">تغییر فرزند</string>
-    <string name="report_weekly_title">زمان استفاده هفته (ساعت)</string>
-    <string name="report_average_label">میانگین: %s</string>
+    <string name="child_added_success">فرزند با موفقیت اضافه شد.</string>
+    <string name="password_setup_success">حساب شما با موفقیت ساخته شد 🎉</string>
+    <string name="otp_resend_success">کد جدید با موفقیت ارسال شد</string>
+    <string name="saved_successfully">تغییرات با موفقیت ذخیره شد</string>
+    <string name="app_access_saved">دسترسی برنامه‌ها ذخیره شد ✅</string>
+    <string name="sleep_settings_saved">تنظیمات خواب ذخیره شد</string>
+    <string name="time_settings_saved">تنظیمات زمان ذخیره شد ✅</string>
+    <string name="sync_successful">با موفقیت همگام‌سازی شد</string>
+    <string name="launcher_time_expired">زمان استفاده شما به پایان رسیده است</string>
 
-    <!-- Week Day Abbreviations (Persian) -->
-    <string name="week_day_sat">ش</string>
-    <string name="week_day_sun">ی</string>
-    <string name="week_day_mon">د</string>
-    <string name="week_day_tue">س</string>
-    <string name="week_day_wed">چ</string>
-    <string name="week_day_thu">پ</string>
-    <string name="week_day_fri">ج</string>
-
-    <!-- Settings Screen -->
-    <string name="settings_password_settings">تنظیمات رمز عبور</string>
-    <string name="settings_notifications">اعلان‌ها</string>
-    <string name="settings_privacy">حریم خصوصی</string>
-    <string name="settings_update_available">نسخه جدید در دسترس است!</string>
-    <string name="settings_update_checking">در حال بررسی بروزرسانی...</string>
-    <string name="settings_update_check">بررسی بروزرسانی برنامه</string>
-    <string name="settings_help_support">راهنما و پشتیبانی</string>
-    <string name="settings_export_logs">ارسال گزارش سیستم (Debug)</string>
-    <string name="settings_logout">خروج از حساب کاربری</string>
-    <string name="settings_theme_title">ظاهر برنامه</string>
-    <string name="settings_theme_light">روشن</string>
-    <string name="settings_theme_dark">تیره</string>
-    <string name="settings_theme_system">سیستم</string>
-
-    <!-- Child Settings Screen -->
-    <string name="child_settings_inactive">غیرفعال</string>
-    <string name="child_settings_section_time">مدیریت زمان</string>
-    <string name="child_settings_daily_time_lock">قفل زمان روزانه</string>
-    <string name="child_settings_daily_time_lock_desc">سقف زمان استفاده در شبانه‌روز</string>
-    <string name="child_settings_sleep_mode">حالت خواب</string>
-    <string name="child_settings_sleep_mode_desc">قفل خودکار شبانه</string>
-    <string name="child_settings_section_apps">کنترل برنامه و اینترنت</string>
-    <string name="child_settings_app_lock">قفل برنامه‌ها</string>
-    <string name="child_settings_app_lock_desc">مدیریت دسترسی به اپلیکیشن‌ها</string>
-    <string name="child_settings_site_filter">فیلتر سایت‌ها</string>
-    <string name="child_settings_site_filter_desc">مدیریت لیست سایت‌های مسدود/مجاز</string>
-    <string name="child_settings_safe_search">جستجوی ایمن</string>
-    <string name="child_settings_safe_search_desc">فیلتر نتایج جستجوی نامناسب</string>
-    <string name="child_settings_block_ads">مسدود تبلیغات</string>
-    <string name="child_settings_block_ads_desc">حذف تبلیغات در وب و برنامه‌ها</string>
-    <string name="child_settings_section_content">محتوای مجاز</string>
-    <string name="child_settings_movies">فیلم و انیمیشن</string>
-    <string name="child_settings_movies_desc">کتابخانه محتوای امن متناسب با سن</string>
-    <string name="child_settings_section_health">سلامت و امنیت</string>
-    <string name="child_settings_eye_protection">محافظ چشم</string>
-    <string name="child_settings_eye_protection_desc">فیلتر نور آبی و یادآور استراحت</string>
-    <string name="child_settings_location">موقعیت مکانی</string>
-    <string name="child_settings_location_desc">ردیابی لحظه‌ای و محدوده امن</string>
-    <string name="child_settings_prevent_delete">جلوگیری از حذف</string>
-    <string name="child_settings_prevent_delete_desc">قفل امنیتی برای حذف برنامه</string>
-    <string name="child_settings_all_blocked">همه غیرمجاز</string>
-    <string name="child_settings_apps_allowed">%d برنامه مجاز</string>
-    <string name="child_settings_header_subtitle">پیکربندی محافظت</string>
-    <string name="child_settings_header_title">⚙️ تنظیمات کامل</string>
-    <string name="child_settings_header_child_label">تنظیمات اعمال می‌شود برای</string>
-    <!-- Reuses `change` (تغییر) -->
-
-    <!-- Sleep Time -->
-    <string name="sleeptime_title">زمان خواب</string>
-    <string name="sleeptime_subtitle">تنظیمات</string>
-    <string name="sleeptime_activate_title">فعال‌سازی زمان خواب</string>
-    <string name="sleeptime_activate_desc">قفل خودکار دستگاه در زمان مشخص</string>
-    <string name="sleeptime_start_label">زمان شروع خواب</string>
-    <string name="sleeptime_end_label">زمان بیداری</string>
-    <string name="sleeptime_picker_start_title">زمان شروع خواب</string>
-    <string name="sleeptime_picker_end_title">زمان بیداری</string>
-
-    <!-- Time Limit -->
-    <string name="timelimit_title">مدیریت زمان استفاده</string>
-    <string name="timelimit_subtitle">تنظیمات</string>
-    <string name="timelimit_activate_title">فعال‌سازی محدودیت زمان</string>
-    <string name="timelimit_activate_desc">اعمال سقف استفاده روزانه</string>
-    <string name="timelimit_quick_select">انتخاب سریع</string>
-    <string name="timelimit_30min">۳۰ دقیقه</string>
-    <string name="timelimit_1hour">۱ ساعت</string>
-    <string name="timelimit_2hours">۲ ساعت</string>
-    <string name="timelimit_3hours">۳ ساعت</string>
-    <string name="timelimit_custom_time">یا زمان دلخواه را وارد کنید</string>
-    <string name="timelimit_daily_allowed">زمان مجاز روزانه:</string>
-
-    <!-- Notification / Service -->
-    <string name="notification_channel_name">نظارت خانواده</string>
-    <string name="notification_family_protection_title">محافظت خانواده فعال است</string>
-    <string name="notification_family_protection_text">گوشی در حالت امن کودک قرار دارد.</string>
-
-    <!-- AppUpdateManager -->
-    <string name="update_cancelled_already_latest">بروزرسانی لغو شد. شما در حال استفاده از آخرین نسخه تایید شده هستید.</string>
-    <string name="download_error_generic">خطا در دانلود فایل</string>
-
-    <!-- Device Admin -->
-    <string name="device_admin_disable_warning">هشدار: غیرفعال کردن این بخش باعث اطلاع‌رسانی فوری به والدین و مسدود شدن دستگاه می‌شود. آیا مطمئن هستید؟</string>
-
-    <!-- Auth / Profile Error Messages -->
+    <string name="error_unknown">خطای نامشخص</string>
+    <string name="error_save_child_generic">خطا در ذخیره اطلاعات.</string>
+    <string name="error_privacy_not_accepted">لطفاً قوانین و حریم خصوصی را تایید کنید.</string>
     <string name="error_server_communication">خطا در ارتباط با سرور</string>
     <string name="error_network_check_internet">خطای شبکه. لطفا اینترنت خود را بررسی کنید.</string>
     <string name="error_wrong_verification_code">کد وارد شده صحیح نیست</string>
     <string name="error_network_connection">خطای شبکه در ارتباط با سرور</string>
     <string name="error_saving_data_server">خطا در ذخیره اطلاعات در سرور</string>
+    <string name="sync_failed">خطا در ارتباط با سرور</string>
 
-    <!-- Download Errors -->
     <string name="error_download_connection_failed">خطا در برقراری ارتباط با سرور</string>
     <string name="error_download_connection_lost">ارتباط قطع شد. لطفاً دوباره تلاش کنید.</string>
+    <string name="download_error_generic">خطا در دانلود فایل</string>
+    <string name="update_cancelled_already_latest">بروزرسانی لغو شد. شما در حال استفاده از آخرین نسخه تایید شده هستید.</string>
+    <string name="invalid_domain_format">لطفاً یک آدرس سایت معتبر وارد کنید (مثال: example.com)</string>
+    <string name="recovery_question_not_set">سوال بازیابی تنظیم نشده است</string>
 
-    <!-- Validation Errors -->
     <string name="error_pin_length">رمز عبور باید 4 الی 8 رقم باشد.</string>
     <string name="error_security_answer_short">پاسخ امنیتی بسیار کوتاه است.</string>
     <string name="error_security_question_empty">سوال امنیتی انتخاب نشده است.</string>
@@ -398,73 +472,4 @@
     <string name="error_phone_invalid_format">شماره تماس نامعتبر است (مثال: 912 345 6789)</string>
     <string name="error_otp_length">کد باید ۴ رقم باشد.</string>
     <string name="error_otp_wrong">کد وارد شده اشتباه است.</string>
-
-    <!--NO CATEGORY-->
-    <string name="child_added_success">فرزند با موفقیت اضافه شد.</string>
-    <string name="error_save_child_generic">خطا در ذخیره اطلاعات.</string>
-    <string name="app_access_saved">دسترسی برنامه‌ها ذخیره شد ✅</string>
-    <string name="launcher_time_expired">زمان استفاده شما به پایان رسیده است</string>
-    <string name="recovery_question_not_set">سوال بازیابی تنظیم نشده است</string>
-    <string name="error_privacy_not_accepted">لطفاً قوانین و حریم خصوصی را تایید کنید.</string>
-    <string name="otp_resend_success">کد جدید با موفقیت ارسال شد</string>
-    <!--NO CATEGORY-->
-
-    <!-- Security Questions -->
-    <string name="security_question_1">نام اولین معلم شما چیست؟</string>
-    <string name="security_question_2">نام حیوان خانگی مورد علاقه شما در کودکی؟</string>
-    <string name="security_question_3">نام شهر محل تولد مادرتان چیست؟</string>
-
-    <!-- Password Setup -->
-    <string name="password_setup_success">حساب شما با موفقیت ساخته شد 🎉</string>
-    <string name="error_unknown">خطای نامشخص</string>
-
-    <!-- Settings -->
-    <string name="settings_loading">در حال بارگذاری...</string>
-    <string name="settings_phone_unknown">شماره نامشخص</string>
-    <string name="settings_update_uptodate">شما از آخرین نسخه استفاده می‌کنید.</string>
-
-    <!-- Child Settings / Feature Placeholders -->
-    <string name="feature_under_development">این ویژگی در دست توسعه است.</string>
-    <string name="feature_coming_soon">این ویژگی به زودی در دسترس خواهد بود!</string>
-
-    <!-- Site Management -->
-    <string name="invalid_domain_format">لطفاً یک آدرس سایت معتبر وارد کنید (مثال: example.com)</string>
-
-    <!-- Sleep Time -->
-    <string name="sleep_settings_saved">تنظیمات خواب ذخیره شد</string>
-
-    <!-- Time Limit -->
-    <string name="time_settings_saved">تنظیمات زمان ذخیره شد ✅</string>
-
-    <string name="help_section_under_construction">بخش راهنما در حال ساخت است</string>
-    <string name="permission_final_confirm">تایید نهایی و ورود</string>
-
-    <string name="app_language_title">زبان برنامه</string>
-    <string name="language_persian">فارسی</string>
-    <string name="language_english">English</string>
-    <string name="notification_empty_title">شما پیام جدیدی ندارید</string>
-    <string name="notification_empty_description">تمامی اعلان‌ها و هشدارهای مربوط به استفاده فرزندان در اینجا نمایش داده می‌شود.</string>
-
-    <string name="browser_search_hint">جستجو یا تایپ آدرس…</string>
-    <string name="browser_close_desc">بستن مرورگر</string>
-    <string name="browser_reload_desc">بارگذاری مجدد</string>
-
-    <string name="browser_settings_title">تنظیمات مرورگر</string>
-    <string name="browser_settings_subtitle">مدیریت دسترسی‌های وب</string>
-    <string name="browser_tab_sites">سایت‌های مجاز</string>
-    <string name="browser_tab_keywords">کلمات ممنوعه</string>
-    <string name="browser_add_site_title">افزودن سایت مجاز</string>
-    <string name="browser_site_url_hint">آدرس سایت (مثال: aparat.com)</string>
-    <string name="browser_site_name_hint">نام سایت</string>
-    <string name="browser_add_keyword_title">افزودن کلمه ممنوعه</string>
-    <string name="browser_keyword_hint">کلمه یا عبارت</string>
-    <string name="save">ذخیره</string>
-    <string name="remove_desc">حذف</string>
-
-    <string name="browser_url_not_allowed">این آدرس مجاز نیست</string>
-    <string name="browser_engine_shaadbin">شادبین (Shaadbin)</string>
-    <string name="browser_engine_kiddle">کیدل (Kiddle)</string>
-    <string name="browser_engine_duckduckgo">داک‌داک‌گو (DuckDuckGo)</string>
-    <string name="browser_engine_google">گوگل (Google)</string>
-    <string name="browser_allowed_sites">سایت‌های مجاز</string>
 </resources>
