@@ -32,7 +32,8 @@ interface SafeBrowserRepository {
 
 class SafeBrowserRepositoryImpl @Inject constructor(
     private val dao: SafeBrowserDao,
-    private val api: SafeBrowserApi
+    private val policyApi: SafeBrowserApi,
+    private val telemetryApi: BrowserTelemetryApi,
 ) : SafeBrowserRepository {
 
     override fun observeFullProfile(childId: String) = dao.observeFullProfile(childId)
@@ -96,29 +97,44 @@ class SafeBrowserRepositoryImpl @Inject constructor(
             val unsyncedKeys = dao.getUnsyncedBlockedKeywords(childId)
             val unsyncedHist = dao.getUnsyncedHistory(childId)
 
-            if (unsyncedSettings == null && unsyncedAllowed.isEmpty() && unsyncedBlocked.isEmpty() && unsyncedKeys.isEmpty() && unsyncedHist.isEmpty()) {
-                return Result.success(Unit)
+            var policySuccess = true
+            var telemetrySuccess = true
+
+            // 🚀 1. PUSH POLICY
+            if (unsyncedSettings != null || unsyncedAllowed.isNotEmpty() || unsyncedBlocked.isNotEmpty() || unsyncedKeys.isNotEmpty()) {
+                val policyRequest = BrowserPolicySyncRequestDto(
+                    settings = unsyncedSettings?.let { BrowserSettingsDto(it.searchEngine, it.isCartoonWorldEnabled, it.filterMode.name, it.updatedAt) },
+                    allowedSites = unsyncedAllowed.map { BrowserSiteDto(it.url, it.label, it.isActive, it.updatedAt) },
+                    blockedSites = unsyncedBlocked.map { BrowserSiteDto(it.url, null, it.isActive, it.updatedAt) },
+                    blockedKeywords = unsyncedKeys.map { BrowserKeywordDto(it.keyword, it.isActive, it.updatedAt) }
+                )
+
+                val policyResponse = policyApi.syncBrowserPolicy(childId, policyRequest)
+                if (policyResponse.isSuccessful) {
+                    if (unsyncedSettings != null) dao.markSettingsAsSynced(childId)
+                    if (unsyncedAllowed.isNotEmpty()) dao.markAllowedSitesAsSynced(childId, unsyncedAllowed.map { it.url })
+                    if (unsyncedBlocked.isNotEmpty()) dao.markBlockedSitesAsSynced(childId, unsyncedBlocked.map { it.url })
+                    if (unsyncedKeys.isNotEmpty()) dao.markBlockedKeywordsAsSynced(childId, unsyncedKeys.map { it.keyword })
+                } else {
+                    policySuccess = false
+                }
             }
 
-            val request = BulkBrowserRequestDto(
-                settings = unsyncedSettings?.let { BrowserSettingsDto(it.searchEngine, it.isCartoonWorldEnabled, it.filterMode.name, it.updatedAt) },
-                allowedSites = unsyncedAllowed.map { BrowserSiteDto(it.url, it.label, it.isActive, it.updatedAt) },
-                blockedSites = unsyncedBlocked.map { BrowserSiteDto(it.url, null, it.isActive, it.updatedAt) },
-                blockedKeywords = unsyncedKeys.map { BrowserKeywordDto(it.keyword, it.isActive, it.updatedAt) },
-                history = unsyncedHist.map { BrowserHistoryDto(it.url, it.title, it.timestamp) }
-            )
+            // 🚀 2. PUSH TELEMETRY (HISTORY)
+            if (unsyncedHist.isNotEmpty()) {
+                val historyRequest = unsyncedHist.map { BrowserHistoryDto(it.url, it.title, it.timestamp) }
+                val telemetryResponse = telemetryApi.syncBrowserHistory(childId, historyRequest)
 
-            val response = api.syncBrowserData(childId, request)
-            if (response.isSuccessful) {
-                if (unsyncedSettings != null) dao.markSettingsAsSynced(childId)
-                if (unsyncedAllowed.isNotEmpty()) dao.markAllowedSitesAsSynced(childId, unsyncedAllowed.map { it.url })
-                if (unsyncedBlocked.isNotEmpty()) dao.markBlockedSitesAsSynced(childId, unsyncedBlocked.map { it.url })
-                if (unsyncedKeys.isNotEmpty()) dao.markBlockedKeywordsAsSynced(childId, unsyncedKeys.map { it.keyword })
-                if (unsyncedHist.isNotEmpty()) dao.markHistoryAsSynced(childId, unsyncedHist.map { it.id })
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("HTTP ${response.code()}"))
+                if (telemetryResponse.isSuccessful) {
+                    dao.markHistoryAsSynced(childId, unsyncedHist.map { it.id })
+                } else {
+                    telemetrySuccess = false
+                }
             }
+
+            if (policySuccess && telemetrySuccess) Result.success(Unit)
+            else Result.failure(Exception("Sync partially or fully failed"))
+
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -128,7 +144,7 @@ class SafeBrowserRepositoryImpl @Inject constructor(
         pushBrowserDataToServer(childId)
 
         return try {
-            val response = api.getBrowserSettings(childId)
+            val response = policyApi.getBrowserSettings(childId)
             if (response.isSuccessful && response.body() != null) {
                 val data = response.body()!!
 
