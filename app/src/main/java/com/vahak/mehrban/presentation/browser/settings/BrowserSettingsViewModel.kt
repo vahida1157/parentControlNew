@@ -92,26 +92,33 @@ class BrowserSettingsViewModel @Inject constructor(
     private fun observeProfile(childId: String) {
         viewModelScope.launch {
             repository.observeFullProfile(childId).collectLatest { profile ->
-                if (profile != null) {
-                    val activeProfile = profile.copy(
-                        allowedSites = profile.allowedSites.filter { it.isActive },
-                        blockedSites = profile.blockedSites.filter { it.isActive },
-                        blockedKeywords = profile.blockedKeywords.filter { it.isActive }
-                    )
+                // 🚀 THE FIX: If profile is null (fresh install), provide default settings so the UI doesn't freeze
+                val activeProfile = profile ?: FullBrowserProfile(
+                    settings = BrowserSettingsEntity(childId = childId, searchEngine = "kiddle", filterMode = FilterMode.WHITELIST_ONLY),
+                    allowedSites = emptyList(),
+                    blockedSites = emptyList(),
+                    blockedKeywords = emptyList()
+                )
 
-                    updateState { copy(originalProfile = activeProfile, isLoading = false) }
+                val filteredProfile = activeProfile.copy(
+                    allowedSites = activeProfile.allowedSites.filter { it.isActive },
+                    blockedSites = activeProfile.blockedSites.filter { it.isActive },
+                    blockedKeywords = activeProfile.blockedKeywords.filter { it.isActive }
+                )
 
-                    if (!hasInitializedDraft) {
-                        updateState {
-                            copy(
-                                draftSettings = activeProfile.settings,
-                                draftAllowedSites = activeProfile.allowedSites,
-                                draftBlockedSites = activeProfile.blockedSites,
-                                draftKeywords = activeProfile.blockedKeywords
-                            )
-                        }
-                        hasInitializedDraft = true
+                updateState { copy(originalProfile = filteredProfile, isLoading = false) }
+
+                // Only overwrite the draft if we haven't started editing
+                if (!hasInitializedDraft) {
+                    updateState {
+                        copy(
+                            draftSettings = filteredProfile.settings,
+                            draftAllowedSites = filteredProfile.allowedSites,
+                            draftBlockedSites = filteredProfile.blockedSites,
+                            draftKeywords = filteredProfile.blockedKeywords
+                        )
                     }
+                    hasInitializedDraft = true
                 }
             }
         }
@@ -146,22 +153,14 @@ class BrowserSettingsViewModel @Inject constructor(
 
     override fun onEvent(event: BrowserSettingsEvent) {
         val childId = state.value.childId
-        if (childId.isEmpty() || state.value.draftSettings == null) return
 
         viewModelScope.launch {
+            // 🚀 THE FIX: Process navigation and dialog events ALWAYS, regardless of database state
             when (event) {
-                is BrowserSettingsEvent.NavigateTo -> updateState { copy(activePage = event.page) }
-
-                // 🚀 NEW: Change Date logic
-                is BrowserSettingsEvent.ChangeHistoryDate -> {
-                    val cal = Calendar.getInstance().apply { timeInMillis = state.value.selectedDateMillis }
-                    cal.add(Calendar.DAY_OF_YEAR, event.offsetDays)
-                    val newDate = cal.timeInMillis
-
-                    updateState { copy(selectedDateMillis = newDate) }
-                    observeHistory(childId, newDate) // Re-trigger DB fetch for new date
+                is BrowserSettingsEvent.NavigateTo -> {
+                    updateState { copy(activePage = event.page) }
+                    return@launch
                 }
-
                 is BrowserSettingsEvent.OnBackPress -> {
                     if (state.value.activePage == BrowserSettingsPage.MENU) {
                         if (state.value.hasUnsavedChanges) {
@@ -172,9 +171,32 @@ class BrowserSettingsViewModel @Inject constructor(
                     } else {
                         updateState { copy(activePage = BrowserSettingsPage.MENU) }
                     }
+                    return@launch
                 }
+                is BrowserSettingsEvent.DismissUnsavedDialog -> {
+                    updateState { copy(showUnsavedDialog = false) }
+                    return@launch
+                }
+                is BrowserSettingsEvent.DiscardAndExit -> {
+                    updateState { copy(showUnsavedDialog = false) }
+                    sendEffect(BrowserSettingsEffect.ExitScreen)
+                    return@launch
+                }
+                else -> {} // Pass through to data modification events below
+            }
 
-                is BrowserSettingsEvent.DismissUnsavedDialog -> updateState { copy(showUnsavedDialog = false) }
+            // 🚀 Now we block data-modifying events if the database isn't ready yet
+            if (childId.isEmpty() || state.value.draftSettings == null) return@launch
+
+            when (event) {
+                is BrowserSettingsEvent.ChangeHistoryDate -> {
+                    val cal = java.util.Calendar.getInstance().apply { timeInMillis = state.value.selectedDateMillis }
+                    cal.add(java.util.Calendar.DAY_OF_YEAR, event.offsetDays)
+                    val newDate = cal.timeInMillis
+
+                    updateState { copy(selectedDateMillis = newDate) }
+                    observeHistory(childId, newDate)
+                }
 
                 is BrowserSettingsEvent.SaveAndExit -> {
                     val orig = state.value.originalProfile ?: return@launch
@@ -203,10 +225,6 @@ class BrowserSettingsViewModel @Inject constructor(
                     sendEffect(BrowserSettingsEffect.ShowToast(R.string.saved_successfully))
                     sendEffect(BrowserSettingsEffect.ExitScreen)
                 }
-                is BrowserSettingsEvent.DiscardAndExit -> {
-                    updateState { copy(showUnsavedDialog = false) }
-                    sendEffect(BrowserSettingsEffect.ExitScreen)
-                }
 
                 is BrowserSettingsEvent.ChangeFilterMode -> updateState { copy(draftSettings = draftSettings?.copy(filterMode = event.mode)) }
                 is BrowserSettingsEvent.SetEngineMenuOpen -> updateState { copy(isEngineMenuOpen = event.isOpen) }
@@ -219,6 +237,7 @@ class BrowserSettingsViewModel @Inject constructor(
                 is BrowserSettingsEvent.RemoveBlockedSite -> updateState { copy(draftBlockedSites = draftBlockedSites.filter { it.url != event.url }) }
                 is BrowserSettingsEvent.AddBlockedKeyword -> updateState { copy(draftKeywords = draftKeywords + BrowserBlockedKeywordEntity(childId = childId, keyword = event.keyword.lowercase())) }
                 is BrowserSettingsEvent.RemoveBlockedKeyword -> updateState { copy(draftKeywords = draftKeywords.filter { it.keyword != event.keyword }) }
+                else -> {}
             }
         }
     }

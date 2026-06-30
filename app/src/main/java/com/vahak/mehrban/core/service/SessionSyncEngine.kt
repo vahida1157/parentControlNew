@@ -4,6 +4,7 @@ import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.domain.repository.AppRuleRepository
 import com.vahak.mehrban.domain.repository.ChildRepository
 import com.vahak.mehrban.domain.repository.NotificationRepository
+import com.vahak.mehrban.domain.repository.SafeBrowserRepository
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.domain.repository.UsageRepository
 import kotlinx.coroutines.CoroutineScope
@@ -24,45 +25,44 @@ class SessionSyncEngine @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val appRuleRepository: AppRuleRepository,
     private val usageRepository: UsageRepository,
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val safeBrowserRepository: SafeBrowserRepository,
 ) {
     private val engineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun start() {
         engineScope.launch {
-            // 🚀 THE MAGIC: collectLatest will automatically CANCEL the inner blocks
-            // if the user logs out (phone becomes null).
             sessionManager.userPhoneFlow.distinctUntilChanged().collectLatest { phone ->
                 if (phone != null) {
                     Timber.d("Valid session detected. Booting all background sync targets.")
 
-                    // 1. Initial One-Time Fetches
                     launch { childRepository.syncChildrenFromServer() }
                     launch { notificationRepository.syncNotificationsFromServer() }
 
-                    // 2. Viewed Child Sync (Runs when Parent is using the Dashboard)
                     launch {
-                        sessionManager.viewedChildIdFlow
-                            .distinctUntilChanged()
+                        sessionManager.viewedChildIdFlow.distinctUntilChanged()
                             .collectLatest { childId ->
                                 if (childId != null) {
                                     launch { settingsRepository.syncSettingsFromServer(childId) }
                                     launch { appRuleRepository.syncRulesFromServer(childId) }
-                                    launch { usageRepository.syncUnsyncedData(childId, forcePing = true) }
+                                    launch {
+                                        usageRepository.syncUnsyncedData(
+                                            childId, forcePing = true
+                                        )
+                                    }
+                                    launch { safeBrowserRepository.syncBrowserDataFromServer(childId) } // 🚀 ADDED THIS
                                 }
                             }
                     }
 
-                    // 3. Active Child Sync (Runs when Child is using the Launcher)
                     launch {
-                        sessionManager.activeChildIdFlow
-                            .distinctUntilChanged()
+                        sessionManager.activeChildIdFlow.distinctUntilChanged()
                             .collectLatest { childId ->
                                 val viewedId = sessionManager.viewedChildIdFlow.firstOrNull()
-                                // Sync if it's the launcher AND we aren't already viewing it
                                 if (childId != null && childId != viewedId) {
                                     launch { settingsRepository.syncSettingsFromServer(childId) }
                                     launch { appRuleRepository.syncRulesFromServer(childId) }
+                                    launch { safeBrowserRepository.syncBrowserDataFromServer(childId) }
                                 }
                             }
                     }
