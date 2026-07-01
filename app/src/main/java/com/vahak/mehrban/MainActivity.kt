@@ -32,7 +32,7 @@ import com.vahak.mehrban.core.util.AppSignatureHelper
 import com.vahak.mehrban.core.util.LauncherManager
 import com.vahak.mehrban.uiv2.components.UpdateCheckerWrapper
 import com.vahak.mehrban.uiv2.navigation.ParentControlNavGraph
-import com.vahak.mehrban.uiv2.screens.browser.SafeBrowserScreen
+import com.vahak.mehrban.uiv2.screens.browser.SafeBrowserActivity
 import com.vahak.mehrban.uiv2.screens.launcher.ChildLauncherScreen
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
@@ -109,32 +109,24 @@ class MainActivity : AppCompatActivity() {
                                 .background(MaterialTheme.colorScheme.background)
                         )
                     } else if (activeChildId != null) {
-                        // 🚀 SANDBOX MODE: Either show Browser OR Launcher
-                        if (showChildBrowser) {
-                            SafeBrowserScreen(
-                                onCloseClick = { showChildBrowser = false }
-                            )
-                        } else {
-                            LaunchedEffect(Unit) {
-                                analytics.logScreenView("child_launcher")
-                            }
-                            ChildLauncherScreen(
-                                onExitLauncherClick = {
-                                    LauncherManager.disableLauncherMode(this@MainActivity)
-                                    val stopIntent = Intent(this@MainActivity, RestrictionEnforcerService::class.java).apply {
-                                        action = RestrictionEnforcerService.ACTION_STOP
-                                    }
-                                    startService(stopIntent)
-                                    val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-                                        addCategory(Intent.CATEGORY_HOME)
-                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                    }
-                                    startActivity(homeIntent)
-                                    mainViewModel.clearActiveLauncherSession()
-                                },
-                                onOpenBrowserClick = { showChildBrowser = true }
-                            )
+                        LaunchedEffect(Unit) {
+                            analytics.logScreenView("child_launcher")
                         }
+                        ChildLauncherScreen(onExitLauncherClick = {
+                            LauncherManager.disableLauncherMode(this@MainActivity)
+                            val stopIntent = Intent(
+                                this@MainActivity, RestrictionEnforcerService::class.java
+                            ).apply {
+                                action = RestrictionEnforcerService.ACTION_STOP
+                            }
+                            startService(stopIntent)
+                            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                                addCategory(Intent.CATEGORY_HOME)
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(homeIntent)
+                            mainViewModel.clearActiveLauncherSession()
+                        }, onOpenBrowserClick = { SafeBrowserActivity.start(this@MainActivity) })
                     } else {
                         UpdateCheckerWrapper(viewModel = mainViewModel) {
                             ParentControlNavGraph(

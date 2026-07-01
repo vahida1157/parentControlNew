@@ -227,6 +227,8 @@
     <string name="browser_back_to_menu">بازگشت به منو</string>
     <string name="browser_link_copied">لینک کپی شد</string>
     <string name="browser_link_error">خطا در باز کردن لینک</string>
+    <string name="browser_error_already_blocked">این سایت در لیست مسدود شده‌ها قرار دارد.</string>
+    <string name="browser_error_already_allowed">این سایت در لیست مجاز قرار دارد.</string>
 
     <string name="browser_filter_mode">حالت فیلترینگ</string>
     <string name="browser_whitelist">لیست سفید</string>
@@ -247,6 +249,8 @@
     <string name="browser_cartoon_world_desc">نمایش دکمه تلوبیون کودک در خانه</string>
 
     <string name="browser_access_management">مدیریت دسترسی‌ها</string>
+    <string name="browser_general_settings">تنظیمات کلی</string>
+    <string name="browser_settings_empty_list_hint">در حال حاضر چیزی ثبت نشده است</string>
     <string name="browser_allowed_sites">سایت‌های مجاز</string>
     <string name="browser_blocked_sites">سایت‌های مسدود</string>
     <string name="browser_blocked_keywords">کلمات ممنوعه</string>
@@ -283,6 +287,9 @@
     <string name="browser_close_desc">بستن مرورگر</string>
     <string name="browser_reload_desc">بارگذاری مجدد</string>
     <string name="browser_url_not_allowed">این آدرس مجاز نیست</string>
+    <string name="browser_access_blocked">دسترسی مسدود است</string>
+    <string name="browser_external_app_blocked">باز کردن برنامه‌های خارجی مسدود است</string>
+    <string name="browser_empty_list_hint">سایتی ثبت نشده است</string>
 
     <string name="kid_theme_title">پوسته کودکانه</string>
     <string name="status_active">فعال شده</string>

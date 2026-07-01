@@ -51,7 +51,7 @@ data class BrowserSyncResponseDto(
 
 // --- APIs ---
 @Keep
-interface SafeBrowserApi {
+interface BrowserPolicyApi {
     @GET("api/policy/v1/browser/{childId}")
     suspend fun getBrowserSettings(@Path("childId") childId: String): Response<BrowserSyncResponseDto>
 

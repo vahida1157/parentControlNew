@@ -32,7 +32,7 @@ interface SafeBrowserRepository {
 
 class SafeBrowserRepositoryImpl @Inject constructor(
     private val dao: SafeBrowserDao,
-    private val policyApi: SafeBrowserApi,
+    private val policyApi: BrowserPolicyApi,
     private val telemetryApi: BrowserTelemetryApi,
 ) : SafeBrowserRepository {
 

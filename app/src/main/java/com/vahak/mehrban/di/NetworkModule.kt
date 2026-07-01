@@ -5,7 +5,8 @@ import com.vahak.mehrban.BuildConfig
 import com.vahak.mehrban.data.remote.AppUpdateApi
 import com.vahak.mehrban.data.remote.ApplicationCrashApi
 import com.vahak.mehrban.data.remote.AuthApi
-import com.vahak.mehrban.data.remote.SafeBrowserApi
+import com.vahak.mehrban.data.remote.BrowserPolicyApi
+import com.vahak.mehrban.data.remote.BrowserTelemetryApi
 import com.vahak.mehrban.data.remote.ChildApi
 import com.vahak.mehrban.data.remote.NotificationApi
 import com.vahak.mehrban.data.remote.ProfileApi
@@ -32,11 +33,11 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            // Only log full body in Debug mode for security
-            level = if (BuildConfig.DEBUG) {
+            @Suppress("SimplifyBooleanWithConstants", "KotlinConstantConditions")
+            level = if (BuildConfig.DEBUG || BuildConfig.BUILD_TYPE == "qa") {
                 HttpLoggingInterceptor.Level.BODY
             } else {
-                HttpLoggingInterceptor.Level.BODY
+                HttpLoggingInterceptor.Level.NONE
             }
         }
 
@@ -105,6 +106,11 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideSafeBrowserApi(retrofit: Retrofit): SafeBrowserApi =
-        retrofit.create(SafeBrowserApi::class.java)
+    fun provideBrowserPolicyApi(retrofit: Retrofit): BrowserPolicyApi =
+        retrofit.create(BrowserPolicyApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideBrowserTelemetryApi(retrofit: Retrofit): BrowserTelemetryApi =
+        retrofit.create(BrowserTelemetryApi::class.java)
 }

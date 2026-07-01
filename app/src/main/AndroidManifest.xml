@@ -48,6 +48,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".uiv2.screens.browser.SafeBrowserActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
+
         <activity-alias
             android:name=".ChildLauncherAlias"
             android:enabled="false"
