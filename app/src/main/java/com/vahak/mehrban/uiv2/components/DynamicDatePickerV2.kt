@@ -1,8 +1,10 @@
 package com.vahak.mehrban.uiv2.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -53,18 +55,20 @@ fun DynamicDatePickerV2(
 ) {
     val colors = LocalCustomColors.current
 
+    val confirmText = stringResource(R.string.confirm)
+    val cancelText = stringResource(R.string.cancel)
+
     if (mode == PickerPresentationMode.DIALOG) {
         Dialog(onDismissRequest = onDismiss) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(16.dp, RoundedCornerShape(24.dp))
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(colors.surface)
+                modifier = Modifier.fillMaxWidth().shadow(16.dp, RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(24.dp)).background(colors.surface)
             ) {
                 DatePickerContentV2(
                     isDialog = true,
                     title = title,
+                    confirmText = confirmText,
+                    cancelText = cancelText,
                     initialYear = initialYear,
                     initialMonth = initialMonth,
                     initialDay = initialDay,
@@ -87,6 +91,8 @@ fun DynamicDatePickerV2(
             DatePickerContentV2(
                 isDialog = false,
                 title = title,
+                confirmText = confirmText,
+                cancelText = cancelText,
                 initialYear = initialYear,
                 initialMonth = initialMonth,
                 initialDay = initialDay,
@@ -104,6 +110,8 @@ fun DynamicDatePickerV2(
 private fun DatePickerContentV2(
     isDialog: Boolean,
     title: String,
+    confirmText: String,
+    cancelText: String,
     initialYear: Int,
     initialMonth: Int,
     initialDay: Int,
@@ -120,9 +128,7 @@ private fun DatePickerContentV2(
     var selectedDay by remember { mutableIntStateOf(initialDay) }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(24.dp),
+        modifier = Modifier.fillMaxWidth().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -135,12 +141,9 @@ private fun DatePickerContentV2(
         Spacer(modifier = Modifier.height(24.dp))
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
+            modifier = Modifier.fillMaxWidth().height(200.dp)
                 .background(colors.cardInnerBG, RoundedCornerShape(16.dp))
-                .border(1.dp, colors.divider, RoundedCornerShape(16.dp))
-                .padding(8.dp),
+                .border(1.dp, colors.divider, RoundedCornerShape(16.dp)).padding(8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -149,56 +152,45 @@ private fun DatePickerContentV2(
                 range = dayRange,
                 initialValue = initialDay,
                 pickerStyle = WheelPickerStyle.FIVE,
-                onValueChange = { selectedDay = it }
-            )
+                onValueChange = { selectedDay = it })
             NumberPickerColumn(
                 modifier = Modifier.weight(1f),
                 range = monthRange,
                 initialValue = initialMonth,
                 pickerStyle = WheelPickerStyle.FIVE,
-                onValueChange = { selectedMonth = it }
-            )
+                onValueChange = { selectedMonth = it })
             NumberPickerColumn(
                 modifier = Modifier.weight(1f),
                 range = yearRange,
                 initialValue = initialYear,
                 pickerStyle = WheelPickerStyle.FIVE,
-                onValueChange = { selectedYear = it }
-            )
+                onValueChange = { selectedYear = it })
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
                 onClick = onDismiss,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp),
+                modifier = Modifier.weight(1f).height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, colors.divider)
+                border = BorderStroke(1.dp, colors.divider)
             ) {
-                Text(stringResource(R.string.cancel), color = colors.textSecondary, fontWeight = FontWeight.Bold)
+                Text(cancelText, color = colors.textSecondary, fontWeight = FontWeight.Bold)
             }
 
             Button(
                 onClick = { onConfirm(selectedYear, selectedMonth, selectedDay) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp)
-                    .shadow(
-                        6.dp,
-                        RoundedCornerShape(14.dp),
-                        spotColor = colors.primary.copy(alpha = 0.4f)
-                    ),
+                modifier = Modifier.weight(1f).height(56.dp).shadow(
+                    6.dp, RoundedCornerShape(14.dp), spotColor = colors.primary.copy(alpha = 0.4f)
+                ),
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(14.dp)
             ) {
-                Text(stringResource(R.string.confirm), color = colors.textOnPrimaryVariant, fontWeight = FontWeight.Bold)
+                Text(confirmText, color = colors.textOnPrimaryVariant, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -206,26 +198,47 @@ private fun DatePickerContentV2(
     }
 }
 
-@Preview(showBackground = true, name = "1. Date Picker (Bottom Sheet - Light)", locale = "fa")
+// 🚀 FIX 2: Preview the Content directly so Compose can draw it without the Dialog boundaries failing
+@Preview(showBackground = true, name = "1. Date Picker Content (Light)", locale = "fa")
 @Composable
-fun DatePickerBottomSheetPreviewV2() {
+fun DatePickerContentPreviewLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
-        DynamicDatePickerV2(
-            mode = PickerPresentationMode.BOTTOM_SHEET,
-            onDismiss = {},
-            onConfirm = { _, _, _ -> }
-        )
+        Box(modifier = Modifier.background(LocalCustomColors.current.surface).padding(16.dp)) {
+            DatePickerContentV2(
+                isDialog = true,
+                title = "انتخاب تاریخ",
+                confirmText = "تایید",
+                cancelText = "انصراف",
+                initialYear = 1395,
+                initialMonth = 1,
+                initialDay = 1,
+                yearRange = 1380..1420,
+                monthRange = 1..12,
+                dayRange = 1..31,
+                onDismiss = {},
+                onConfirm = { _, _, _ -> })
+        }
     }
 }
 
-@Preview(showBackground = true, name = "2. Date Picker (Centered Dialog - Dark)", locale = "fa")
+@Preview(showBackground = true, name = "2. Date Picker Content (Dark)", locale = "fa")
 @Composable
-fun DatePickerDialogPreviewV2() {
+fun DatePickerContentPreviewDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
-        DynamicDatePickerV2(
-            mode = PickerPresentationMode.DIALOG,
-            onDismiss = {},
-            onConfirm = { _, _, _ -> }
-        )
+        Box(modifier = Modifier.background(LocalCustomColors.current.surface).padding(16.dp)) {
+            DatePickerContentV2(
+                isDialog = false,
+                title = "انتخاب تاریخ",
+                confirmText = "تایید",
+                cancelText = "انصراف",
+                initialYear = 1395,
+                initialMonth = 1,
+                initialDay = 1,
+                yearRange = 1380..1420,
+                monthRange = 1..12,
+                dayRange = 1..31,
+                onDismiss = {},
+                onConfirm = { _, _, _ -> })
+        }
     }
 }

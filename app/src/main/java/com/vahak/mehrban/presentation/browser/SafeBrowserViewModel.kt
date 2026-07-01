@@ -165,7 +165,9 @@ class SafeBrowserViewModel @Inject constructor(
         val q = try { URLEncoder.encode(query, "UTF-8") } catch (_: Exception) { query.replace(" ", "+") }
         return when (state.value.searchEngine) {
             "kiddle" -> "https://www.kiddle.co/s/?q=$q"
+            // &kp=1 turns on strict safe search for DuckDuckGo
             "duckduckgo" -> "https://duckduckgo.com/?q=$q&kp=1"
+            // &safe=active enforces strict filtering on Google (Web, Images, Video)
             "google" -> "https://www.google.com/search?q=$q&safe=active"
             else -> "https://shaadbin.ir/search?q=$q"
         }

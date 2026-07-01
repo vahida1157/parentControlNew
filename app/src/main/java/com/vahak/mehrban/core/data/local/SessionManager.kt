@@ -1,6 +1,7 @@
 package com.vahak.mehrban.core.data.local
 
 import android.content.Context
+import android.os.Build
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -133,14 +134,28 @@ class SessionManager @Inject constructor(
         return newId
     }
 
-    fun getDeviceName(): String = DeviceName.getDeviceName()
+    fun getDeviceName(): String {
+        return try {
+            DeviceName.getDeviceName()
+        } catch (_: Exception) {
+            // 🚀 THE FIX: Fallback to Android's built-in Build class if the library crashes
+            val manufacturer = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
+            val model = Build.MODEL
+            if (model.lowercase().startsWith(manufacturer.lowercase())) {
+                model
+            } else {
+                "$manufacturer $model"
+            }
+        }
+    }
 
     suspend fun setViewedChildId(childId: String) {
         context.dataStore.edit { prefs ->
             prefs[VIEWED_CHILD_ID] = childId
         }
     }
-    suspend fun setSearchEngine(engine: String){
+
+    suspend fun setSearchEngine(engine: String) {
         context.dataStore.edit { prefs ->
             prefs[SEARCH_ENGINE] = engine
         }

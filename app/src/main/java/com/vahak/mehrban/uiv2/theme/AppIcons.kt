@@ -45,4 +45,5 @@ object AppIcons {
     val Refresh: Painter @Composable get() = painterResource(R.drawable.ic_refresh)
     val Warning: Painter @Composable get() = painterResource(R.drawable.ic_warning)
     val Copy: Painter @Composable get() = painterResource(R.drawable.ic_copy)
+    val Edit: Painter @Composable get() = painterResource(R.drawable.ic_edit)
 }
