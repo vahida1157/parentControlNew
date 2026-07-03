@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 ksp {
@@ -61,8 +62,11 @@ android {
             // Allows installing Debug and Release apps simultaneously on the same device
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
-//            buildConfigField("String", "BASE_URL", "\"http://194.5.195.47/\"")
-            buildConfigField("String", "BASE_URL", "\"https://mehr-banan.ir/\"")
+            buildConfigField("String", "BASE_URL", "\"http://192.168.0.88/\"")
+//            buildConfigField("String", "BASE_URL", "\"https://mehr-banan.ir/\"")
+
+            // 🚀 Developers get analytics (so you can use DebugView)
+            buildConfigField("Boolean", "ENABLE_ANALYTICS", "true")
         }
 
         release {
@@ -78,6 +82,16 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 🚀 Production users get analytics
+            buildConfigField("Boolean", "ENABLE_ANALYTICS", "true")
+        }
+
+        create("qa") {
+            initWith(getByName("release"))
+            versionNameSuffix = "-QA"
+
+            // 🚀 QA testers DO NOT get analytics
+            buildConfigField("Boolean", "ENABLE_ANALYTICS", "false")
         }
     }
 
@@ -86,11 +100,19 @@ android {
     productFlavors {
         create("website") {
             dimension = "distribution"
-            // Optional: You can give the website version a different suffix so you can install both on the same phone while testing
-            // applicationIdSuffix = ".website"
+            buildConfigField("String", "INSTALL_SOURCE", "\"website\"")
         }
-        create("store") {
+        create("bazaar") {
             dimension = "distribution"
+            buildConfigField("String", "INSTALL_SOURCE", "\"bazaar\"")
+        }
+        create("myket") {
+            dimension = "distribution"
+            buildConfigField("String", "INSTALL_SOURCE", "\"myket\"")
+        }
+        create("googleplay") {
+            dimension = "distribution"
+            buildConfigField("String", "INSTALL_SOURCE", "\"googleplay\"")
         }
     }
 
@@ -101,7 +123,6 @@ android {
 
     buildFeatures {
         compose = true
-        // 🚀 THIS FIXES YOUR UNRESOLVED REFERENCE ERROR
         buildConfig = true
     }
 }
@@ -158,6 +179,13 @@ dependencies {
 
     // Logging
     implementation(libs.timber)
+
+    // Import the Firebase BoM
+    implementation(platform(libs.firebase.bom))
+
+    // Firebase products (versions automatically managed by BoM)
+    implementation(libs.firebase.analytics)
+
 
     ksp(libs.room.compiler)
     ksp(libs.hilt.compiler)

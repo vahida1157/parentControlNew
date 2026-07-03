@@ -1,6 +1,7 @@
 package com.vahak.mehrban.presentation.family
 
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.core.data.local.dao.UsageDao
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.domain.repository.ChildRepository
@@ -20,14 +21,11 @@ import java.time.Period
 import javax.inject.Inject
 
 data class FamilyChildUi(
-    val child: ChildEntity,
-    val ageYears: Int,
-    val usageSecondsToday: Int
+    val child: ChildEntity, val ageYears: Int, val usageSecondsToday: Int
 )
 
 data class FamilyState(
-    val children: List<FamilyChildUi> = emptyList(),
-    val isLoading: Boolean = true
+    val children: List<FamilyChildUi> = emptyList(), val isLoading: Boolean = true
 )
 
 sealed class FamilyEvent {
@@ -47,10 +45,11 @@ sealed class FamilyEffect {
 @HiltViewModel
 class FamilyViewModel @Inject constructor(
     private val childRepository: ChildRepository,
-    private val usageDao: UsageDao
+    private val usageDao: UsageDao,
+    private val analytics: AppAnalytics,
 ) : BaseViewModel<FamilyState, FamilyEvent, FamilyEffect>(FamilyState()) {
 
-    
+
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -59,7 +58,10 @@ class FamilyViewModel @Inject constructor(
                 if (children.isEmpty()) {
                     flowOf(emptyList())
                 } else {
-                    Timber.d("Combining child profiles with live daily usage data, profileCount: %d", children.size)
+                    Timber.d(
+                        "Combining child profiles with live daily usage data, profileCount: %d",
+                        children.size
+                    )
                     val usageFlows = children.map { child ->
                         usageDao.observeDailyUsage(child.id, LocalDate.now()).map { daily ->
                             val age = Period.between(child.dob, LocalDate.now()).years
@@ -85,6 +87,7 @@ class FamilyViewModel @Inject constructor(
             is FamilyEvent.ChildClicked -> sendEffect(FamilyEffect.NavigateToChildSettings(event.childId))
             is FamilyEvent.DeleteChildClicked -> {
                 Timber.i("Initiating local soft-delete for child profile via Family dashboard")
+                analytics.logChildDeleted()
                 viewModelScope.launch(Dispatchers.IO) {
                     childRepository.deleteChildLocally(event.childId)
                 }

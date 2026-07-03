@@ -1,6 +1,7 @@
 package com.vahak.mehrban.presentation.password
 
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.domain.usecase.SecuritySetupError
 import com.vahak.mehrban.domain.usecase.SecuritySetupException
@@ -56,14 +57,14 @@ sealed class PasswordEventV2 {
 sealed class PasswordEffectV2 {
     object NavigateBack : PasswordEffectV2()
     object NavigateToDashboard : PasswordEffectV2()
-    object ShowSuccessToast : PasswordEffectV2() // 🚀 Specific UI trigger, no strings
+    object ShowSuccessToast : PasswordEffectV2()
 }
 
 @HiltViewModel
 class PasswordViewModelV2 @Inject constructor(
     private val sessionManager: SessionManager,
-    private val setupSecurityUseCase: SetupSecurityUseCase
-    // 🚀 Context completely removed!
+    private val setupSecurityUseCase: SetupSecurityUseCase,
+    private val analytics: AppAnalytics,
 ) : BaseViewModel<PasswordStateV2, PasswordEventV2, PasswordEffectV2>(PasswordStateV2()) {
 
     override fun onEvent(event: PasswordEventV2) {
@@ -119,6 +120,7 @@ class PasswordViewModelV2 @Inject constructor(
                 sessionManager.parentPinFlow.first { emittedPin -> emittedPin == currentState.passwordInput }
 
                 Timber.i("Security profile configured successfully")
+                analytics.logSecuritySetupCompleted()
                 sendEffect(PasswordEffectV2.ShowSuccessToast)
                 sendEffect(PasswordEffectV2.NavigateToDashboard)
 

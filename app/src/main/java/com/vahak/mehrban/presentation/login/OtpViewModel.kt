@@ -2,6 +2,8 @@ package com.vahak.mehrban.presentation.login
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.analytics.AppAnalytics
+import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.domain.error.AuthError
 import com.vahak.mehrban.domain.error.AuthException
 import com.vahak.mehrban.domain.repository.AuthRepository
@@ -9,9 +11,11 @@ import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 data class OtpState(
     val otpCode: String = "",
@@ -35,8 +39,10 @@ sealed class OtpEffect {
 
 @HiltViewModel
 class OtpViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val repository: AuthRepository,
-    savedStateHandle: SavedStateHandle
+    private val analytics: AppAnalytics,
+    private val sessionManager: SessionManager,
 ) : BaseViewModel<OtpState, OtpEvent, OtpEffect>(OtpState()) {
 
     private var timerJob: Job? = null
@@ -54,7 +60,7 @@ class OtpViewModel @Inject constructor(
         timerJob = viewModelScope.launch {
             for (i in seconds downTo 0) {
                 updateState { copy(timerSeconds = i) }
-                delay(1000L)
+                delay(1000L.milliseconds)
             }
             updateState { copy(canResend = true) }
         }
@@ -65,6 +71,7 @@ class OtpViewModel @Inject constructor(
             is OtpEvent.OtpChanged -> updateState {
                 copy(otpCode = event.code, authError = null)
             }
+
             is OtpEvent.VerifyClicked -> verifyCode(event.phone)
             is OtpEvent.ResendClicked -> resendCode(event.phone)
         }
@@ -77,6 +84,12 @@ class OtpViewModel @Inject constructor(
 
             repository.verifyOtp(phone, state.value.otpCode).onSuccess { pair ->
                 val (_, hasPinSetup) = pair
+                analytics.logLoginSuccess(isNewSession = !hasPinSetup)
+                val parentId = sessionManager.parentIdFlow.first()
+                if (!parentId.isNullOrEmpty()) {
+                    analytics.setUserId(parentId)
+                }
+
                 if (hasPinSetup) {
                     Timber.i("OTP verified successfully, session restored, routing to dashboard")
                     sendEffect(OtpEffect.NavigateToDashboard)

@@ -1,6 +1,7 @@
 package com.vahak.mehrban.presentation.login
 
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.domain.error.AuthError
 import com.vahak.mehrban.domain.error.AuthException
@@ -40,7 +41,8 @@ sealed class LoginEffect {
 class LoginViewModel @Inject constructor(
     private val validatePhoneUseCase: ValidatePhoneUseCase,
     private val authRepository: AuthRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val analytics: AppAnalytics,
 ) : BaseViewModel<LoginState, LoginEvent, LoginEffect>(LoginState()) {
 
     override fun onEvent(event: LoginEvent) {
@@ -84,6 +86,7 @@ class LoginViewModel @Inject constructor(
                     authRepository.requestOtp(currentPhone).onSuccess { ttl ->
                         Timber.i("OTP requested successfully, routing to verification screen")
                         updateState { copy(isLoading = false) }
+                        analytics.logOtpRequested(currentPhone.length)
                         sendEffect(LoginEffect.NavigateToOtp(currentPhone, ttl))
                     }.onFailure { error ->
                         Timber.w("OTP request failed during network call")

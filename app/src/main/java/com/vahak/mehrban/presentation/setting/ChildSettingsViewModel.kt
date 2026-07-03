@@ -20,7 +20,6 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
-// 🚀 Pure enum for UI Toast handling
 enum class FeatureToastType { UNDER_DEVELOPMENT, COMING_SOON }
 
 data class ChildSettingsState(
@@ -44,7 +43,7 @@ sealed class ChildSettingsEvent {
 sealed class ChildSettingsEffect {
     object NavigateBack : ChildSettingsEffect()
     data class NavigateToFeature(val route: String) : ChildSettingsEffect()
-    data class ShowToast(val type: FeatureToastType) : ChildSettingsEffect() // 🚀 Clean UI Trigger
+    data class ShowToast(val type: FeatureToastType) : ChildSettingsEffect()
     data class NavigateToPermissionSlider(val route: String, val missingPermissions: List<String>) :
         ChildSettingsEffect()
 }
@@ -55,8 +54,7 @@ class ChildSettingsViewModel @Inject constructor(
     private val childRepository: ChildRepository,
     private val settingsRepository: SettingsRepository,
     private val appRuleRepository: AppRuleRepository,
-    private val sessionManager: SessionManager
-    // 🚀 Context Removed
+    private val sessionManager: SessionManager,
 ) : BaseViewModel<ChildSettingsState, ChildSettingsEvent, ChildSettingsEffect>(ChildSettingsState()) {
 
     private val currentChildIdFlow =

@@ -16,7 +16,7 @@ import com.vahak.mehrban.core.data.local.entity.Gender as DbGender
 interface ChildRepository {
     suspend fun createChild(
         name: String, dob: LocalDate, gender: DbGender, avatarId: Int, phone: String?
-    ): Result<Unit>
+    ): Result<String>
 
     suspend fun syncChildrenFromServer(): Result<Unit>
     fun getAllChildren(): Flow<List<ChildEntity>>
@@ -34,7 +34,7 @@ class ChildRepositoryImpl @Inject constructor(
 
     override suspend fun createChild(
         name: String, dob: LocalDate, gender: DbGender, avatarId: Int, phone: String?
-    ): Result<Unit> {
+    ): Result<String> {
         Timber.d("Initiating child profile creation")
         val newChildId = UUID.randomUUID().toString()
 
@@ -55,7 +55,7 @@ class ChildRepositoryImpl @Inject constructor(
 
         Timber.i("Child profile created locally")
         pushDirtyChildren()
-        return Result.success(Unit)
+        return Result.success(newChildId)
     }
 
     override suspend fun deleteChildLocally(childId: String) {

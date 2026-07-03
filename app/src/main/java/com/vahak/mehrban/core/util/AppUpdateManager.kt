@@ -111,7 +111,7 @@ class AppUpdateManager @Inject constructor(
 
     @Suppress("KotlinConstantConditions")
     fun startDownload(cachedUrl: String, cachedVersionName: String) {
-        @Suppress("SimplifyBooleanWithConstants") if (BuildConfig.FLAVOR == "store") {
+        @Suppress("SimplifyBooleanWithConstants") if (BuildConfig.FLAVOR != "website") {
             openStorePage()
             return
         }

@@ -124,7 +124,7 @@ fun UpdateCheckerWrapper(
                             ) {
                                 @Suppress(
                                     "SimplifyBooleanWithConstants", "KotlinConstantConditions"
-                                ) val buttonText = if (BuildConfig.FLAVOR == "store") {
+                                ) val buttonText = if (BuildConfig.FLAVOR != "website") {
                                     stringResource(R.string.update_download_from_store)
                                 } else {
                                     stringResource(R.string.update_download_install)
