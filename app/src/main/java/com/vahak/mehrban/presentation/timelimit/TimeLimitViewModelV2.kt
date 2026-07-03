@@ -2,6 +2,7 @@ package com.vahak.mehrban.presentation.timelimit
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,8 +20,7 @@ data class TimeLimitStateV2(
     val isWarningEnabled: Boolean = true,
     val isWeekendSeparate: Boolean = false,
     val isSaving: Boolean = false,
-    val isPickerVisible: Boolean = false
-    // 🚀 Removed previewText! The UI will format this based on hours/minutes.
+    val isPickerVisible: Boolean = false,
 ) {
     val totalMinutes: Int get() = (hours * 60) + minutes
 }
@@ -47,7 +47,8 @@ sealed class TimeLimitEffectV2 {
 @HiltViewModel
 class TimeLimitViewModelV2 @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val analytics: AppAnalytics,
 ) : BaseViewModel<TimeLimitStateV2, TimeLimitEventV2, TimeLimitEffectV2>(TimeLimitStateV2()) {
 
     private val childId: String = checkNotNull(savedStateHandle["childId"])
@@ -96,6 +97,13 @@ class TimeLimitViewModelV2 @Inject constructor(
                 isActive = state.value.isTimeLimitActive,
                 limitMins = state.value.totalMinutes
             )
+
+            if (state.value.isTimeLimitActive) {
+                analytics.logTimeLimitSet(
+                    totalMinutes = state.value.totalMinutes,
+                    isWarningEnabled = state.value.isWarningEnabled
+                )
+            }
 
             delay(500.milliseconds)
             updateState { copy(isSaving = false) }

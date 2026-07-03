@@ -1,14 +1,15 @@
 package com.vahak.mehrban.uiv2.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.ui.screens.settings.SiteManagementScreen
 import com.vahak.mehrban.uiv2.screens.MainParentScreen
 import com.vahak.mehrban.uiv2.screens.addchild.AddChildScreen
@@ -23,15 +24,23 @@ import com.vahak.mehrban.uiv2.screens.report.UsageReportScreen
 import com.vahak.mehrban.uiv2.screens.settings.ChildSettingsScreen
 import com.vahak.mehrban.uiv2.screens.sleeptime.SleepTimeScreen
 import com.vahak.mehrban.uiv2.screens.timelimit.TimeLimitScreen
-import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 
 @Composable
 fun ParentControlNavGraph(
     startDestination: String,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    onDisableLauncherRequested: () -> Unit,
+    analytics: AppAnalytics,
 ) {
+    LaunchedEffect(navController) {
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            destination.route?.let { route ->
+                val cleanScreenName = route.substringBefore("/")
+                analytics.logScreenView(cleanScreenName)
+            }
+        }
+    }
+
     NavHost(
         navController = navController, startDestination = startDestination, modifier = modifier
     ) {
@@ -64,7 +73,9 @@ fun ParentControlNavGraph(
 
         composable(route = Screen.Dashboard.route) {
             MainParentScreen(
-                rootNavController = navController, onLogoutComplete = {
+                rootNavController = navController,
+                analytics = analytics,
+                onLogoutComplete = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(navController.graph.id) { inclusive = true }
                     }
@@ -81,25 +92,21 @@ fun ParentControlNavGraph(
             FamilyManagementScreen(
                 onBackClick = { navController.popBackStack() },
                 onAddChildClick = { navController.navigate(Screen.AddChild.route) },
-                onChildSettingsClick = { childId ->
-                    navController.navigate(Screen.ChildSettings.createRoute(childId))
+                onChildSettingsClick = {
+                    navController.navigate(Screen.ChildSettings.route)
                 })
         }
 
-        composable(route = Screen.ChildSettings.route) { backStackEntry ->
-            val currentChildId = backStackEntry.arguments?.getString("childId") ?: ""
-
+        composable(route = Screen.ChildSettings.route) {
             ChildSettingsScreen(
                 onBackClick = { navController.popBackStack() },
                 onNavigateToFeature = { featureRoute ->
-                    navController.navigate("$featureRoute/$currentChildId")
+                    navController.navigate(featureRoute)
                 },
                 onInterceptForPermissions = { route, missing ->
                     val missingString = missing.joinToString(",")
                     navController.navigate(
-                        Screen.PermissionSlider.createRoute(
-                            route, currentChildId, missingString
-                        )
+                        Screen.PermissionSlider.createRoute(route, missingString)
                     )
                 })
         }
@@ -113,22 +120,12 @@ fun ParentControlNavGraph(
             route = Screen.PermissionSlider.route,
             arguments = listOf(
                 navArgument("featureRoute") { type = NavType.StringType },
-                navArgument("childId") { type = NavType.StringType },
-                navArgument("missingPermissions") {
-                    type = NavType.StringType
-                })
-        ) { backStackEntry ->
-            val childId = backStackEntry.arguments?.getString("childId") ?: ""
-            val featureRoute = backStackEntry.arguments?.getString("featureRoute") ?: ""
-
+                navArgument("missingPermissions") { type = NavType.StringType }
+            )
+        ) { _ ->
             PermissionSliderScreen(
                 onNavigateToFeature = { targetRoute ->
-                    val finalRoute = if (childId == "global") {
-                        targetRoute // Just go exactly to the return address provided
-                    } else {
-                        "$targetRoute/$childId" // Otherwise, it's a child feature, append the ID
-                    }
-                    navController.navigate(finalRoute) {
+                    navController.navigate(targetRoute) {
                         popUpTo(Screen.PermissionSlider.route) {
                             inclusive = true
                         }
@@ -143,7 +140,6 @@ fun ParentControlNavGraph(
 
         composable(route = Screen.PasswordManagement.route) {
             PasswordManagementScreen(
-//                onBackClick = { navController.popBackStack() },
                 onNavigateToDashboard = {
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(navController.graph.id) {
@@ -163,31 +159,14 @@ fun ParentControlNavGraph(
                 onBackClick = { navController.popBackStack() })
         }
 
-        composable(
-            route = "site_management/{childId}",
-            arguments = listOf(navArgument("childId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val childId = backStackEntry.arguments?.getString("childId") ?: ""
-
+        composable(route = "site_management") {
             SiteManagementScreen(
                 onBackClick = { navController.popBackStack() })
         }
 
         composable(Screen.Notifications.route) {
             NotificationScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+                onNavigateBack = { navController.popBackStack() })
         }
-    }
-}
-
-@Preview(showBackground = true, locale = "fa", name = "Main App Flow")
-@Composable
-fun AppNavigationPreview() {
-    ParentControlTheme {
-        ParentControlNavGraph(
-            startDestination = Screen.Login.route,
-            onDisableLauncherRequested = {},
-        )
     }
 }

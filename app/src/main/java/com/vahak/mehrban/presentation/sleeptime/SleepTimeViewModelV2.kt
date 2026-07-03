@@ -2,6 +2,7 @@ package com.vahak.mehrban.presentation.sleeptime
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -53,8 +54,9 @@ sealed class SleepTimeEffectV2 {
 
 @HiltViewModel
 class SleepTimeViewModelV2 @Inject constructor(
-    savedStateHandle: SavedStateHandle, private val settingsRepository: SettingsRepository
-    // 🚀 Context Removed
+    savedStateHandle: SavedStateHandle,
+    private val settingsRepository: SettingsRepository,
+    private val analytics: AppAnalytics,
 ) : BaseViewModel<SleepTimeStateV2, SleepTimeEventV2, SleepTimeEffectV2>(SleepTimeStateV2()) {
 
     private val childId: String = checkNotNull(savedStateHandle["childId"])
@@ -108,6 +110,12 @@ class SleepTimeViewModelV2 @Inject constructor(
             settingsRepository.updateSleepTimeToggle(childId, state.value.isSleepTimeActive)
             settingsRepository.updateSleepTimeSchedule(
                 childId = childId, startTime = state.value.startTime, endTime = state.value.endTime
+            )
+
+            analytics.logSleepTimeConfigured(
+                isActive = state.value.isSleepTimeActive,
+                startHour = state.value.startTime.hour,
+                endHour = state.value.endTime.hour
             )
 
             delay(500.milliseconds)

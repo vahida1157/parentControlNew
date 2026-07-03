@@ -2,6 +2,7 @@ package com.vahak.mehrban.presentation.launcher
 
 import android.content.Context
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.dao.AppRuleDao
 import com.vahak.mehrban.core.data.local.dao.ChildSettingsDao
@@ -79,7 +80,8 @@ class LauncherViewModelV2 @Inject constructor(
     private val sessionManager: SessionManager,
     private val childRepository: ChildRepository,
     private val settingsDao: ChildSettingsDao,
-    private val usageDao: UsageDao
+    private val usageDao: UsageDao,
+    private val analytics: AppAnalytics,
 ) : BaseViewModel<LauncherStateV2, LauncherEventV2, LauncherEffectV2>(LauncherStateV2()) {
 
     init {
@@ -210,6 +212,7 @@ class LauncherViewModelV2 @Inject constructor(
             val savedPin = sessionManager.parentPinFlow.first()
             if (savedPin.isNullOrEmpty() || pin == savedPin) {
                 Timber.i("Launcher exit authorized via PIN verification")
+                analytics.logLauncherExited("pin")
                 updateState { copy(showExitDialog = false, enteredPin = "") }
                 sendEffect(LauncherEffectV2.RequestExit)
             } else {
@@ -228,6 +231,7 @@ class LauncherViewModelV2 @Inject constructor(
 
             if (savedAnswer.isNotEmpty() && inputAnswer == savedAnswer) {
                 Timber.i("Launcher exit authorized via recovery answer verification")
+                analytics.logLauncherExited("recovery")
                 updateState { copy(showRecoveryDialog = false, recoveryAnswerInput = "") }
                 sendEffect(LauncherEffectV2.RequestExit)
             } else {

@@ -2,6 +2,7 @@ package com.vahak.mehrban.presentation.appselection
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.core.util.AppFetchManager
 import com.vahak.mehrban.domain.repository.AppRuleRepository
 import com.vahak.mehrban.presentation.BaseViewModel
@@ -56,10 +57,10 @@ sealed class AppSelectionEffectV2 {
 
 @HiltViewModel
 class AppSelectionViewModelV2 @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val appRuleRepository: AppRuleRepository,
     private val appFetchManager: AppFetchManager,
-    savedStateHandle: SavedStateHandle
-    // 🚀 Context Removed
+    private val analytics: AppAnalytics,
 ) : BaseViewModel<AppSelectionStateV2, AppSelectionEventV2, AppSelectionEffectV2>(
     AppSelectionStateV2()
 ) {
@@ -113,6 +114,11 @@ class AppSelectionViewModelV2 @Inject constructor(
 
             is AppSelectionEventV2.SaveClicked -> {
                 Timber.d("UI requested manual rule synchronization to server")
+
+                val blocked = state.value.installedApps.count { !it.isAllowed }
+                val allowed = state.value.installedApps.count { it.isAllowed }
+                analytics.logAppRulesSaved(blockedCount = blocked, allowedCount = allowed)
+
                 viewModelScope.launch(Dispatchers.IO) {
                     updateState { copy(isSaving = true) }
 

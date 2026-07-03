@@ -1,6 +1,7 @@
 package com.vahak.mehrban.presentation.addchild
 
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.core.util.JalaliConverter
 import com.vahak.mehrban.domain.repository.ChildRepository
 import com.vahak.mehrban.domain.usecase.ChildValidationError
@@ -46,13 +47,14 @@ sealed class AddChildEvent {
 
 sealed class AddChildEffect {
     object NavigateBack : AddChildEffect()
-    object ShowSuccessToast : AddChildEffect() // 🚀 Removed string parameter
+    object ShowSuccessToast : AddChildEffect()
 }
 
 @HiltViewModel
 class AddChildViewModel @Inject constructor(
     private val validateUseCase: ValidateAddChildUseCase,
-    private val childRepository: ChildRepository
+    private val childRepository: ChildRepository,
+    private val analytics: AppAnalytics,
 ) : BaseViewModel<AddChildState, AddChildEvent, AddChildEffect>(AddChildState()) {
 
     override fun onEvent(event: AddChildEvent) {
@@ -129,8 +131,9 @@ class AddChildViewModel @Inject constructor(
                     phone = finalPhone
                 )
 
-                result.onSuccess {
+                result.onSuccess { childId ->
                     Timber.i("Child profile created and saved locally")
+                    analytics.logChildAdded(childId)
                     sendEffect(AddChildEffect.ShowSuccessToast)
                     sendEffect(AddChildEffect.NavigateBack)
                 }.onFailure { error ->

@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.content.FileProvider
 import androidx.navigation.compose.rememberNavController
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.core.service.RestrictionEnforcerService
 import com.vahak.mehrban.core.service.SessionSyncEngine
 import com.vahak.mehrban.core.util.AppSignatureHelper
@@ -44,10 +45,15 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var sessionSyncEngine: SessionSyncEngine
 
+    @Inject
+    lateinit var analytics: AppAnalytics
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         sessionSyncEngine.start()
+        analytics.setInstallSource(BuildConfig.INSTALL_SOURCE)
+        analytics.setAnalyticsCollectionEnabled(BuildConfig.ENABLE_ANALYTICS)
 
         setContent {
             val currentTheme by mainViewModel.appTheme.collectAsState(initial = AppTheme.SYSTEM)
@@ -69,10 +75,11 @@ class MainActivity : AppCompatActivity() {
 
             // 🚀 THE FIX: Modern Locale Builder (No deprecation warnings!)
             val locale = Locale.Builder().setLanguage(appLanguage).build()
-            val configuration = android.content.res.Configuration(LocalConfiguration.current).apply {
-                setLocale(locale)
-                setLayoutDirection(locale)
-            }
+            val configuration =
+                android.content.res.Configuration(LocalConfiguration.current).apply {
+                    setLocale(locale)
+                    setLayoutDirection(locale)
+                }
 
             // Wrap the Activity Context
             val localizedContext = remember(appLanguage) {
@@ -82,7 +89,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            val layoutDirection = if (appLanguage == "en") LayoutDirection.Ltr else LayoutDirection.Rtl
+            val layoutDirection =
+                if (appLanguage == "en") LayoutDirection.Ltr else LayoutDirection.Rtl
 
             // Inject it into Compose Globally
             CompositionLocalProvider(
@@ -93,13 +101,20 @@ class MainActivity : AppCompatActivity() {
                 ParentControlTheme(themeMode = currentTheme) {
                     if (startDestination == null) {
                         Box(
-                            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
                         )
                     } else if (activeChildId != null) {
+                        LaunchedEffect(Unit) {
+                            analytics.logScreenView("child_launcher")
+                        }
                         ChildLauncherScreen(
                             onExitLauncherClick = {
                                 LauncherManager.disableLauncherMode(this@MainActivity)
-                                val stopIntent = Intent(this@MainActivity, RestrictionEnforcerService::class.java).apply {
+                                val stopIntent = Intent(
+                                    this@MainActivity, RestrictionEnforcerService::class.java
+                                ).apply {
                                     action = RestrictionEnforcerService.ACTION_STOP
                                 }
                                 startService(stopIntent)
@@ -109,15 +124,14 @@ class MainActivity : AppCompatActivity() {
                                 }
                                 startActivity(homeIntent)
                                 mainViewModel.clearActiveLauncherSession()
-                            }
-                        )
+                            })
                     } else {
                         UpdateCheckerWrapper(viewModel = mainViewModel) {
                             ParentControlNavGraph(
                                 startDestination = startDestination!!,
                                 modifier = Modifier.fillMaxSize(),
                                 navController = navController,
-                                onDisableLauncherRequested = { }
+                                analytics = analytics,
                             )
                         }
                     }

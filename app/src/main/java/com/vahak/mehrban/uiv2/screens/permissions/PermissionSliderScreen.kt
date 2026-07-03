@@ -47,7 +47,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,7 +58,6 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.mehrban.R
 import com.vahak.mehrban.core.receiver.SecurityAdminReceiver
-import com.vahak.mehrban.core.util.PermissionChecker
 import com.vahak.mehrban.core.util.PermissionType
 import com.vahak.mehrban.presentation.permissions.PermissionSliderEffect
 import com.vahak.mehrban.presentation.permissions.PermissionSliderEvent
@@ -84,7 +82,13 @@ fun PermissionSliderScreen(
     val settingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { _ ->
-        checkTrigger++
+        checkTrigger++ // 🚀 Increments when returning from Settings
+    }
+
+    LaunchedEffect(checkTrigger) {
+        if (checkTrigger > 0) {
+            viewModel.onEvent(PermissionSliderEvent.CheckPermissions(context))
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -141,8 +145,6 @@ fun PermissionSliderScreen(
     if (state.missingPermissions.isNotEmpty()) {
         PermissionSliderContent(
             permissions = state.missingPermissions,
-            checkTrigger = checkTrigger,
-            permissionToCheck = currentPermissionToCheck,
             onGrantClick = { permission ->
                 viewModel.onEvent(PermissionSliderEvent.GrantClicked(permission))
             },
@@ -153,30 +155,11 @@ fun PermissionSliderScreen(
 @Composable
 fun PermissionSliderContent(
     permissions: List<PermissionType>,
-    checkTrigger: Int = 0,
-    permissionToCheck: PermissionType? = null,
     onGrantClick: (PermissionType) -> Unit,
     onFinishSetup: () -> Unit,
 ) {
     val colors = LocalCustomColors.current
     val pagerState = rememberPagerState(pageCount = { permissions.size })
-    val context = LocalContext.current
-    val isPreview = LocalInspectionMode.current
-
-    LaunchedEffect(checkTrigger) {
-        if (checkTrigger > 0 && permissionToCheck != null) {
-            val isGranted =
-                if (isPreview) true else PermissionChecker.hasPermission(context, permissionToCheck)
-            if (isGranted) {
-                val currentPage = pagerState.currentPage
-                if (currentPage < permissions.lastIndex) {
-                    pagerState.animateScrollToPage(currentPage + 1)
-                } else {
-                    onFinishSetup()
-                }
-            }
-        }
-    }
 
     Scaffold(
         modifier = Modifier.systemBarsPadding(), containerColor = colors.background, bottomBar = {
@@ -197,6 +180,13 @@ fun PermissionSliderContent(
             HorizontalPager(
                 state = pagerState, modifier = Modifier.fillMaxSize(), userScrollEnabled = false
             ) { page ->
+
+                // 🚀 If the page goes out of bounds while animating the list size change, return early
+                if (page >= permissions.size) {
+                    onFinishSetup()
+                    return@HorizontalPager
+                }
+
                 val currentPermission = permissions[page]
 
                 Column(
