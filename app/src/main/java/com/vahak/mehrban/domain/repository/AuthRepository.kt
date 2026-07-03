@@ -37,7 +37,7 @@ class AuthRepositoryImpl @Inject constructor(
             } else {
                 val errorBody = response.errorBody()?.string()
                 val errorMessage = try {
-                    JSONObject(errorBody!!).getString("error")
+                    JSONObject(errorBody!!).getString("errorMessage")
                 } catch (_: Exception) {
                     null
                 }
@@ -56,17 +56,18 @@ class AuthRepositoryImpl @Inject constructor(
             val response = authApi.verifyOtp(VerifyRequestDto(phone, code))
             val body = response.body()
 
-            if (response.isSuccessful && body?.accessToken != null) {
+            if (response.isSuccessful && body != null) {
                 Timber.d("Saving session configuration locally")
                 sessionManager.saveSession(
                     body.accessToken,
                     phone,
+                    body.parentId,
                     body.pinPassword,
                     body.securityQuestion,
                     body.securityAnswer
                 )
                 Timber.i("OTP verified successfully, session established")
-                Result.success(Pair(body.accessToken, !(body.pinPassword.isNullOrEmpty())))
+                Result.success(Pair(body.accessToken, !body.pinPassword.isNullOrEmpty()))
             } else {
                 Timber.w("Failed to verify OTP, invalid credentials or bad request")
                 Result.failure(AuthException(AuthError.WRONG_VERIFICATION_CODE))

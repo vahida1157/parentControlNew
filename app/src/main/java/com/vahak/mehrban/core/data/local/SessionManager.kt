@@ -8,11 +8,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.jaredrummler.android.device.DeviceName
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,6 +27,7 @@ class SessionManager @Inject constructor(
         private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         private val AUTH_TOKEN = stringPreferencesKey("auth_token")
         private val USER_PHONE = stringPreferencesKey("user_phone")
+        private val PARENT_ID = stringPreferencesKey("parent_id")
         private val ACTIVE_CHILD_ID = stringPreferencesKey("active_child_id")
         private val PARENT_PIN = stringPreferencesKey("parent_pin")
         private val SECURITY_QUESTION = stringPreferencesKey("security_question")
@@ -46,27 +45,17 @@ class SessionManager @Inject constructor(
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[IS_LOGGED_IN] ?: false }
     val authToken: Flow<String?> = context.dataStore.data.map { it[AUTH_TOKEN] }
     val userPhoneFlow: Flow<String?> = context.dataStore.data.map { it[USER_PHONE] }
+    val parentIdFlow: Flow<String?> = context.dataStore.data.map { it[PARENT_ID] }
     val activeChildIdFlow: Flow<String?> = context.dataStore.data.map { it[ACTIVE_CHILD_ID] }
     val parentPinFlow: Flow<String?> = context.dataStore.data.map { it[PARENT_PIN] }
     val securityQuestionFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_QUESTION] }
     val securityAnswerFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_ANSWER] }
-    val deviceIdFlow: Flow<String> = context.dataStore.data.map { prefs ->
-        var currentId = prefs[DEVICE_ID]
-        if (currentId.isNullOrEmpty()) {
-            currentId = java.util.UUID.randomUUID().toString()
-            // Save it asynchronously so it's cached permanently
-            CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                context.dataStore.edit { it[DEVICE_ID] = currentId }
-            }
-        }
-        currentId
-    }
-
     val viewedChildIdFlow: Flow<String?> = context.dataStore.data.map { it[VIEWED_CHILD_ID] }
 
     suspend fun saveSession(
         token: String,
         phone: String,
+        parentId: String,
         pin: String?,
         securityQuestion: String?,
         securityAnswer: String?
@@ -75,6 +64,7 @@ class SessionManager @Inject constructor(
             prefs[IS_LOGGED_IN] = true
             prefs[AUTH_TOKEN] = token
             prefs[USER_PHONE] = phone
+            prefs[PARENT_ID] = parentId
             pin?.let { prefs[PARENT_PIN] = it }
             securityQuestion?.let { prefs[SECURITY_QUESTION] = it }
             securityAnswer?.let { prefs[SECURITY_ANSWER] = it }
@@ -119,12 +109,6 @@ class SessionManager @Inject constructor(
         return !(parentPinFlow.first().isNullOrEmpty())
     }
 
-    suspend fun clearParentPin() {
-        context.dataStore.edit { prefs ->
-            prefs.remove(PARENT_PIN)
-        }
-    }
-
     suspend fun setSecurityData(question: String, answer: String) {
         context.dataStore.edit { prefs ->
             prefs[SECURITY_QUESTION] = question
@@ -146,7 +130,7 @@ class SessionManager @Inject constructor(
         return newId
     }
 
-    suspend fun getDeviceName(): String = DeviceName.getDeviceName()
+    fun getDeviceName(): String = DeviceName.getDeviceName()
 
     suspend fun setViewedChildId(childId: String) {
         context.dataStore.edit { prefs ->

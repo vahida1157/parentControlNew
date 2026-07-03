@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewModelScope
+import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.service.RestrictionEnforcerService
@@ -66,9 +67,9 @@ class DashboardViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val usageRepository: UsageRepository,
     private val appUpdateManager: AppUpdateManager,
+    private val analytics: AppAnalytics,
 ) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState()) {
 
-    
 
     val updateState = appUpdateManager.updateState
     val isUpdateIgnored = appUpdateManager.isUpdateIgnored
@@ -79,6 +80,10 @@ class DashboardViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            val parentId = sessionManager.parentIdFlow.first()
+            if (!parentId.isNullOrEmpty()) {
+                analytics.setUserId(parentId)
+            }
             if (!sessionManager.hasParentPin()) {
                 Timber.w("Parent PIN missing, redirecting to security setup")
                 sendEffect(DashboardEffect.NavigateToPasswordSetup)
@@ -181,6 +186,7 @@ class DashboardViewModel @Inject constructor(
                 return@launch
             }
             Timber.i("Activating device protection service for child profile")
+            analytics.logProtectionActivated()
             sessionManager.setActiveChildId(childId)
             val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
                 action = RestrictionEnforcerService.ACTION_START

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "184299215297",
+    "project_id": "vahak-mehrban",
+    "storage_bucket": "vahak-mehrban.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:184299215297:android:44256f4eaf50ed4a753740",
+        "android_client_info": {
+          "package_name": "com.vahak.mehrban"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1-wH2sxhAxuyOWw39J1MyM-dixuLP_ic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:184299215297:android:dbf3b57bafcb3c21753740",
+        "android_client_info": {
+          "package_name": "com.vahak.mehrban.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1-wH2sxhAxuyOWw39J1MyM-dixuLP_ic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
