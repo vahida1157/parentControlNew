@@ -32,7 +32,7 @@ import com.vahak.mehrban.core.util.AppSignatureHelper
 import com.vahak.mehrban.core.util.LauncherManager
 import com.vahak.mehrban.uiv2.components.UpdateCheckerWrapper
 import com.vahak.mehrban.uiv2.navigation.ParentControlNavGraph
-import com.vahak.mehrban.uiv2.screens.browser.SafeBrowserActivity
+import com.vahak.mehrban.uiv2.screens.browser.safebrowser.SafeBrowserActivity
 import com.vahak.mehrban.uiv2.screens.launcher.ChildLauncherScreen
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme

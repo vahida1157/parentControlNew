@@ -1,8 +1,20 @@
 package com.vahak.mehrban.domain.repository
 
 import com.vahak.mehrban.core.data.local.dao.SafeBrowserDao
-import com.vahak.mehrban.core.data.local.entity.*
-import com.vahak.mehrban.data.remote.*
+import com.vahak.mehrban.core.data.local.entity.BrowserAllowedSiteEntity
+import com.vahak.mehrban.core.data.local.entity.BrowserBlockedKeywordEntity
+import com.vahak.mehrban.core.data.local.entity.BrowserBlockedSiteEntity
+import com.vahak.mehrban.core.data.local.entity.BrowserHistoryEntity
+import com.vahak.mehrban.core.data.local.entity.BrowserSettingsEntity
+import com.vahak.mehrban.core.data.local.entity.FilterMode
+import com.vahak.mehrban.core.data.local.entity.FullBrowserProfile
+import com.vahak.mehrban.data.remote.BrowserHistoryDto
+import com.vahak.mehrban.data.remote.BrowserKeywordDto
+import com.vahak.mehrban.data.remote.BrowserPolicyApi
+import com.vahak.mehrban.data.remote.BrowserPolicySyncRequestDto
+import com.vahak.mehrban.data.remote.BrowserSettingsDto
+import com.vahak.mehrban.data.remote.BrowserSiteDto
+import com.vahak.mehrban.data.remote.BrowserTelemetryApi
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
@@ -24,7 +36,9 @@ interface SafeBrowserRepository {
     suspend fun removeBlockedKeyword(childId: String, keyword: String)
 
     suspend fun logHistory(childId: String, url: String, title: String)
-    fun observeHistoryForDate(childId: String, startOfDay: Long, endOfDay: Long): Flow<List<BrowserHistoryEntity>>
+    fun observeHistoryForDate(
+        childId: String, startOfDay: Long, endOfDay: Long
+    ): Flow<List<BrowserHistoryEntity>>
 
     suspend fun syncBrowserDataFromServer(childId: String): Result<Unit>
     suspend fun pushBrowserDataToServer(childId: String): Result<Unit>
@@ -45,38 +59,74 @@ class SafeBrowserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateFilterMode(childId: String, mode: FilterMode) {
-        val settings = ensureSettingsExist(childId).copy(filterMode = mode, isSynced = false, updatedAt = System.currentTimeMillis())
+        val settings = ensureSettingsExist(childId).copy(
+            filterMode = mode, isSynced = false, updatedAt = System.currentTimeMillis()
+        )
         dao.upsertSettings(settings)
     }
 
     override suspend fun updateSearchEngine(childId: String, engine: String) {
-        val settings = ensureSettingsExist(childId).copy(searchEngine = engine, isSynced = false, updatedAt = System.currentTimeMillis())
+        val settings = ensureSettingsExist(childId).copy(
+            searchEngine = engine, isSynced = false, updatedAt = System.currentTimeMillis()
+        )
         dao.upsertSettings(settings)
     }
 
     override suspend fun updateCartoonWorld(childId: String, isEnabled: Boolean) {
-        val settings = ensureSettingsExist(childId).copy(isCartoonWorldEnabled = isEnabled, isSynced = false, updatedAt = System.currentTimeMillis())
+        val settings = ensureSettingsExist(childId).copy(
+            isCartoonWorldEnabled = isEnabled,
+            isSynced = false,
+            updatedAt = System.currentTimeMillis()
+        )
         dao.upsertSettings(settings)
     }
 
     // --- Toggles (Soft Deletes) ---
     override suspend fun addAllowedSite(childId: String, url: String, label: String) {
-        dao.upsertAllowedSite(BrowserAllowedSiteEntity(childId = childId, url = url, label = label, isActive = true))
+        dao.upsertAllowedSite(
+            BrowserAllowedSiteEntity(
+                childId = childId,
+                url = url,
+                label = label,
+                isActive = true,
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
     }
+
     override suspend fun removeAllowedSite(childId: String, url: String) {
         dao.softDeleteAllowedSite(childId, url, System.currentTimeMillis())
     }
 
     override suspend fun addBlockedSite(childId: String, url: String) {
-        dao.upsertBlockedSite(BrowserBlockedSiteEntity(childId = childId, url = url, isActive = true))
+        dao.upsertBlockedSite(
+            BrowserBlockedSiteEntity(
+                childId = childId,
+                url = url,
+                isActive = true,
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
     }
+
     override suspend fun removeBlockedSite(childId: String, url: String) {
         dao.softDeleteBlockedSite(childId, url, System.currentTimeMillis())
     }
 
     override suspend fun addBlockedKeyword(childId: String, keyword: String) {
-        dao.upsertBlockedKeyword(BrowserBlockedKeywordEntity(childId = childId, keyword = keyword, isActive = true))
+        dao.upsertBlockedKeyword(
+            BrowserBlockedKeywordEntity(
+                childId = childId,
+                keyword = keyword,
+                isActive = true,
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
     }
+
     override suspend fun removeBlockedKeyword(childId: String, keyword: String) {
         dao.softDeleteBlockedKeyword(childId, keyword, System.currentTimeMillis())
     }
@@ -102,19 +152,36 @@ class SafeBrowserRepositoryImpl @Inject constructor(
 
             // 🚀 1. PUSH POLICY
             if (unsyncedSettings != null || unsyncedAllowed.isNotEmpty() || unsyncedBlocked.isNotEmpty() || unsyncedKeys.isNotEmpty()) {
-                val policyRequest = BrowserPolicySyncRequestDto(
-                    settings = unsyncedSettings?.let { BrowserSettingsDto(it.searchEngine, it.isCartoonWorldEnabled, it.filterMode.name, it.updatedAt) },
-                    allowedSites = unsyncedAllowed.map { BrowserSiteDto(it.url, it.label, it.isActive, it.updatedAt) },
-                    blockedSites = unsyncedBlocked.map { BrowserSiteDto(it.url, null, it.isActive, it.updatedAt) },
-                    blockedKeywords = unsyncedKeys.map { BrowserKeywordDto(it.keyword, it.isActive, it.updatedAt) }
-                )
+                val policyRequest = BrowserPolicySyncRequestDto(settings = unsyncedSettings?.let {
+                    BrowserSettingsDto(
+                        it.searchEngine,
+                        it.isCartoonWorldEnabled,
+                        it.filterMode.name,
+                        it.updatedAt
+                    )
+                }, allowedSites = unsyncedAllowed.map {
+                    BrowserSiteDto(
+                        it.url, it.label, it.isActive, it.updatedAt
+                    )
+                }, blockedSites = unsyncedBlocked.map {
+                    BrowserSiteDto(
+                        it.url, null, it.isActive, it.updatedAt
+                    )
+                }, blockedKeywords = unsyncedKeys.map {
+                    BrowserKeywordDto(
+                        it.keyword, it.isActive, it.updatedAt
+                    )
+                })
 
                 val policyResponse = policyApi.syncBrowserPolicy(childId, policyRequest)
                 if (policyResponse.isSuccessful) {
                     if (unsyncedSettings != null) dao.markSettingsAsSynced(childId)
-                    if (unsyncedAllowed.isNotEmpty()) dao.markAllowedSitesAsSynced(childId, unsyncedAllowed.map { it.url })
-                    if (unsyncedBlocked.isNotEmpty()) dao.markBlockedSitesAsSynced(childId, unsyncedBlocked.map { it.url })
-                    if (unsyncedKeys.isNotEmpty()) dao.markBlockedKeywordsAsSynced(childId, unsyncedKeys.map { it.keyword })
+                    if (unsyncedAllowed.isNotEmpty()) dao.markAllowedSitesAsSynced(
+                        childId, unsyncedAllowed.map { it.url })
+                    if (unsyncedBlocked.isNotEmpty()) dao.markBlockedSitesAsSynced(
+                        childId, unsyncedBlocked.map { it.url })
+                    if (unsyncedKeys.isNotEmpty()) dao.markBlockedKeywordsAsSynced(
+                        childId, unsyncedKeys.map { it.keyword })
                 } else {
                     policySuccess = false
                 }
@@ -122,7 +189,8 @@ class SafeBrowserRepositoryImpl @Inject constructor(
 
             // 🚀 2. PUSH TELEMETRY (HISTORY)
             if (unsyncedHist.isNotEmpty()) {
-                val historyRequest = unsyncedHist.map { BrowserHistoryDto(it.url, it.title, it.timestamp) }
+                val historyRequest =
+                    unsyncedHist.map { BrowserHistoryDto(it.url, it.title, it.timestamp) }
                 val telemetryResponse = telemetryApi.syncBrowserHistory(childId, historyRequest)
 
                 if (telemetryResponse.isSuccessful) {
@@ -154,35 +222,58 @@ class SafeBrowserRepositoryImpl @Inject constructor(
                 data.settings?.let { s ->
                     val currentSettings = ensureSettingsExist(childId)
                     if (s.updatedAt > currentSettings.updatedAt) {
-                        dao.upsertSettings(currentSettings.copy(
-                            searchEngine = s.searchEngine,
-                            isCartoonWorldEnabled = s.isCartoonWorldEnabled,
-                            filterMode = FilterMode.valueOf(s.filterMode),
-                            isSynced = true,
-                            updatedAt = s.updatedAt
-                        ))
+                        dao.upsertSettings(
+                            currentSettings.copy(
+                                searchEngine = s.searchEngine,
+                                isCartoonWorldEnabled = s.isCartoonWorldEnabled,
+                                filterMode = FilterMode.valueOf(s.filterMode),
+                                isSynced = true,
+                                updatedAt = s.updatedAt
+                            )
+                        )
                     }
                 }
 
                 // 2. Sync Allowed Sites (Ignoring local unsynced edits)
                 val localUnsyncedA = dao.getUnsyncedAllowedSites(childId).map { it.url }.toSet()
                 val serverA = data.allowedSites.filterNot { localUnsyncedA.contains(it.url) }.map {
-                    BrowserAllowedSiteEntity(childId = childId, url = it.url, label = it.label ?: "", isActive = it.isActive, isSynced = true, updatedAt = it.updatedAt)
+                    BrowserAllowedSiteEntity(
+                        childId = childId,
+                        url = it.url,
+                        label = it.label ?: "",
+                        isActive = it.isActive,
+                        isSynced = true,
+                        updatedAt = it.updatedAt
+                    )
                 }
                 if (serverA.isNotEmpty()) dao.upsertAllowedSites(serverA)
 
                 // 3. Sync Blocked Sites
                 val localUnsyncedB = dao.getUnsyncedBlockedSites(childId).map { it.url }.toSet()
                 val serverB = data.blockedSites.filterNot { localUnsyncedB.contains(it.url) }.map {
-                    BrowserBlockedSiteEntity(childId = childId, url = it.url, isActive = it.isActive, isSynced = true, updatedAt = it.updatedAt)
+                    BrowserBlockedSiteEntity(
+                        childId = childId,
+                        url = it.url,
+                        isActive = it.isActive,
+                        isSynced = true,
+                        updatedAt = it.updatedAt
+                    )
                 }
                 if (serverB.isNotEmpty()) dao.upsertBlockedSites(serverB)
 
                 // 4. Sync Keywords
-                val localUnsyncedK = dao.getUnsyncedBlockedKeywords(childId).map { it.keyword }.toSet()
-                val serverK = data.blockedKeywords.filterNot { localUnsyncedK.contains(it.keyword) }.map {
-                    BrowserBlockedKeywordEntity(childId = childId, keyword = it.keyword, isActive = it.isActive, isSynced = true, updatedAt = it.updatedAt)
-                }
+                val localUnsyncedK =
+                    dao.getUnsyncedBlockedKeywords(childId).map { it.keyword }.toSet()
+                val serverK =
+                    data.blockedKeywords.filterNot { localUnsyncedK.contains(it.keyword) }.map {
+                        BrowserBlockedKeywordEntity(
+                            childId = childId,
+                            keyword = it.keyword,
+                            isActive = it.isActive,
+                            isSynced = true,
+                            updatedAt = it.updatedAt
+                        )
+                    }
                 if (serverK.isNotEmpty()) dao.upsertBlockedKeywords(serverK)
 
                 Result.success(Unit)

@@ -1,10 +1,12 @@
-package com.vahak.mehrban.uiv2.screens.browser
+package com.vahak.mehrban.uiv2.screens.browser.safebrowser
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -73,6 +75,7 @@ import com.vahak.mehrban.presentation.browser.BrowserState
 import com.vahak.mehrban.presentation.browser.SafeBrowserViewModel
 import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
+import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
@@ -131,7 +134,7 @@ fun SafeBrowserContent(
     // Synchronize programmatic state modifications from view model
     LaunchedEffect(isUrlFocused) {
         if (isUrlFocused && textFieldValue.text.isNotEmpty()) {
-            kotlinx.coroutines.delay(50.milliseconds)
+            delay(50.milliseconds)
             textFieldValue = textFieldValue.copy(
                 selection = TextRange(0, textFieldValue.text.length)
             )
@@ -387,12 +390,12 @@ fun SafeBrowserContent(
                             useWideViewPort = true
 
                             // 🚀 NEW: Aggressive Caching
-                            cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+                            cacheMode = WebSettings.LOAD_DEFAULT
                             // LOAD_DEFAULT uses cache when available and network when expired.
                             // If you want it to load even faster (but risk stale content), use LOAD_CACHE_ELSE_NETWORK.
 
                             // 🚀 NEW: Hardware Acceleration & Performance
-                            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+                            setLayerType(View.LAYER_TYPE_HARDWARE, null)
                         }
 
                         webViewClient = object : WebViewClient() {

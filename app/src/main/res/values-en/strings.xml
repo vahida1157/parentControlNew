@@ -479,5 +479,7 @@
     <string name="error_phone_invalid_format">Invalid phone number (e.g., 912 345 6789).</string>
     <string name="error_otp_length">Code must be 4 digits.</string>
     <string name="error_otp_wrong">The entered code is incorrect.</string>
+    <string name="error_url_empty">Web address is empty</string>
+    <string name="error_invalid_url">Invalid Web Address (e.g., google.com)</string>
 
 </resources>

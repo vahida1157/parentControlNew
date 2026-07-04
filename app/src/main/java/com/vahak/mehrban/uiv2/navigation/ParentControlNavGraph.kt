@@ -14,8 +14,12 @@ import com.vahak.mehrban.ui.screens.settings.SiteManagementScreen
 import com.vahak.mehrban.uiv2.screens.MainParentScreen
 import com.vahak.mehrban.uiv2.screens.addchild.AddChildScreen
 import com.vahak.mehrban.uiv2.screens.applimit.AppSelectionScreen
-import com.vahak.mehrban.uiv2.screens.browser.SafeBrowserScreen
-import com.vahak.mehrban.uiv2.screens.browser.BrowserSettingsScreen
+import com.vahak.mehrban.uiv2.screens.browser.allowed.AllowedSitesScreen
+import com.vahak.mehrban.uiv2.screens.browser.blocked.BlockedSitesScreen
+import com.vahak.mehrban.uiv2.screens.browser.history.BrowserHistoryScreen
+import com.vahak.mehrban.uiv2.screens.browser.keywords.BrowserBlockedKeywordsScreen
+import com.vahak.mehrban.uiv2.screens.browser.menu.BrowserSettingMenuScreen
+import com.vahak.mehrban.uiv2.screens.browser.safebrowser.SafeBrowserScreen
 import com.vahak.mehrban.uiv2.screens.family.FamilyManagementScreen
 import com.vahak.mehrban.uiv2.screens.login.LoginScreen
 import com.vahak.mehrban.uiv2.screens.login.OtpScreen
@@ -140,12 +144,6 @@ fun ParentControlNavGraph(
                 onBackClick = { navController.popBackStack() })
         }
 
-        composable(route = Screen.BrowserSettings.route) {
-            BrowserSettingsScreen(
-                onBackClick = { navController.popBackStack() }
-            )
-        }
-
         composable(route = Screen.PasswordManagement.route) {
             PasswordManagementScreen(
                 onNavigateToDashboard = {
@@ -178,6 +176,44 @@ fun ParentControlNavGraph(
         }
         composable("safe_browser") {
             SafeBrowserScreen(onCloseClick = { navController.popBackStack() })
+        }
+        // 1. Root Menu
+        composable(Screen.BrowserSettingMenu.route) {
+            BrowserSettingMenuScreen(
+                onNavigateToAllowed = { navController.navigate(Screen.BrowserAllowedSites.route) },
+                onNavigateToBlocked = { navController.navigate(Screen.BrowserBlockedSites.route) },
+                onNavigateToKeywords = { navController.navigate(Screen.BrowserBlockedKeywords.route) },
+                onNavigateToHistory = { navController.navigate(Screen.BrowserHistory.route) },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // 2. Allowed Sites
+        composable(Screen.BrowserAllowedSites.route) {
+            AllowedSitesScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // 3. Blocked Sites
+        composable(Screen.BrowserBlockedSites.route) {
+            BlockedSitesScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // 4. Keywords
+        composable(Screen.BrowserBlockedKeywords.route) {
+            BrowserBlockedKeywordsScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // 5. History
+        composable(Screen.BrowserHistory.route) {
+            BrowserHistoryScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
     }
 }

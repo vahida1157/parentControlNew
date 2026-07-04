@@ -1,8 +1,8 @@
 package com.vahak.mehrban.presentation.sleeptime
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.analytics.AppAnalytics
+import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -49,29 +49,35 @@ sealed class SleepTimeEventV2 {
 
 sealed class SleepTimeEffectV2 {
     object NavigateBack : SleepTimeEffectV2()
-    object ShowSavedToast : SleepTimeEffectV2() // 🚀 Clean UI Trigger
+    object ShowSavedToast : SleepTimeEffectV2()
 }
 
 @HiltViewModel
 class SleepTimeViewModelV2 @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val sessionManager: SessionManager,
     private val settingsRepository: SettingsRepository,
     private val analytics: AppAnalytics,
 ) : BaseViewModel<SleepTimeStateV2, SleepTimeEventV2, SleepTimeEffectV2>(SleepTimeStateV2()) {
 
-    private val childId: String = checkNotNull(savedStateHandle["childId"])
+    private var currentChildId: String? = null
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            Timber.d("Observing sleep schedule configuration")
-            val settings = settingsRepository.getGlobalSettings(childId).firstOrNull()
-            if (settings != null) {
-                updateState {
-                    copy(
-                        isSleepTimeActive = settings.isSleepTimeActive,
-                        startTime = settings.sleepTimeStart,
-                        endTime = settings.sleepTimeEnd
-                    )
+            val childId = sessionManager.viewedChildIdFlow.firstOrNull()
+                ?: sessionManager.activeChildIdFlow.firstOrNull()
+
+            if (childId != null) {
+                currentChildId = childId
+                Timber.d("Observing sleep schedule configuration")
+                val settings = settingsRepository.getGlobalSettings(childId).firstOrNull()
+                if (settings != null) {
+                    updateState {
+                        copy(
+                            isSleepTimeActive = settings.isSleepTimeActive,
+                            startTime = settings.sleepTimeStart,
+                            endTime = settings.sleepTimeEnd
+                        )
+                    }
                 }
             }
         }
@@ -104,6 +110,8 @@ class SleepTimeViewModelV2 @Inject constructor(
     }
 
     private fun saveSettings() {
+        val childId = currentChildId ?: return
+
         Timber.i("Persisting sleep schedule configuration locally")
         updateState { copy(isSaving = true) }
         viewModelScope.launch(Dispatchers.IO) {

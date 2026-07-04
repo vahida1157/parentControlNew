@@ -62,8 +62,8 @@ android {
             // Allows installing Debug and Release apps simultaneously on the same device
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
-            buildConfigField("String", "BASE_URL", "\"http://192.168.0.88/\"")
-//            buildConfigField("String", "BASE_URL", "\"https://mehr-banan.ir/\"")
+//            buildConfigField("String", "BASE_URL", "\"http://192.168.0.88/\"")
+            buildConfigField("String", "BASE_URL", "\"https://mehr-banan.ir/\"")
 
             // 🚀 Developers get analytics (so you can use DebugView)
             buildConfigField("Boolean", "ENABLE_ANALYTICS", "true")

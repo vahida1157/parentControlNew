@@ -1,7 +1,6 @@
 package com.vahak.mehrban.presentation.setting
 
 import android.content.Context
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
@@ -16,6 +15,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -50,15 +50,13 @@ sealed class ChildSettingsEffect {
 
 @HiltViewModel
 class ChildSettingsViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
     private val childRepository: ChildRepository,
     private val settingsRepository: SettingsRepository,
     private val appRuleRepository: AppRuleRepository,
     private val sessionManager: SessionManager,
 ) : BaseViewModel<ChildSettingsState, ChildSettingsEvent, ChildSettingsEffect>(ChildSettingsState()) {
 
-    private val currentChildIdFlow =
-        MutableStateFlow(checkNotNull(savedStateHandle.get<String>("childId")))
+    private val currentChildIdFlow = MutableStateFlow<String?>(null)
 
     private val featurePermissionsMap = mapOf(
         "time_limit" to listOf(PermissionType.USAGE_STATS, PermissionType.OVERLAY),
@@ -69,6 +67,16 @@ class ChildSettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
+            val activeId = sessionManager.activeChildIdFlow.firstOrNull()
+            if (activeId != null) {
+                currentChildIdFlow.value = activeId
+            } else {
+                val firstChild = childRepository.getAllChildren().firstOrNull()?.firstOrNull()
+                currentChildIdFlow.value = firstChild?.id
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
             launch {
                 childRepository.getAllChildren().collectLatest { allKids ->
                     updateState { copy(allChildren = allKids) }
@@ -76,6 +84,8 @@ class ChildSettingsViewModel @Inject constructor(
             }
 
             currentChildIdFlow.collectLatest { id ->
+                if (id == null) return@collectLatest // 🚀 Safely skip until ID is resolved
+
                 Timber.d("Loading comprehensive child configuration state")
                 updateState { copy(isLoading = true) }
 

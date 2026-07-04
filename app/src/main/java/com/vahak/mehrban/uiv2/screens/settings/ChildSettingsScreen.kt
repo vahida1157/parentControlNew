@@ -54,6 +54,7 @@ import com.vahak.mehrban.presentation.setting.ChildSettingsViewModel
 import com.vahak.mehrban.presentation.setting.FeatureToastType.*
 import com.vahak.mehrban.ui.theme.AppIcons
 import com.vahak.mehrban.uiv2.components.header.MehrbanChildSelectionHeader
+import com.vahak.mehrban.uiv2.navigation.Screen
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
@@ -227,7 +228,7 @@ fun ChildSettingsContent(
                 isInactive = false, // It's fully functional now!
                 onClick = {
                     // This route name exactly matches what we wrote in Screen.kt
-                    onEvent(ChildSettingsEvent.GridItemClicked("browser_settings", localContext))
+                    onEvent(ChildSettingsEvent.GridItemClicked(Screen.BrowserSettingMenu.route, localContext))
                 }
             )
 

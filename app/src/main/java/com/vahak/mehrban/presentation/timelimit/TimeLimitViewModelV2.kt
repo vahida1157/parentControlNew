@@ -1,13 +1,14 @@
 package com.vahak.mehrban.presentation.timelimit
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.analytics.AppAnalytics
+import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -46,26 +47,32 @@ sealed class TimeLimitEffectV2 {
 
 @HiltViewModel
 class TimeLimitViewModelV2 @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val sessionManager: SessionManager,
     private val settingsRepository: SettingsRepository,
     private val analytics: AppAnalytics,
 ) : BaseViewModel<TimeLimitStateV2, TimeLimitEventV2, TimeLimitEffectV2>(TimeLimitStateV2()) {
 
-    private val childId: String = checkNotNull(savedStateHandle["childId"])
+    private var currentChildId: String? = null
 
     init {
         viewModelScope.launch {
-            Timber.d("Observing daily application time limit configuration")
-            settingsRepository.getGlobalSettings(childId).collectLatest { settings ->
-                if (settings != null) {
-                    val h = settings.dailyTimeLimitMins / 60
-                    val m = settings.dailyTimeLimitMins % 60
-                    updateState {
-                        copy(
-                            isTimeLimitActive = settings.isTimeLimitActive,
-                            hours = h,
-                            minutes = m
-                        )
+            val childId = sessionManager.viewedChildIdFlow.firstOrNull()
+                ?: sessionManager.activeChildIdFlow.firstOrNull()
+
+            if (childId != null) {
+                currentChildId = childId
+                Timber.d("Observing daily application time limit configuration")
+                settingsRepository.getGlobalSettings(childId).collectLatest { settings ->
+                    if (settings != null) {
+                        val h = settings.dailyTimeLimitMins / 60
+                        val m = settings.dailyTimeLimitMins % 60
+                        updateState {
+                            copy(
+                                isTimeLimitActive = settings.isTimeLimitActive,
+                                hours = h,
+                                minutes = m
+                            )
+                        }
                     }
                 }
             }
@@ -89,6 +96,8 @@ class TimeLimitViewModelV2 @Inject constructor(
     }
 
     private fun saveSettings() {
+        val childId = currentChildId ?: return
+
         Timber.i("Persisting daily application time limit configuration locally")
         updateState { copy(isSaving = true) }
         viewModelScope.launch {

@@ -29,8 +29,19 @@ interface SafeBrowserDao {
     suspend fun markSettingsAsSynced(childId: String)
 
     // --- ALLOWED SITES ---
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertAllowedSite(item: BrowserAllowedSiteEntity)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAllowedSite(item: BrowserAllowedSiteEntity): Long
+
+    @Query("UPDATE browser_allowed_sites SET label = :label, is_active = :isActive, is_synced = 0, updated_at = :updatedAt WHERE child_id = :childId AND url = :url")
+    suspend fun updateAllowedSite(childId: String, url: String, label: String, isActive: Boolean, updatedAt: Long)
+
+    @Transaction
+    suspend fun upsertAllowedSite(item: BrowserAllowedSiteEntity) {
+        val id = insertAllowedSite(item)
+        if (id == -1L) { // -1 means it was ignored because it already exists
+            updateAllowedSite(item.childId, item.url, item.label, item.isActive, item.updatedAt)
+        }
+    }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAllowedSites(items: List<BrowserAllowedSiteEntity>)

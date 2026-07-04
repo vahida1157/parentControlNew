@@ -1,14 +1,15 @@
 package com.vahak.mehrban.presentation.appselection
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.analytics.AppAnalytics
+import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.util.AppFetchManager
 import com.vahak.mehrban.domain.repository.AppRuleRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -16,7 +17,6 @@ import javax.inject.Inject
 
 enum class AppFilterTab { BLOCKED, ALLOWED, ALL }
 
-// 🚀 Pure enum for UI Toast handling
 enum class AppSelectionToastType { SAVED, SERVER_ERROR }
 
 data class AppSelectionStateV2(
@@ -52,27 +52,38 @@ sealed class AppSelectionEventV2 {
 sealed class AppSelectionEffectV2 {
     object NavigateBack : AppSelectionEffectV2()
     data class ShowToast(val type: AppSelectionToastType) :
-        AppSelectionEffectV2() // 🚀 Clean UI Trigger
+        AppSelectionEffectV2()
 }
 
 @HiltViewModel
 class AppSelectionViewModelV2 @Inject constructor(
-    savedStateHandle: SavedStateHandle,
     private val appRuleRepository: AppRuleRepository,
     private val appFetchManager: AppFetchManager,
     private val analytics: AppAnalytics,
+    private val sessionManager: SessionManager
 ) : BaseViewModel<AppSelectionStateV2, AppSelectionEventV2, AppSelectionEffectV2>(
     AppSelectionStateV2()
 ) {
 
-    private val currentChildId: String = checkNotNull(savedStateHandle["childId"])
+    private var currentChildId: String? = null
     private var allInstalledAppsOnDevice: List<AppItemUi> = emptyList()
 
     init {
-        loadAppsAndRules()
+        viewModelScope.launch(Dispatchers.IO) {
+            val childId = sessionManager.viewedChildIdFlow.firstOrNull()
+                ?: sessionManager.activeChildIdFlow.firstOrNull()
+
+            if (childId != null) {
+                currentChildId = childId
+                loadAppsAndRules(childId)
+            } else {
+                Timber.e("No active child found for AppSelection")
+                updateState { copy(isLoading = false) }
+            }
+        }
     }
 
-    private fun loadAppsAndRules() {
+    private fun loadAppsAndRules(childId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             Timber.d("Fetching installed applications from device")
             updateState { copy(isLoading = true) }
@@ -80,7 +91,7 @@ class AppSelectionViewModelV2 @Inject constructor(
             allInstalledAppsOnDevice = appFetchManager.getInstalledApps()
 
             Timber.d("Observing local application rules for merge")
-            appRuleRepository.observeAllRules(currentChildId).collectLatest { dbRules ->
+            appRuleRepository.observeAllRules(childId).collectLatest { dbRules ->
                 val dbRulesMap = dbRules.associateBy { it.packageName }
                 val mergedList = allInstalledAppsOnDevice.map { app ->
                     val matchedRule = dbRulesMap[app.packageName]
@@ -97,6 +108,7 @@ class AppSelectionViewModelV2 @Inject constructor(
     override fun onEvent(event: AppSelectionEventV2) {
         when (event) {
             is AppSelectionEventV2.ToggleApp -> {
+                val childId = currentChildId ?: return
                 Timber.d(
                     "UI requested application rule toggle, packageName: %s, isAllowed: %b",
                     event.packageName,
@@ -104,7 +116,7 @@ class AppSelectionViewModelV2 @Inject constructor(
                 )
                 viewModelScope.launch(Dispatchers.IO) {
                     appRuleRepository.toggleAppRule(
-                        currentChildId, event.packageName, event.isAllowed
+                        childId, event.packageName, event.isAllowed
                     )
                 }
             }
@@ -113,6 +125,7 @@ class AppSelectionViewModelV2 @Inject constructor(
             is AppSelectionEventV2.TabSelected -> updateState { copy(selectedTab = event.tab) }
 
             is AppSelectionEventV2.SaveClicked -> {
+                val childId = currentChildId ?: return
                 Timber.d("UI requested manual rule synchronization to server")
 
                 val blocked = state.value.installedApps.count { !it.isAllowed }
@@ -122,7 +135,7 @@ class AppSelectionViewModelV2 @Inject constructor(
                 viewModelScope.launch(Dispatchers.IO) {
                     updateState { copy(isSaving = true) }
 
-                    val result = appRuleRepository.pushRulesToServer(currentChildId)
+                    val result = appRuleRepository.pushRulesToServer(childId)
 
                     withContext(Dispatchers.Main) {
                         updateState { copy(isSaving = false) }

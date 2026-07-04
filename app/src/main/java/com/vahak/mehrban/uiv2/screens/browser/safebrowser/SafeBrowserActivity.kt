@@ -1,24 +1,25 @@
 // SafeBrowserActivity.kt
-package com.vahak.mehrban.uiv2.screens.browser
+package com.vahak.mehrban.uiv2.screens.browser.safebrowser
 
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.vahak.mehrban.MainViewModel
+import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
@@ -32,17 +33,17 @@ class SafeBrowserActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val currentTheme by mainViewModel.appTheme.collectAsState(initial = com.vahak.mehrban.uiv2.theme.AppTheme.SYSTEM)
+            val currentTheme by mainViewModel.appTheme.collectAsState(initial = AppTheme.SYSTEM)
             val appLanguage by mainViewModel.appLanguage.collectAsState()
 
             val locale = Locale.Builder().setLanguage(appLanguage).build()
-            val configuration = android.content.res.Configuration(LocalConfiguration.current).apply {
+            val configuration = Configuration(LocalConfiguration.current).apply {
                 setLocale(locale)
                 setLayoutDirection(locale)
             }
 
             val localizedContext = remember(appLanguage) {
-                object : android.content.ContextWrapper(this@SafeBrowserActivity) {
+                object : ContextWrapper(this@SafeBrowserActivity) {
                     val configContext = createConfigurationContext(configuration)
                     override fun getResources() = configContext.resources
                 }

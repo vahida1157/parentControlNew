@@ -49,7 +49,7 @@
         </activity>
 
         <activity
-            android:name=".uiv2.screens.browser.SafeBrowserActivity"
+            android:name=".uiv2.screens.browser.safebrowser.SafeBrowserActivity"
             android:exported="false"
             android:launchMode="singleTop"
             android:theme="@style/Theme.AppCompat.NoActionBar"

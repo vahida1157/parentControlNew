@@ -479,4 +479,6 @@
     <string name="error_phone_invalid_format">شماره تماس نامعتبر است (مثال: 912 345 6789)</string>
     <string name="error_otp_length">کد باید ۴ رقم باشد.</string>
     <string name="error_otp_wrong">کد وارد شده اشتباه است.</string>
+    <string name="error_url_empty">آدرس وب وارد نشده است</string>
+    <string name="error_invalid_url">آدرس وب نامعتبر (مثال: google.com)</string>
 </resources>

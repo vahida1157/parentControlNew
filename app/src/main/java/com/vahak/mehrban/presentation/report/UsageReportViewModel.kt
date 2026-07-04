@@ -2,7 +2,6 @@ package com.vahak.mehrban.presentation.report
 
 import android.content.Context
 import android.graphics.drawable.Drawable
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
@@ -70,14 +69,13 @@ sealed class UsageReportEffect {
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class UsageReportViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
     private val sessionManager: SessionManager,
     private val usageRepository: UsageRepository,
     private val childRepository: ChildRepository,
     @ApplicationContext private val context: Context
 ) : BaseViewModel<UsageReportState, UsageReportEvent, UsageReportEffect>(UsageReportState()) {
 
-    private val currentChildIdFlow = MutableStateFlow(savedStateHandle.get<String>("childId"))
+    private val currentChildIdFlow = MutableStateFlow<String?>(null)
     private val networkReportFlow = MutableStateFlow<AppReportResponse?>(null)
 
     init {

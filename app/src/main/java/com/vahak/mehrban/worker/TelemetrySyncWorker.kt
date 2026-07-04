@@ -21,19 +21,31 @@ class TelemetrySyncWorker @AssistedInject constructor(
         val unsyncedCrashes = crashLogDao.getAllCrashes()
         if (unsyncedCrashes.isEmpty()) return Result.success()
 
+        // 🚀 Map the Room Entities to clean Network DTOs
+        val networkPayload = unsyncedCrashes.map { entity ->
+            ApplicationCrashApi.CrashLogDto(
+                id = entity.id,
+                timestamp = entity.timestamp,
+                appVersion = entity.appVersion,
+                androidVersion = entity.androidVersion,
+                deviceModel = entity.deviceModel,
+                exceptionType = entity.exceptionType,
+                stackTrace = entity.stackTrace
+            )
+        }
+
         return try {
-            // Send the list of crashes to the Spring Boot backend
-            val response = applicationCrashApi.syncCrashLogs(unsyncedCrashes)
+            // Change Retrofit API to accept List<CrashLogDto>
+            val response = applicationCrashApi.syncCrashLogs(networkPayload)
 
             if (response.isSuccessful) {
-                // If the server received them safely, delete them from the phone
                 crashLogDao.deleteCrashes(unsyncedCrashes.map { it.id })
                 Result.success()
             } else {
-                Result.retry() // Server error, try again later
+                Result.retry()
             }
-        } catch (e: Exception) {
-            Result.retry() // Offline, try again when Wi-Fi returns
+        } catch (_: Exception) {
+            Result.retry()
         }
     }
 }
