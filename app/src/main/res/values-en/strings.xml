@@ -245,6 +245,7 @@
     <string name="browser_engine_duckduckgo">DuckDuckGo</string>
     <string name="browser_engine_google">Google</string>
 
+    <string name="browser_safe_name">Safe Browser</string>
     <string name="browser_cartoon_world">Cartoon World</string>
     <string name="browser_cartoon_world_desc">Show Telewebion shortcut on home</string>
 

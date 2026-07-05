@@ -145,14 +145,14 @@ fun ChildLauncherContentV2(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp).height(64.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1D9E75) // Safe Green
+                    containerColor = Color(0xFF1D9E75)
                 )
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("🌐", fontSize = 28.sp)
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "مرورگر امن خانواده", // Safe Family Browser
+                        text = stringResource(R.string.browser_safe_name),
                         color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp
                     )
                 }

@@ -1,4 +1,5 @@
 package com.vahak.mehrban.data.remote
+
 import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
 import retrofit2.Response
@@ -6,6 +7,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 // --- DTOs ---
 data class BrowserSettingsDto(
@@ -29,6 +31,7 @@ data class BrowserKeywordDto(
 )
 
 data class BrowserHistoryDto(
+    @SerializedName("id") val id: String,
     @SerializedName("url") val url: String,
     @SerializedName("title") val title: String,
     @SerializedName("timestamp") val timestamp: Long
@@ -57,17 +60,21 @@ interface BrowserPolicyApi {
 
     @PUT("api/policy/v1/browser/{childId}/sync")
     suspend fun syncBrowserPolicy(
-        @Path("childId") childId: String,
-        @Body request: BrowserPolicySyncRequestDto
+        @Path("childId") childId: String, @Body request: BrowserPolicySyncRequestDto
     ): Response<Unit>
 }
 
-// 🚀 THE FIX: Dedicated Telemetry API
 @Keep
 interface BrowserTelemetryApi {
     @PUT("api/telemetry/v1/browser/{childId}/history")
     suspend fun syncBrowserHistory(
-        @Path("childId") childId: String,
-        @Body history: List<BrowserHistoryDto>
+        @Path("childId") childId: String, @Body history: List<BrowserHistoryDto>
     ): Response<Unit>
+
+    @GET("api/telemetry/v1/browser/{childId}/history")
+    suspend fun getBrowserHistoryForDate(
+        @Path("childId") childId: String,
+        @Query("start") start: Long,
+        @Query("end") end: Long
+    ): Response<List<BrowserHistoryDto>>
 }

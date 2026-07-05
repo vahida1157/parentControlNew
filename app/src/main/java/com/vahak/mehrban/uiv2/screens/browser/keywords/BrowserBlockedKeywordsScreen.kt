@@ -150,6 +150,11 @@ fun AddKeywordDialog(
     val colors = LocalCustomColors.current
     var keywordInput by remember { mutableStateOf(initialKeyword) }
 
+    val browserAddKeywordTitleText = stringResource(R.string.browser_add_keyword_title)
+    val browserKeywordHintText = stringResource(R.string.browser_keyword_hint)
+    val cancelText = stringResource(R.string.cancel)
+    val saveText = stringResource(R.string.save)
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(24.dp),
@@ -162,7 +167,7 @@ fun AddKeywordDialog(
                     .padding(24.dp)
             ) {
                 Text(
-                    stringResource(R.string.browser_add_keyword_title),
+                    browserAddKeywordTitleText,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
                     color = colors.textPrimary
@@ -174,7 +179,7 @@ fun AddKeywordDialog(
                     onValueChange = { keywordInput = it },
                     label = {
                         Text(
-                            stringResource(R.string.browser_keyword_hint), color = colors.textHint
+                            browserKeywordHintText, color = colors.textHint
                         )
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -197,7 +202,7 @@ fun AddKeywordDialog(
                 ) {
                     TextButton(onClick = onDismiss) {
                         Text(
-                            stringResource(R.string.cancel), color = colors.textSecondary
+                            cancelText, color = colors.textSecondary
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -207,7 +212,7 @@ fun AddKeywordDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(stringResource(R.string.save), color = Color.White)
+                        Text(saveText, color = Color.White)
                     }
                 }
             }

@@ -4,22 +4,38 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.vahak.mehrban.R
 import com.vahak.mehrban.core.data.local.entity.FilterMode
@@ -27,6 +43,7 @@ import com.vahak.mehrban.presentation.browser.settings.menu.BrowserSettingMenuEf
 import com.vahak.mehrban.presentation.browser.settings.menu.BrowserSettingMenuEvent
 import com.vahak.mehrban.presentation.browser.settings.menu.BrowserSettingMenuState
 import com.vahak.mehrban.presentation.browser.settings.menu.BrowserSettingMenuViewModel
+import com.vahak.mehrban.uiv2.components.SimpleSelectionDialog
 import com.vahak.mehrban.uiv2.components.browser.SettingMenuRow
 import com.vahak.mehrban.uiv2.components.header.HeaderAction
 import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
@@ -78,7 +95,10 @@ fun BrowserSettingMenuContent(
     val colors = LocalCustomColors.current
     val settings = state.settings
 
-    Column(modifier = Modifier.fillMaxSize().background(colors.background).systemBarsPadding()) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(colors.background)
+        .systemBarsPadding()) {
         MehrbanHeader(
             title = stringResource(R.string.browser_settings_title),
             subtitle = stringResource(R.string.browser_settings_subtitle),
@@ -125,13 +145,18 @@ fun BrowserSettingMenuContent(
                 colors = CardDefaults.cardColors(containerColor = colors.surface)
             ) {
                 Row(
-                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .background(colors.primary.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                            .background(
+                                colors.primary.copy(alpha = 0.1f),
+                                RoundedCornerShape(12.dp)
+                            ),
                         contentAlignment = Alignment.Center
                     ) { Text("🔍") }
                     Spacer(modifier = Modifier.width(16.dp))
@@ -147,31 +172,51 @@ fun BrowserSettingMenuContent(
                             "google" -> stringResource(R.string.browser_engine_google)
                             else -> stringResource(R.string.browser_engine_shaadbin)
                         }
-                        Text(engineName, fontSize = 12.sp, color = colors.primary, fontWeight = FontWeight.Bold)
+                        Text(
+                            engineName,
+                            fontSize = 12.sp,
+                            color = colors.primary,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                     Icon(AppIcons.ChevronLeft, contentDescription = null, tint = colors.textHint)
                 }
             }
 
             Card(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = colors.surface)
             ) {
                 Row(
-                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .background(colors.orange.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                            .background(
+                                colors.orange.copy(alpha = 0.1f),
+                                RoundedCornerShape(12.dp)
+                            ),
                         contentAlignment = Alignment.Center
                     ) { Text("🎬") }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.browser_cartoon_world), fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                        Text(stringResource(R.string.browser_cartoon_world_desc), fontSize = 12.sp, color = colors.textSecondary)
+                        Text(
+                            stringResource(R.string.browser_cartoon_world),
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textPrimary
+                        )
+                        Text(
+                            stringResource(R.string.browser_cartoon_world_desc),
+                            fontSize = 12.sp,
+                            color = colors.textSecondary
+                        )
                     }
                     Switch(
                         checked = settings?.isCartoonWorldEnabled ?: true,
@@ -185,7 +230,9 @@ fun BrowserSettingMenuContent(
             // --- EMPTY WHITELIST WARNING ---
             if (settings?.filterMode == FilterMode.WHITELIST_ONLY && state.allowedCount == 0) {
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
                     colors = CardDefaults.cardColors(containerColor = colors.orange.copy(alpha = 0.1f)),
                     border = BorderStroke(1.dp, colors.orange)
                 ) {
@@ -214,7 +261,9 @@ fun BrowserSettingMenuContent(
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 CompactMenuCard(
@@ -231,28 +280,32 @@ fun BrowserSettingMenuContent(
                     onClick = { onEvent(BrowserSettingMenuEvent.SetFilterMenuOpen(true)) }
                 )
 
-                if (settings?.filterMode == FilterMode.WHITELIST_ONLY) {
-                    CompactMenuCard(
-                        modifier = Modifier.weight(1f),
-                        title = stringResource(R.string.browser_allowed_sites),
-                        subtitle = stringResource(R.string.browser_sites_count, state.allowedCount),
-                        iconEmoji = "✅",
-                        iconBgColor = colors.primary.copy(alpha = 0.1f),
-                        subtitleColor = colors.primary,
-                        onClick = onNavigateToAllowed
-                    )
-                } else if (settings?.filterMode == FilterMode.BLACKLIST_ONLY) {
-                    CompactMenuCard(
-                        modifier = Modifier.weight(1f),
-                        title = stringResource(R.string.browser_blocked_sites),
-                        subtitle = stringResource(R.string.browser_sites_count, state.blockedCount),
-                        iconEmoji = "⛔",
-                        iconBgColor = colors.red.copy(alpha = 0.1f),
-                        subtitleColor = colors.red,
-                        onClick = onNavigateToBlocked
-                    )
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
+                when (settings?.filterMode) {
+                    FilterMode.WHITELIST_ONLY -> {
+                        CompactMenuCard(
+                            modifier = Modifier.weight(1f),
+                            title = stringResource(R.string.browser_allowed_sites),
+                            subtitle = stringResource(R.string.browser_sites_count, state.allowedCount),
+                            iconEmoji = "✅",
+                            iconBgColor = colors.primary.copy(alpha = 0.1f),
+                            subtitleColor = colors.primary,
+                            onClick = onNavigateToAllowed
+                        )
+                    }
+                    FilterMode.BLACKLIST_ONLY -> {
+                        CompactMenuCard(
+                            modifier = Modifier.weight(1f),
+                            title = stringResource(R.string.browser_blocked_sites),
+                            subtitle = stringResource(R.string.browser_sites_count, state.blockedCount),
+                            iconEmoji = "⛔",
+                            iconBgColor = colors.red.copy(alpha = 0.1f),
+                            subtitleColor = colors.red,
+                            onClick = onNavigateToBlocked
+                        )
+                    }
+                    else -> {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
 
@@ -285,8 +338,8 @@ fun BrowserSettingMenuContent(
             SimpleSelectionDialog(
                 title = stringResource(R.string.browser_select_search_engine),
                 options = listOf(
-                    "kiddle" to stringResource(R.string.browser_engine_kiddle),
                     "shaadbin" to stringResource(R.string.browser_engine_shaadbin),
+                    "kiddle" to stringResource(R.string.browser_engine_kiddle),
                     "duckduckgo" to stringResource(R.string.browser_engine_duckduckgo),
                     "google" to stringResource(R.string.browser_engine_google)
                 ),
@@ -326,54 +379,6 @@ private fun CompactMenuCard(
             Text(title, fontWeight = FontWeight.Bold, color = colors.textPrimary, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(4.dp))
             Text(subtitle, color = subtitleColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-private fun <T> SimpleSelectionDialog(
-    title: String,
-    options: List<Pair<T, String>>,
-    selectedOption: T?,
-    onSelect: (T) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val colors = LocalCustomColors.current
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = colors.surface),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(text = title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = colors.textPrimary)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                options.forEach { (value, label) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onSelect(value); onDismiss() }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = selectedOption == value,
-                            onClick = { onSelect(value); onDismiss() },
-                            colors = RadioButtonDefaults.colors(selectedColor = colors.primary, unselectedColor = colors.textSecondary)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(label, color = colors.textPrimary)
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                    TextButton(onClick = onDismiss) {
-                        Text(stringResource(R.string.cancel), color = colors.textSecondary)
-                    }
-                }
-            }
         }
     }
 }

@@ -59,10 +59,18 @@ class BrowserHistoryViewModel @Inject constructor(
             calendar.set(Calendar.MILLISECOND, 999)
             val endOfDay = calendar.timeInMillis
 
-            repository.observeHistoryForDate(childId, startOfDay, endOfDay)
-                .collectLatest { historyList ->
-                    updateState { copy(history = historyList) }
-                }
+            // 1. Observe local Room database (Instant UI feedback)
+            launch {
+                repository.observeHistoryForDate(childId, startOfDay, endOfDay)
+                    .collectLatest { historyList ->
+                        updateState { copy(history = historyList) }
+                    }
+            }
+
+            // 2. Fetch fresh data from server in the background for this specific date
+            launch {
+                repository.fetchHistoryFromServerForDate(childId, startOfDay, endOfDay)
+            }
         }
     }
 

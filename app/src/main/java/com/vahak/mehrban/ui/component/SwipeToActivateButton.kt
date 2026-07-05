@@ -32,10 +32,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.vahak.mehrban.R
 import com.vahak.mehrban.uiv2.theme.AppIcons
@@ -51,16 +53,13 @@ fun SwipeToActivateButton(
     onDeactivate: () -> Unit,
 ) {
     val colors = LocalCustomColors.current
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
-    // State to track drag ONLY. Activation is handled by the parent!
     var offsetX by remember { mutableFloatStateOf(0f) }
 
-    // Constants
     val height = 64.dp
     val thumbSize = 52.dp
     val padding = 6.dp
-
-    // Convert dp to px for logic
     val density = LocalDensity.current
     val maxDragPx = with(density) { 250.dp.toPx() }
 
@@ -68,22 +67,20 @@ fun SwipeToActivateButton(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .background(colors.surface, RoundedCornerShape(32.dp)) // Theme Surface
-            .border(1.dp, colors.divider, RoundedCornerShape(32.dp)) // Theme Border
+            .background(colors.surface, RoundedCornerShape(32.dp))
+            .border(1.dp, colors.divider, RoundedCornerShape(32.dp))
             .padding(padding)
     ) {
-        // Background Text
         if (!isActive) {
             Text(
                 text = stringResource(R.string.slider_instruction),
                 modifier = Modifier.align(Alignment.Center),
-                color = colors.textHint, // Theme text color
+                color = colors.textHint,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
 
-        // Draggable / Clickable Thumb
         Box(
             modifier = Modifier
                 .offset { IntOffset(if (isActive) 0 else offsetX.roundToInt(), 0) }
@@ -96,11 +93,8 @@ fun SwipeToActivateButton(
                 .clip(RoundedCornerShape(32.dp))
                 .background(
                     brush = Brush.linearGradient(
-                        colors = if (isActive) {
-                            listOf(colors.green, Color(0xFF0D9488)) // Active Green Gradient
-                        } else {
-                            listOf(colors.primary, colors.primaryVariant) // Inactive Primary Gradient
-                        }
+                        colors = if (isActive) listOf(colors.green, Color(0xFF0D9488))
+                        else listOf(colors.primary, colors.primaryVariant)
                     )
                 )
                 .then(
@@ -113,13 +107,14 @@ fun SwipeToActivateButton(
                         Modifier.draggable(
                             orientation = Orientation.Horizontal,
                             state = rememberDraggableState { delta ->
-                                val newOffset = offsetX - delta
-                                offsetX = newOffset.coerceIn(0f, maxDragPx)
+                                // 🚀 THE FIX: Convert physical delta to logical drag distance
+                                val dragAmount = if (isRtl) -delta else delta
+                                offsetX = (offsetX + dragAmount).coerceIn(0f, maxDragPx)
                             },
                             onDragStopped = {
                                 if (offsetX > maxDragPx * 0.7) {
                                     offsetX = 0f
-                                    onActivate() // Fire to parent!
+                                    onActivate()
                                 } else {
                                     offsetX = 0f
                                 }
@@ -130,7 +125,6 @@ fun SwipeToActivateButton(
             contentAlignment = Alignment.Center
         ) {
             if (isActive) {
-                // Activated View
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = stringResource(R.string.slider_activated) + " (توقف)",
@@ -141,9 +135,9 @@ fun SwipeToActivateButton(
                     Icon(AppIcons.Check, contentDescription = null, tint = Color.White)
                 }
             } else {
-                // Not Activated View
+                // 🚀 Ensures arrow points the right way to drag
                 Icon(
-                    painter = AppIcons.ChevronLeft,
+                    painter = AppIcons.ChevronRight,
                     contentDescription = null,
                     tint = Color.White
                 )
@@ -152,21 +146,13 @@ fun SwipeToActivateButton(
     }
 }
 
-// ==========================================
-// PREVIEWS
-// ==========================================
-
 @Preview(showBackground = true, name = "1. Slider - Deactivated", widthDp = 360, locale = "fa")
 @Composable
 fun SwipeSliderDeactivatedPreview() {
     ParentControlTheme {
-        val colors = LocalCustomColors.current // Grab colors for the preview
-        Box(modifier = Modifier.padding(16.dp).background(colors.background)) { // Use theme background!
-            SwipeToActivateButton(
-                isActive = false,
-                onActivate = {},
-                onDeactivate = {}
-            )
+        val colors = LocalCustomColors.current
+        Box(modifier = Modifier.padding(16.dp).background(colors.background)) {
+            SwipeToActivateButton(isActive = false, onActivate = {}, onDeactivate = {})
         }
     }
 }
@@ -177,11 +163,7 @@ fun SwipeSliderActivatedPreview() {
     ParentControlTheme {
         val colors = LocalCustomColors.current
         Box(modifier = Modifier.padding(16.dp).background(colors.background)) {
-            SwipeToActivateButton(
-                isActive = true,
-                onActivate = {},
-                onDeactivate = {}
-            )
+            SwipeToActivateButton(isActive = true, onActivate = {}, onDeactivate = {})
         }
     }
 }

@@ -15,7 +15,7 @@ object MockBrowserData {
     )
 
     val mockHistory = listOf(
-        BrowserHistoryEntity(id = 1, childId = "1", url = "https://aparat.com", title = "آپارات", timestamp = System.currentTimeMillis()),
-        BrowserHistoryEntity(id = 2, childId = "1", url = "https://kiddle.co", title = "Kiddle Search", timestamp = System.currentTimeMillis() - 3600000)
+        BrowserHistoryEntity(id = "1", childId = "1", url = "https://aparat.com", title = "آپارات", timestamp = System.currentTimeMillis()),
+        BrowserHistoryEntity(id = "2", childId = "1", url = "https://kiddle.co", title = "Kiddle Search", timestamp = System.currentTimeMillis() - 3600000)
     )
 }

@@ -245,6 +245,7 @@
     <string name="browser_engine_duckduckgo">داک‌داک‌گو (DuckDuckGo)</string>
     <string name="browser_engine_google">گوگل (Google)</string>
 
+    <string name="browser_safe_name">مرورگر امن</string>
     <string name="browser_cartoon_world">دنیای کارتون</string>
     <string name="browser_cartoon_world_desc">نمایش دکمه تلوبیون کودک در خانه</string>
 

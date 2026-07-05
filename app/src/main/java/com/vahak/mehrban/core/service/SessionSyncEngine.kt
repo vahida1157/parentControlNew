@@ -36,21 +36,22 @@ class SessionSyncEngine @Inject constructor(
                 if (phone != null) {
                     Timber.d("Valid session detected. Booting all background sync targets.")
 
-                    launch { childRepository.syncChildrenFromServer() }
+                    // 1. Start the root dependencies
+                    val childSyncJob = launch { childRepository.syncChildrenFromServer() }
                     launch { notificationRepository.syncNotificationsFromServer() }
 
+                    // 2. WAIT for the child rows to be safely inserted into the Room database
+                    childSyncJob.join()
+
+                    // 3. NOW it is 100% safe to sync dependent tables with Foreign Keys
                     launch {
                         sessionManager.viewedChildIdFlow.distinctUntilChanged()
                             .collectLatest { childId ->
                                 if (childId != null) {
                                     launch { settingsRepository.syncSettingsFromServer(childId) }
                                     launch { appRuleRepository.syncRulesFromServer(childId) }
-                                    launch {
-                                        usageRepository.syncUnsyncedData(
-                                            childId, forcePing = true
-                                        )
-                                    }
-                                    launch { safeBrowserRepository.syncBrowserDataFromServer(childId) } // 🚀 ADDED THIS
+                                    launch { usageRepository.syncUnsyncedData(childId, forcePing = true) }
+                                    launch { safeBrowserRepository.syncBrowserDataFromServer(childId) }
                                 }
                             }
                     }

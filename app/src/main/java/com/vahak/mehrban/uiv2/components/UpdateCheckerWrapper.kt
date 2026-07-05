@@ -62,6 +62,24 @@ fun UpdateCheckerWrapper(
         val updateData = (updateState as UpdateState.UpdateAvailable)
         val info = updateData.info
 
+        val updateNewVersionAvailableText = stringResource(R.string.update_new_version_available)
+        val updateDownloadFromStoreText = stringResource(R.string.update_download_from_store)
+        val updateDownloadInstallText = stringResource(R.string.update_download_install)
+        val updateConnectingText = stringResource(R.string.update_connecting)
+        val errorDownloadConnectionFailedText =
+            stringResource(R.string.error_download_connection_failed)
+        val errorDownloadConnectionLostText =
+            stringResource(R.string.error_download_connection_lost)
+        val updateCancelledAlreadyLatestText =
+            stringResource(R.string.update_cancelled_already_latest)
+        val downloadErrorGenericText = stringResource(R.string.download_error_generic)
+        val updateRetryText = stringResource(R.string.update_retry)
+        val updateSuccessInstallingText = stringResource(R.string.update_success_installing)
+        val updateExitAppText = stringResource(R.string.update_exit_app)
+        val updateRemindLaterText = stringResource(R.string.update_remind_later)
+        val updateDownloadingText = stringResource(R.string.update_downloading)
+
+
         Dialog(
             onDismissRequest = {
                 if (!updateData.isForced && downloadState !is AppDownloadState.Connecting && downloadState !is AppDownloadState.Downloading) {
@@ -82,7 +100,7 @@ fun UpdateCheckerWrapper(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = stringResource(R.string.update_new_version_available),
+                        text = updateNewVersionAvailableText,
                         fontWeight = FontWeight.Black,
                         fontSize = 18.sp,
                         color = colors.textPrimary
@@ -125,9 +143,9 @@ fun UpdateCheckerWrapper(
                                 @Suppress(
                                     "SimplifyBooleanWithConstants", "KotlinConstantConditions"
                                 ) val buttonText = if (BuildConfig.FLAVOR != "website") {
-                                    stringResource(R.string.update_download_from_store)
+                                    updateDownloadFromStoreText
                                 } else {
-                                    stringResource(R.string.update_download_install)
+                                    updateDownloadInstallText
                                 }
                                 Text(
                                     buttonText,
@@ -144,7 +162,7 @@ fun UpdateCheckerWrapper(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    stringResource(R.string.update_connecting),
+                                    updateConnectingText,
                                     fontSize = 12.sp,
                                     color = colors.textSecondary
                                 )
@@ -164,7 +182,7 @@ fun UpdateCheckerWrapper(
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    stringResource(R.string.update_downloading, progress),
+                                    text = updateDownloadingText.format(progress),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.textPrimary
@@ -176,10 +194,10 @@ fun UpdateCheckerWrapper(
                             // 🚀 THE FIX: Translate the Enum to a Compose localized string
                             val errorEnum = (downloadState as AppDownloadState.Error).error
                             val errMsg = when (errorEnum) {
-                                DownloadError.CONNECTION_FAILED -> stringResource(R.string.error_download_connection_failed)
-                                DownloadError.CONNECTION_LOST -> stringResource(R.string.error_download_connection_lost)
-                                DownloadError.ALREADY_LATEST -> stringResource(R.string.update_cancelled_already_latest)
-                                DownloadError.GENERIC_ERROR -> stringResource(R.string.download_error_generic)
+                                DownloadError.CONNECTION_FAILED -> errorDownloadConnectionFailedText
+                                DownloadError.CONNECTION_LOST -> errorDownloadConnectionLostText
+                                DownloadError.ALREADY_LATEST -> updateCancelledAlreadyLatestText
+                                DownloadError.GENERIC_ERROR -> downloadErrorGenericText
                             }
 
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -203,7 +221,7 @@ fun UpdateCheckerWrapper(
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Text(
-                                        stringResource(R.string.update_retry),
+                                        updateRetryText,
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -213,7 +231,7 @@ fun UpdateCheckerWrapper(
 
                         is AppDownloadState.Success -> {
                             Text(
-                                stringResource(R.string.update_success_installing),
+                                updateSuccessInstallingText,
                                 color = colors.green,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
@@ -233,8 +251,7 @@ fun UpdateCheckerWrapper(
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    stringResource(R.string.update_exit_app),
-                                    fontWeight = FontWeight.Bold
+                                    updateExitAppText, fontWeight = FontWeight.Bold
                                 )
                             }
                         } else {
@@ -244,7 +261,7 @@ fun UpdateCheckerWrapper(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    stringResource(R.string.update_remind_later),
+                                    updateRemindLaterText,
                                     color = colors.textHint,
                                     fontWeight = FontWeight.Bold
                                 )

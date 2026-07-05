@@ -7,6 +7,8 @@ import com.vahak.mehrban.core.data.local.entity.FilterMode
 import com.vahak.mehrban.domain.repository.SafeBrowserRepository
 import com.vahak.mehrban.presentation.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -37,9 +39,10 @@ sealed class BrowserSettingMenuEffect {
 
 @HiltViewModel
 class BrowserSettingMenuViewModel @Inject constructor(
-    private val sessionManager: SessionManager,
-    private val repository: SafeBrowserRepository
-) : BaseViewModel<BrowserSettingMenuState, BrowserSettingMenuEvent, BrowserSettingMenuEffect>(BrowserSettingMenuState()) {
+    private val sessionManager: SessionManager, private val repository: SafeBrowserRepository
+) : BaseViewModel<BrowserSettingMenuState, BrowserSettingMenuEvent, BrowserSettingMenuEffect>(
+    BrowserSettingMenuState()
+) {
 
     init {
         viewModelScope.launch {
@@ -73,19 +76,27 @@ class BrowserSettingMenuViewModel @Inject constructor(
         viewModelScope.launch {
             when (event) {
                 is BrowserSettingMenuEvent.OnBackPress -> {
-                    // Sync to server only when exiting the root menu
-                    updateState { copy(isLoading = true) }
-                    repository.pushBrowserDataToServer(childId)
                     sendEffect(BrowserSettingMenuEffect.ExitScreen)
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        repository.pushBrowserDataToServer(childId)
+                    }
                 }
+
                 is BrowserSettingMenuEvent.SetFilterMenuOpen -> updateState { copy(isFilterMenuOpen = event.isOpen) }
                 is BrowserSettingMenuEvent.SetEngineMenuOpen -> updateState { copy(isEngineMenuOpen = event.isOpen) }
-                is BrowserSettingMenuEvent.ChangeFilterMode -> repository.updateFilterMode(childId, event.mode)
+                is BrowserSettingMenuEvent.ChangeFilterMode -> repository.updateFilterMode(
+                    childId, event.mode
+                )
+
                 is BrowserSettingMenuEvent.ChangeSearchEngine -> {
                     repository.updateSearchEngine(childId, event.engineId)
                     updateState { copy(isEngineMenuOpen = false) }
                 }
-                is BrowserSettingMenuEvent.ToggleCartoonWorld -> repository.updateCartoonWorld(childId, event.isEnabled)
+
+                is BrowserSettingMenuEvent.ToggleCartoonWorld -> repository.updateCartoonWorld(
+                    childId, event.isEnabled
+                )
             }
         }
     }

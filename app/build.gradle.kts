@@ -35,7 +35,7 @@ android {
         applicationId = "com.vahak.mehrban"
         minSdk = 26
         targetSdk = 37
-        versionCode = 15
+        versionCode = 16
         versionName = "1.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -134,12 +134,19 @@ androidComponents {
             // AGP 8+ exposes version info ONLY on the output object
             val versionName = output.versionName.get()
             val versionCode = output.versionCode.get()
+            val flavorName = variant.productFlavors.joinToString("-") { it.second }
             val fileName = when (val buildType = variant.buildType!!) {
-                "debug" -> "Mehrban-Debug-v$versionName($versionCode).apk"
-                "release" -> "Mehrban-Release-v$versionName($versionCode).apk"
-                else -> "Mehrban-$buildType-v$versionName($versionCode).apk"
+                "debug" -> "Mehrban-${flavorName}-Debug-v$versionName($versionCode).apk"
+                "release" -> "Mehrban-${flavorName}-Release-v$versionName($versionCode).apk"
+                else -> {
+                    val cleanBuildType = buildType.replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase() else it.toString()
+                    }
+                    "Mehrban-${flavorName}-${cleanBuildType}-v$versionName($versionCode).apk"
+                }
             }
 
+            @Suppress("UnstableApiUsage")
             output.outputFileName.set(fileName)
         }
     }

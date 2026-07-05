@@ -29,19 +29,8 @@ interface SafeBrowserDao {
     suspend fun markSettingsAsSynced(childId: String)
 
     // --- ALLOWED SITES ---
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertAllowedSite(item: BrowserAllowedSiteEntity): Long
-
-    @Query("UPDATE browser_allowed_sites SET label = :label, is_active = :isActive, is_synced = 0, updated_at = :updatedAt WHERE child_id = :childId AND url = :url")
-    suspend fun updateAllowedSite(childId: String, url: String, label: String, isActive: Boolean, updatedAt: Long)
-
-    @Transaction
-    suspend fun upsertAllowedSite(item: BrowserAllowedSiteEntity) {
-        val id = insertAllowedSite(item)
-        if (id == -1L) { // -1 means it was ignored because it already exists
-            updateAllowedSite(item.childId, item.url, item.label, item.isActive, item.updatedAt)
-        }
-    }
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAllowedSite(item: BrowserAllowedSiteEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAllowedSites(items: List<BrowserAllowedSiteEntity>)
@@ -88,8 +77,11 @@ interface SafeBrowserDao {
     suspend fun markBlockedKeywordsAsSynced(childId: String, keywords: List<String>)
 
     // --- HISTORY ---
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertHistory(item: BrowserHistoryEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertHistoryList(items: List<BrowserHistoryEntity>)
 
     @Query("SELECT * FROM browser_history WHERE child_id = :childId ORDER BY timestamp DESC LIMIT 100")
     fun observeHistory(childId: String): Flow<List<BrowserHistoryEntity>>
@@ -105,5 +97,15 @@ interface SafeBrowserDao {
     suspend fun getUnsyncedHistory(childId: String): List<BrowserHistoryEntity>
 
     @Query("UPDATE browser_history SET is_synced = 1 WHERE child_id = :childId AND id IN (:ids)")
-    suspend fun markHistoryAsSynced(childId: String, ids: List<Long>)
+    suspend fun markHistoryAsSynced(childId: String, ids: List<String>)
+
+    // --- CLEANUP (HARD DELETES) ---
+    @Query("DELETE FROM browser_allowed_sites WHERE child_id = :childId AND url IN (:urls)")
+    suspend fun hardDeleteAllowedSites(childId: String, urls: List<String>)
+
+    @Query("DELETE FROM browser_blocked_sites WHERE child_id = :childId AND url IN (:urls)")
+    suspend fun hardDeleteBlockedSites(childId: String, urls: List<String>)
+
+    @Query("DELETE FROM browser_blocked_keywords WHERE child_id = :childId AND keyword IN (:keywords)")
+    suspend fun hardDeleteBlockedKeywords(childId: String, keywords: List<String>)
 }

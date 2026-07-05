@@ -21,6 +21,7 @@ object AppIcons {
     val Settings: Painter @Composable get() = painterResource(R.drawable.ic_settings)
     val Add: Painter @Composable get() = painterResource(R.drawable.ic_plus)
     val ChevronLeft: Painter @Composable get() = painterResource(R.drawable.ic_chevron_left)
+    val ChevronRight: Painter @Composable get() = painterResource(R.drawable.ic_chevron_right)
     val Home: Painter @Composable get() = painterResource(R.drawable.ic_home)
     val Wallet: Painter @Composable get() = painterResource(R.drawable.ic_wallet)
     val ChartBar: Painter @Composable get() = painterResource(R.drawable.ic_chart_bar)
