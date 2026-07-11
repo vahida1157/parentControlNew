@@ -5,25 +5,26 @@ coreKtx = "1.19.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-lifecycleRuntimeKtx = "2.10.0"
+lifecycleRuntimeKtx = "2.11.0"
 activityCompose = "1.13.0"
 kotlin = "2.3.21"
-composeBom = "2026.05.01"
+composeBom = "2026.06.01"
 loggingInterceptor = "5.4.0"
 navigationCompose = "2.9.8"
 datastorePreferences = "1.2.1"
-hilt = "2.59.2"
-hiltWork = "1.3.0"
-hiltNavigation = "1.3.0"
+hilt = "2.60.1"
+hiltWork = "1.4.0"
+hiltNavigation = "1.4.0"
 ksp = "2.3.6"
 playServicesAuthApiPhone = "18.3.0"
 retrofit = "3.0.0"
 room = "2.8.4"
-lifecycleService = "2.10.0"
+lifecycleService = "2.11.0"
 workRuntimeKtx = "2.11.2"
 appcompat = "1.7.1"
 google-services = "4.5.0"
 firebase-bom = "34.15.0"
+bazaar-updater = "1.1.1"
 
 [libraries]
 android-device-names = { module = "com.jaredrummler:android-device-names", version.ref = "androidDeviceNames" }
@@ -43,12 +44,13 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
-androidx-datastore-preferences = {group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences"}
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
 androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+bazaar-updater = { group = "com.github.cafebazaar", name = "bazaarUpdater", version.ref = "bazaar-updater" }
 
 # Firebase
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }

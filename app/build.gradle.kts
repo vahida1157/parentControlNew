@@ -193,6 +193,8 @@ dependencies {
     // Firebase products (versions automatically managed by BoM)
     implementation(libs.firebase.analytics)
 
+    implementation(libs.bazaar.updater)
+
 
     ksp(libs.room.compiler)
     ksp(libs.hilt.compiler)
