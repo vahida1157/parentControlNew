@@ -6,6 +6,7 @@
     <string name="confirm">Confirm</string>
     <string name="save">Save</string>
     <string name="delete">Delete</string>
+    <string name="skip_for_now">skip for now</string>
     <string name="change">Change</string>
     <string name="active">Active</string>
     <string name="today">Today</string>

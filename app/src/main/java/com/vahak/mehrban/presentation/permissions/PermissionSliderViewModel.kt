@@ -2,11 +2,16 @@ package com.vahak.mehrban.presentation.permissions
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.analytics.AppAnalytics
+import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.util.PermissionChecker
 import com.vahak.mehrban.core.util.PermissionType
 import com.vahak.mehrban.presentation.BaseViewModel
+import com.vahak.mehrban.presentation.permissions.PermissionSliderEffect.LaunchAndroidSettings
+import com.vahak.mehrban.presentation.permissions.PermissionSliderEffect.NavigateToFeature
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -16,6 +21,7 @@ data class PermissionSliderState(
 
 sealed class PermissionSliderEvent {
     data class GrantClicked(val permission: PermissionType) : PermissionSliderEvent()
+    object SkipClicked : PermissionSliderEvent()
     object SetupFinished : PermissionSliderEvent()
     data class CheckPermissions(val context: Context) : PermissionSliderEvent()
 }
@@ -31,6 +37,7 @@ sealed class PermissionSliderEffect {
 class PermissionSliderViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val analytics: AppAnalytics,
+    private val sessionManager: SessionManager,
 ) : BaseViewModel<PermissionSliderState, PermissionSliderEvent, PermissionSliderEffect>(
     PermissionSliderState()
 ) {
@@ -62,12 +69,13 @@ class PermissionSliderViewModel @Inject constructor(
                 Timber.d("User initiated OS permission request: %s", event.permission)
                 analytics.logPermissionStepClicked(event.permission.name)
                 sendEffect(
-                    PermissionSliderEffect.LaunchAndroidSettings(
+                    LaunchAndroidSettings(
                         action = event.permission.androidSettingsAction,
                         permission = event.permission
                     )
                 )
             }
+
             is PermissionSliderEvent.CheckPermissions -> {
                 // 1. Cache the old list BEFORE we do any math or state updates
                 val oldMissing = state.value.missingPermissions
@@ -97,8 +105,21 @@ class PermissionSliderViewModel @Inject constructor(
 
             is PermissionSliderEvent.SetupFinished -> {
                 Timber.i("Required OS permissions granted, routing to target feature")
+
+                // 🚀 Mark as shown (in case they granted it successfully)
+                viewModelScope.launch { sessionManager.setHasShownInitialNotifPrompt(true) }
+
                 analytics.logPermissionSetupFinished(state.value.targetFeatureRoute)
-                sendEffect(PermissionSliderEffect.NavigateToFeature(state.value.targetFeatureRoute))
+                sendEffect(NavigateToFeature(state.value.targetFeatureRoute))
+            }
+
+            PermissionSliderEvent.SkipClicked -> {
+                Timber.d("User skipped optional permission")
+
+                // 🚀 Mark as shown so they can proceed to Log in
+                viewModelScope.launch { sessionManager.setHasShownInitialNotifPrompt(true) }
+
+                sendEffect(NavigateToFeature(state.value.targetFeatureRoute))
             }
         }
     }

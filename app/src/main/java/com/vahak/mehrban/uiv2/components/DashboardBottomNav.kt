@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.vahak.mehrban.R
-import com.vahak.mehrban.ui.theme.AppIcons
+import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 
 sealed class BottomNavItem(
@@ -47,14 +47,18 @@ sealed class BottomNavItem(
     val iconProvider: @Composable () -> Painter
 ) {
     object Home : BottomNavItem("home", { stringResource(R.string.nav_home) }, { AppIcons.Home })
-    object Children :
-        BottomNavItem("children", { stringResource(R.string.nav_children) }, { AppIcons.Profile })
+    object Children : BottomNavItem(
+        "children",
+        { stringResource(R.string.nav_children) },
+        { AppIcons.FamilyGroup })
 
     object Reports :
         BottomNavItem("reports", { stringResource(R.string.nav_stats) }, { AppIcons.ChartBar })
 
-    object Profile :
-        BottomNavItem("profile", { stringResource(R.string.nav_profile) }, { AppIcons.Settings })
+    object Profile : BottomNavItem(
+        "profile",
+        { stringResource(R.string.nav_profile) },
+        { AppIcons.AccountCircle })
 }
 
 @Composable
@@ -63,10 +67,7 @@ fun DashboardBottomNav(navController: NavController) {
     val isDark = isSystemInDarkTheme()
 
     val items = listOf(
-        BottomNavItem.Home,
-        BottomNavItem.Children,
-        BottomNavItem.Reports,
-        BottomNavItem.Profile
+        BottomNavItem.Home, BottomNavItem.Children, BottomNavItem.Reports, BottomNavItem.Profile
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -96,12 +97,14 @@ fun DashboardBottomNav(navController: NavController) {
 
                 val contentColor by animateColorAsState(
                     targetValue = if (isSelected) colors.primary else colors.textSecondary,
-                    animationSpec = tween(300), label = "color_anim"
+                    animationSpec = tween(300),
+                    label = "color_anim"
                 )
 
                 val bgColor by animateColorAsState(
                     targetValue = if (isSelected) colors.primary.copy(alpha = 0.08f) else Color.Transparent,
-                    animationSpec = tween(300), label = "bg_anim"
+                    animationSpec = tween(300),
+                    label = "bg_anim"
                 )
 
                 Box(
@@ -123,8 +126,7 @@ fun DashboardBottomNav(navController: NavController) {
                             }
                         }
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                    contentAlignment = Alignment.Center) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center

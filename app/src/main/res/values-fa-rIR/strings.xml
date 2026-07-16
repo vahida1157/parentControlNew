@@ -6,6 +6,7 @@
     <string name="confirm">تأیید</string>
     <string name="save">ذخیره</string>
     <string name="delete">حذف</string>
+    <string name="skip_for_now">فعلا نه</string>
     <string name="change">تغییر</string>
     <string name="active">فعال</string>
     <string name="today">امروز</string>
@@ -387,7 +388,7 @@
     <!-- Notification Permission Slider strings -->
     <string name="permission_notifications_title">فعال‌سازی اعلان‌ها و هشدارهای امنیتی</string>
     <string name="permission_notifications_desc">مهربان برای ارسال هشدارهای مراقبتی، گزارش‌های سیستمی و یادآوری وضعیت بررسی کودک، به دسترسی اعلان‌ها نیاز دارد.</string>
-    <string name="permission_notifications_step_1">روی دکمه «تایید دسترسی» بزنید و در پنجره باز شده گزینه «Allow» یا «اجازه دادن» را انتخاب کنید.</string>
+    <string name="permission_notifications_step_1">روی دکمه «اعطای دسترسی» بزنید و در پنجره باز شده گزینه «Allow» یا «اجازه دادن» را انتخاب کنید.</string>
 
     <string name="parent_alerts_channel_name">هشدارهای هوشمند مهربان</string>
 

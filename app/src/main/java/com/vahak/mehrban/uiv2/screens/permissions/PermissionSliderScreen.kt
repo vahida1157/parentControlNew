@@ -1,8 +1,11 @@
 package com.vahak.mehrban.uiv2.screens.permissions
 
+import android.Manifest.permission.POST_NOTIFICATIONS
+import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.net.VpnService
 import android.provider.Settings
@@ -34,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -68,6 +72,7 @@ import com.vahak.mehrban.uiv2.theme.AppIcons
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
+import timber.log.Timber
 
 @Composable
 fun PermissionSliderScreen(
@@ -88,7 +93,36 @@ fun PermissionSliderScreen(
 
     val runtimePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { _ ->
+    ) { isGranted ->
+        Timber.d("Notification Permission Result -> isGranted: $isGranted")
+
+        if (!isGranted) {
+            // 🚀 THE FIX: Use the unwrapper instead of 'context as? Activity'
+            val activity = context.findActivity()
+            Timber.d("Unwrapped Activity: ${activity?.localClassName ?: "NULL"}")
+
+            if (activity != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                val shouldShowRationale = androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(
+                    activity,
+                    POST_NOTIFICATIONS
+                )
+                Timber.d("shouldShowRationale flag: $shouldShowRationale")
+
+                if (!shouldShowRationale) {
+                    Timber.w("Permission permanently denied! Routing to OS Settings.")
+                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    }
+                    settingsLauncher.launch(intent)
+                    return@rememberLauncherForActivityResult
+                } else {
+                    Timber.d("User denied once. OS will still allow the popup next time.")
+                }
+            } else {
+                Timber.e("Could not check rationale. Activity is null or SDK < 33.")
+            }
+        }
+
         checkTrigger++ // Triggers the viewmodel to re-check permissions
     }
 
@@ -126,7 +160,7 @@ fun PermissionSliderScreen(
 
                     if (effect.permission == PermissionType.NOTIFICATIONS) {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                            runtimePermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                            runtimePermissionLauncher.launch(POST_NOTIFICATIONS)
                         } else {
                             val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                                 putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
@@ -167,6 +201,7 @@ fun PermissionSliderScreen(
             onGrantClick = { permission ->
                 viewModel.onEvent(PermissionSliderEvent.GrantClicked(permission))
             },
+            onSkipClick = { viewModel.onEvent(PermissionSliderEvent.SkipClicked) },
             onFinishSetup = { viewModel.onEvent(PermissionSliderEvent.SetupFinished) })
     }
 }
@@ -175,6 +210,7 @@ fun PermissionSliderScreen(
 fun PermissionSliderContent(
     permissions: List<PermissionType>,
     onGrantClick: (PermissionType) -> Unit,
+    onSkipClick: () -> Unit,
     onFinishSetup: () -> Unit,
 ) {
     val colors = LocalCustomColors.current
@@ -182,9 +218,15 @@ fun PermissionSliderContent(
 
     Scaffold(
         modifier = Modifier.systemBarsPadding(), containerColor = colors.background, bottomBar = {
+            // 🚀 Only allow skipping if the permission is Notifications
+            val currentPerm = permissions.getOrNull(pagerState.currentPage)
+            val canSkip = currentPerm == PermissionType.NOTIFICATIONS
+
             PermissionFooterV2(
                 buttonText = stringResource(R.string.permission_grant_access),
                 onGrantClick = { onGrantClick(permissions[pagerState.currentPage]) },
+                showSkip = canSkip,
+                onSkipClick = onSkipClick
             )
         }) { paddingValues ->
         Column(
@@ -377,7 +419,12 @@ fun TutorialStepV2(stepNumber: Int, instruction: String) {
 }
 
 @Composable
-fun PermissionFooterV2(buttonText: String, onGrantClick: () -> Unit) {
+fun PermissionFooterV2(
+    buttonText: String,
+    onGrantClick: () -> Unit,
+    showSkip: Boolean = false,
+    onSkipClick: () -> Unit = {}
+) {
     val colors = LocalCustomColors.current
 
     Column(
@@ -385,7 +432,8 @@ fun PermissionFooterV2(buttonText: String, onGrantClick: () -> Unit) {
             .fillMaxWidth()
             .shadow(16.dp)
             .background(colors.surface)
-            .padding(20.dp)
+            .padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Button(
             onClick = onGrantClick,
@@ -407,7 +455,26 @@ fun PermissionFooterV2(buttonText: String, onGrantClick: () -> Unit) {
                 fontWeight = FontWeight.Bold
             )
         }
+
+        // 🚀 NEW: The Skip Button
+        if (showSkip) {
+            Spacer(modifier = Modifier.height(12.dp))
+            TextButton(onClick = onSkipClick) {
+                // Make sure to add this string to your strings.xml ("Skip for now" / "فعلا نه")
+                Text(
+                    text = stringResource(R.string.skip_for_now),
+                    color = colors.textHint,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
+}
+
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 // ==========================================
@@ -418,13 +485,17 @@ fun PermissionFooterV2(buttonText: String, onGrantClick: () -> Unit) {
 @Composable
 fun PermissionSliderPreviewLight() {
     val mockPermissions = listOf(
-        PermissionType.USAGE_STATS, PermissionType.DEVICE_ADMIN, PermissionType.ACCESSIBILITY
+        PermissionType.NOTIFICATIONS,
+        PermissionType.USAGE_STATS,
+        PermissionType.DEVICE_ADMIN,
+        PermissionType.ACCESSIBILITY
     )
 
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         PermissionSliderContent(
             permissions = mockPermissions,
             onGrantClick = {},
+            onSkipClick = {},
             onFinishSetup = {})
     }
 }
@@ -444,6 +515,7 @@ fun PermissionSliderPreviewDark() {
         PermissionSliderContent(
             permissions = mockPermissions,
             onGrantClick = {},
+            onSkipClick = {},
             onFinishSetup = {})
     }
 }

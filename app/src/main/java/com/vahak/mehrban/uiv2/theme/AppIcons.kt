@@ -47,4 +47,6 @@ object AppIcons {
     val Warning: Painter @Composable get() = painterResource(R.drawable.ic_warning)
     val Copy: Painter @Composable get() = painterResource(R.drawable.ic_copy)
     val Edit: Painter @Composable get() = painterResource(R.drawable.ic_edit)
+    val AccountCircle: Painter @Composable get() = painterResource(R.drawable.ic_account_circle)
+    val FamilyGroup: Painter @Composable get() = painterResource(R.drawable.ic_family_group)
 }

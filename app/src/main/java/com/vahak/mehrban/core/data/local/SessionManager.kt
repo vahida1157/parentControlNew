@@ -35,7 +35,7 @@ class SessionManager @Inject constructor(
         private val SECURITY_ANSWER = stringPreferencesKey("security_answer")
         private val DEVICE_ID = stringPreferencesKey("device_id")
         private val VIEWED_CHILD_ID = stringPreferencesKey("viewed_child_id")
-        private val SEARCH_ENGINE = stringPreferencesKey("search_engine")
+        private val HAS_SHOWN_NOTIF = booleanPreferencesKey("has_shown_notif_permission")
     }
 
     val appLanguageFlow: Flow<String> = context.dataStore.data.map { prefs ->
@@ -54,7 +54,8 @@ class SessionManager @Inject constructor(
     val securityAnswerFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_ANSWER] }
     val viewedChildIdFlow: Flow<String?> = context.dataStore.data.map { it[VIEWED_CHILD_ID] }
 
-    val searchEngineFlow: Flow<String?> = context.dataStore.data.map { it[SEARCH_ENGINE] }
+    val hasShownInitialNotifPromptFlow: Flow<Boolean> =
+        context.dataStore.data.map { it[HAS_SHOWN_NOTIF] ?: false }
 
     suspend fun saveSession(
         token: String,
@@ -76,7 +77,17 @@ class SessionManager @Inject constructor(
     }
 
     suspend fun clearSession() {
-        context.dataStore.edit { it.clear() }
+        context.dataStore.edit { prefs ->
+            prefs[IS_LOGGED_IN] = false
+            prefs.remove(AUTH_TOKEN)
+            prefs.remove(USER_PHONE)
+            prefs.remove(PARENT_ID)
+            prefs.remove(ACTIVE_CHILD_ID)
+            prefs.remove(PARENT_PIN)
+            prefs.remove(SECURITY_QUESTION)
+            prefs.remove(SECURITY_ANSWER)
+            prefs.remove(VIEWED_CHILD_ID)
+        }
     }
 
     suspend fun setAppLanguage(langCode: String) {
@@ -138,7 +149,6 @@ class SessionManager @Inject constructor(
         return try {
             DeviceName.getDeviceName()
         } catch (_: Exception) {
-            // 🚀 THE FIX: Fallback to Android's built-in Build class if the library crashes
             val manufacturer = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
             val model = Build.MODEL
             if (model.lowercase().startsWith(manufacturer.lowercase())) {
@@ -155,9 +165,7 @@ class SessionManager @Inject constructor(
         }
     }
 
-    suspend fun setSearchEngine(engine: String) {
-        context.dataStore.edit { prefs ->
-            prefs[SEARCH_ENGINE] = engine
-        }
+    suspend fun setHasShownInitialNotifPrompt(shown: Boolean) {
+        context.dataStore.edit { it[HAS_SHOWN_NOTIF] = shown }
     }
 }

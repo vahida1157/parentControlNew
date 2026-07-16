@@ -3,10 +3,10 @@ package com.vahak.mehrban.core.util
 import android.content.Context
 import android.content.Intent
 import android.os.Process
-import android.util.Log
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -15,77 +15,79 @@ import java.util.zip.ZipOutputStream
 
 object LogExporter {
 
-    /**
-     * Extracts the last N lines of Logcat, compresses them into a ZIP file,
-     * deletes the raw text file to save space, and opens the Share sheet.
-     */
     suspend fun exportLogsAndShare(context: Context) {
         withContext(Dispatchers.IO) {
             try {
-                // 1. Define file paths in the cache directory
-                val logTxtFile = File(context.cacheDir, "modern_family_logs.txt")
+                // 1. Define files
+                val rawLogFile = File(context.cacheDir, "raw_logs.txt")
+                val logTxtFile = File(context.cacheDir, "modern_family.log")
                 val logZipFile = File(context.cacheDir, "modern_family_logs.zip")
 
-                // 2. Self-Cleaning: Delete old files so we don't bloat the user's storage
+                // 2. Clean old files
+                if (rawLogFile.exists()) rawLogFile.delete()
                 if (logTxtFile.exists()) logTxtFile.delete()
                 if (logZipFile.exists()) logZipFile.delete()
 
-                logTxtFile.createNewFile()
-
-                // 3. Dump ONLY the last 5000 lines to prevent massive files
-                // -d = dump and exit
-                // -v threadtime = include timestamps
-                // -t 5000 = only fetch the latest 5000 events
+                // 3. Dump the raw logcat output directly to the raw file
                 val myPid = Process.myPid()
-                // This tells logcat to silence the "View" tag completely, but keep everything else
-                val process = Runtime.getRuntime().exec("logcat -d -v threadtime -t 10000 --pid=$myPid View:S -f ${logTxtFile.absolutePath}")
+                val process = Runtime.getRuntime()
+                    .exec("logcat -d -v threadtime -t 10000 --pid=$myPid View:S -f ${rawLogFile.absolutePath}")
                 process.waitFor()
 
-                // 4. Compress the text file into a highly compressed ZIP archive
+                // 4. 🚀 THE FIX: Read the raw log and prepend the Level to the VERY start of the line
+                // This allows Notepad++ to color the ENTIRE line from left to right.
+                logTxtFile.bufferedWriter().use { writer ->
+                    rawLogFile.forEachLine { line ->
+                        // Split the line to find the 5th token (which is the log level: I, D, W, E)
+                        val tokens = line.trim().split(Regex("\\s+"), limit = 6)
+                        val level =
+                            if (tokens.size >= 5 && tokens[4].length == 1) tokens[4] else " "
+
+                        // Write it out as: "[E] | 07-25 12:51..."
+                        writer.write("[$level] | $line\n")
+                    }
+                }
+
+                // Cleanup raw file immediately
+                rawLogFile.delete()
+
+                // 5. Compress
                 zipFile(sourceFile = logTxtFile, zipFile = logZipFile)
+                logTxtFile.delete()
 
-                // 5. Cleanup: Delete the heavy uncompressed text file immediately
-                if (logTxtFile.exists()) logTxtFile.delete()
-
-                // 6. Get the secure URI for the ZIP file using our FileProvider
+                // 6. Share
                 val uri = FileProvider.getUriForFile(
                     context,
                     "${context.packageName}.provider",
                     logZipFile
                 )
 
-                // 7. Create the Share Intent (Notice the MIME type is now application/zip)
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "application/zip"
                     putExtra(Intent.EXTRA_STREAM, uri)
-                    putExtra(Intent.EXTRA_SUBJECT, "App Logs (Zipped)")
+                    putExtra(Intent.EXTRA_SUBJECT, "App Logs (Zipped .log)")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
 
-                // 8. Launch the Share Menu on the main UI thread
                 withContext(Dispatchers.Main) {
-                    val chooser = Intent.createChooser(shareIntent, "ارسال لاگ‌های فشرده به توسعه‌دهنده")
+                    val chooser =
+                        Intent.createChooser(shareIntent, "ارسال لاگ‌های فشرده به توسعه‌دهنده")
                     chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(chooser)
                 }
 
             } catch (e: Exception) {
-                Log.e("LogExporter", "Failed to export and compress logs", e)
+                Timber.tag("LogExporter").e(e, "Failed to export and compress logs")
             }
         }
     }
 
-    /**
-     * Standard Java helper function to compress a single file into a .zip archive.
-     */
     private fun zipFile(sourceFile: File, zipFile: File) {
         ZipOutputStream(FileOutputStream(zipFile)).use { zos ->
             FileInputStream(sourceFile).use { fis ->
-                // Name the file *inside* the zip archive
                 val zipEntry = ZipEntry(sourceFile.name)
                 zos.putNextEntry(zipEntry)
-
-                val buffer = ByteArray(4096) // 4KB buffer for fast writing
+                val buffer = ByteArray(4096)
                 var length: Int
                 while (fis.read(buffer).also { length = it } >= 0) {
                     zos.write(buffer, 0, length)

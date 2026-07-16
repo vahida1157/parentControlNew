@@ -3,6 +3,7 @@ package com.vahak.mehrban
 import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.util.AppUpdateManager
+import com.vahak.mehrban.core.util.PermissionType
 import com.vahak.mehrban.data.remote.AppVersionDto
 import com.vahak.mehrban.data.remote.DownloadError
 import com.vahak.mehrban.presentation.BaseViewModel
@@ -72,14 +73,30 @@ class MainViewModel @Inject constructor(
                 sessionManager.appThemeFlow,
                 sessionManager.appLanguageFlow,
                 sessionManager.isLoggedIn,
-                sessionManager.activeChildIdFlow
-            ) { theme, language, isLoggedIn, childId ->
+                sessionManager.activeChildIdFlow,
+                sessionManager.hasShownInitialNotifPromptFlow
+            ) { theme, language, isLoggedIn, childId, hasShownNotif ->
+
+                val startDest = when {
+                    !hasShownNotif -> {
+                        val nextScreen =
+                            if (isLoggedIn) Screen.Dashboard.route else Screen.Login.route
+                        Screen.PermissionSlider.createRoute(
+                            featureRoute = nextScreen,
+                            missingPermissions = PermissionType.NOTIFICATIONS.name
+                        )
+                    }
+
+                    isLoggedIn -> Screen.Dashboard.route
+                    else -> Screen.Login.route
+                }
+
                 updateState {
                     copy(
                         isInitializing = false,
                         theme = theme,
                         language = language,
-                        startDestination = if (isLoggedIn) Screen.Dashboard.route else Screen.Login.route,
+                        startDestination = startDest,
                         activeChildId = childId
                     )
                 }
