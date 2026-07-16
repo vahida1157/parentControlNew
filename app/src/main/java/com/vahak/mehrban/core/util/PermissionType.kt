@@ -69,5 +69,11 @@ enum class PermissionType(
             R.string.permission_location_step3
         ),
         androidSettingsAction = Settings.ACTION_LOCATION_SOURCE_SETTINGS
+    ),
+    NOTIFICATIONS(
+        titleRes = R.string.permission_notifications_title,
+        descRes = R.string.permission_notifications_desc,
+        instructionResIds = listOf(R.string.permission_notifications_step_1),
+        androidSettingsAction = Settings.ACTION_APP_NOTIFICATION_SETTINGS
     )
 }

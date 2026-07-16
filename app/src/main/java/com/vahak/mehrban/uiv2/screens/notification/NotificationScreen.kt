@@ -262,7 +262,7 @@ fun EmptyNotificationsState() {
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = stringResource(R.string.notification_empty_title), // Make sure to add to strings.xml later
+            text = stringResource(R.string.notification_empty_title),
             color = colors.textPrimary,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold

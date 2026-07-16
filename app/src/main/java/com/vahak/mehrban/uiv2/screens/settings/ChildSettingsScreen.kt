@@ -130,12 +130,10 @@ fun ChildSettingsContent(
     val soonBg = Color(0xFFFCE4EC)
     val soonText = Color(0xFFC2185B)
 
-    // Safeguard to prevent crashing if db is empty
-    if (state.isLoading || state.activeChild == null || state.settings == null) {
+    // 1. Handle Loading State
+    if (state.isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(colors.background),
+            modifier = Modifier.fillMaxSize().background(colors.background),
             contentAlignment = Alignment.Center
         ) {
             CircularProgressIndicator(color = colors.primary)
@@ -143,6 +141,56 @@ fun ChildSettingsContent(
         return
     }
 
+    // 2. 🚀 NEW: Handle Empty State (No Child Added)
+    if (state.allChildren.isEmpty() || state.activeChild == null || state.settings == null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.background)
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .background(colors.primary.copy(alpha = 0.1f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("👶", fontSize = 48.sp)
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.child_settings_no_child_title),
+                color = colors.textPrimary,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.child_settings_no_child_desc),
+                color = colors.textSecondary,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            androidx.compose.material3.Button(
+                onClick = { onEvent(ChildSettingsEvent.AddChildClicked) },
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = colors.primary),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.child_settings_add_child_button),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            }
+        }
+        return
+    }
+
+    // 3. Normal UI (The rest of your existing code stays the same)
     Column(
         modifier = Modifier
             .fillMaxSize()

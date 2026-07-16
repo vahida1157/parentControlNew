@@ -57,7 +57,6 @@ fun MainParentScreen(
                 composable(BottomNavItem.Home.route) {
                     DashboardScreen(
                         onAddChildClick = { rootNavController.navigate(Screen.AddChild.route) },
-                        onManageFamilyClick = { rootNavController.navigate(Screen.FamilyManagement.route) },
                         onSettingsClick = {
                             rootNavController.navigate(Screen.ChildSettings.route)
                         },

@@ -36,6 +36,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.vahak.mehrban.AppDownloadState
 import com.vahak.mehrban.BuildConfig
+import com.vahak.mehrban.MainEvent
 import com.vahak.mehrban.MainViewModel
 import com.vahak.mehrban.R
 import com.vahak.mehrban.UpdateState
@@ -46,9 +47,11 @@ import com.vahak.mehrban.uiv2.theme.LocalCustomColors
 fun UpdateCheckerWrapper(
     viewModel: MainViewModel, content: @Composable () -> Unit
 ) {
-    val updateState by viewModel.updateState.collectAsState()
-    val isUpdateIgnored by viewModel.isUpdateIgnored.collectAsState()
-    val downloadState by viewModel.appDownloadState.collectAsState()
+    // 🚀 THE FIX: Collect the single unified MVI state
+    val state by viewModel.state.collectAsState()
+    val updateState = state.updateState
+    val isUpdateIgnored = state.isUpdateIgnored
+    val downloadState = state.downloadState
 
     val colors = LocalCustomColors.current
     val context = LocalContext.current
@@ -59,8 +62,7 @@ fun UpdateCheckerWrapper(
     }
 
     if (updateState is UpdateState.UpdateAvailable && !isUpdateIgnored) {
-        val updateData = (updateState as UpdateState.UpdateAvailable)
-        val info = updateData.info
+        val info = updateState.info
 
         val updateNewVersionAvailableText = stringResource(R.string.update_new_version_available)
         val updateDownloadFromStoreText = stringResource(R.string.update_download_from_store)
@@ -79,15 +81,14 @@ fun UpdateCheckerWrapper(
         val updateRemindLaterText = stringResource(R.string.update_remind_later)
         val updateDownloadingText = stringResource(R.string.update_downloading)
 
-
         Dialog(
             onDismissRequest = {
-                if (!updateData.isForced && downloadState !is AppDownloadState.Connecting && downloadState !is AppDownloadState.Downloading) {
-                    viewModel.dismissOptionalUpdate()
+                if (!updateState.isForced && downloadState !is AppDownloadState.Connecting && downloadState !is AppDownloadState.Downloading) {
+                    viewModel.onEvent(MainEvent.DismissOptionalUpdate) // 🚀 Trigger event instead of direct function
                 }
             }, properties = DialogProperties(
-                dismissOnBackPress = !updateData.isForced,
-                dismissOnClickOutside = !updateData.isForced
+                dismissOnBackPress = !updateState.isForced,
+                dismissOnClickOutside = !updateState.isForced
             )
         ) {
             Card(
@@ -130,8 +131,11 @@ fun UpdateCheckerWrapper(
                         is AppDownloadState.Idle -> {
                             Button(
                                 onClick = {
-                                    viewModel.startDownload(
-                                        info.downloadUrl, info.latestVersionName
+                                    // 🚀 Send MVI Intent
+                                    viewModel.onEvent(
+                                        MainEvent.StartDownload(
+                                            info.downloadUrl, info.latestVersionName
+                                        )
                                     )
                                 },
                                 modifier = Modifier
@@ -170,7 +174,7 @@ fun UpdateCheckerWrapper(
                         }
 
                         is AppDownloadState.Downloading -> {
-                            val progress = (downloadState as AppDownloadState.Downloading).progress
+                            val progress = downloadState.progress
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 LinearProgressIndicator(
                                     progress = { progress / 100f },
@@ -191,8 +195,7 @@ fun UpdateCheckerWrapper(
                         }
 
                         is AppDownloadState.Error -> {
-                            // 🚀 THE FIX: Translate the Enum to a Compose localized string
-                            val errorEnum = (downloadState as AppDownloadState.Error).error
+                            val errorEnum = downloadState.error
                             val errMsg = when (errorEnum) {
                                 DownloadError.CONNECTION_FAILED -> errorDownloadConnectionFailedText
                                 DownloadError.CONNECTION_LOST -> errorDownloadConnectionLostText
@@ -210,8 +213,11 @@ fun UpdateCheckerWrapper(
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Button(
                                     onClick = {
-                                        viewModel.startDownload(
-                                            info.downloadUrl, info.latestVersionName
+                                        // 🚀 Send MVI Intent
+                                        viewModel.onEvent(
+                                            MainEvent.StartDownload(
+                                                info.downloadUrl, info.latestVersionName
+                                            )
                                         )
                                     },
                                     modifier = Modifier
@@ -240,7 +246,7 @@ fun UpdateCheckerWrapper(
                     }
 
                     if (downloadState is AppDownloadState.Idle || downloadState is AppDownloadState.Error) {
-                        if (updateData.isForced) {
+                        if (updateState.isForced) {
                             Spacer(modifier = Modifier.height(8.dp))
                             OutlinedButton(
                                 onClick = { activity?.finish() },
@@ -257,8 +263,10 @@ fun UpdateCheckerWrapper(
                         } else {
                             Spacer(modifier = Modifier.height(4.dp))
                             TextButton(
-                                onClick = { viewModel.dismissOptionalUpdate() },
-                                modifier = Modifier.fillMaxWidth()
+                                onClick = {
+                                    // 🚀 Send MVI Intent
+                                    viewModel.onEvent(MainEvent.DismissOptionalUpdate)
+                                }, modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     updateRemindLaterText,

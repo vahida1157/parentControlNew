@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -85,6 +86,12 @@ fun PermissionSliderScreen(
         checkTrigger++ // 🚀 Increments when returning from Settings
     }
 
+    val runtimePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        checkTrigger++ // Triggers the viewmodel to re-check permissions
+    }
+
     LaunchedEffect(checkTrigger) {
         if (checkTrigger > 0) {
             viewModel.onEvent(PermissionSliderEvent.CheckPermissions(context))
@@ -115,6 +122,18 @@ fun PermissionSliderScreen(
                         val prefs =
                             context.getSharedPreferences("security_prefs", Context.MODE_PRIVATE)
                         prefs.edit { putBoolean("settings_bridge_open", true) }
+                    }
+
+                    if (effect.permission == PermissionType.NOTIFICATIONS) {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            runtimePermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            }
+                            settingsLauncher.launch(intent)
+                        }
+                        return@collect
                     }
 
                     val intent = Intent(effect.action).apply {
@@ -214,6 +233,7 @@ fun PermissionSliderContent(
                             PermissionType.VPN -> "🌐"
                             PermissionType.OVERLAY -> "📱"
                             PermissionType.LOCATION -> "📍"
+                            PermissionType.NOTIFICATIONS -> "🔔"
                         }
                         Text(iconEmoji, fontSize = 32.sp)
                     }

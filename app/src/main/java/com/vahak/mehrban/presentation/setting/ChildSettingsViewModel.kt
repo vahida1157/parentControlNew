@@ -11,6 +11,8 @@ import com.vahak.mehrban.domain.repository.AppRuleRepository
 import com.vahak.mehrban.domain.repository.ChildRepository
 import com.vahak.mehrban.domain.repository.SettingsRepository
 import com.vahak.mehrban.presentation.BaseViewModel
+import com.vahak.mehrban.presentation.setting.ChildSettingsEffect.*
+import com.vahak.mehrban.uiv2.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +40,7 @@ sealed class ChildSettingsEvent {
     object CloseChildSheet : ChildSettingsEvent()
     data class SelectChild(val childId: String) : ChildSettingsEvent()
     data class GridItemClicked(val route: String, val context: Context) : ChildSettingsEvent()
+    object AddChildClicked : ChildSettingsEvent()
 }
 
 sealed class ChildSettingsEffect {
@@ -115,16 +118,16 @@ class ChildSettingsViewModel @Inject constructor(
     }
 
     private fun checkIfReady() {
-        if (state.value.activeChild != null && state.value.settings != null) {
+        if ((state.value.activeChild != null && state.value.settings != null) || state.value.allChildren.isEmpty()) {
             updateState { copy(isLoading = false) }
         }
     }
 
     override fun onEvent(event: ChildSettingsEvent) {
         when (event) {
-            is ChildSettingsEvent.BackClicked -> sendEffect(ChildSettingsEffect.NavigateBack)
+            is ChildSettingsEvent.BackClicked -> sendEffect(NavigateBack)
             is ChildSettingsEvent.HelpClicked -> sendEffect(
-                ChildSettingsEffect.ShowToast(
+                ShowToast(
                     FeatureToastType.UNDER_DEVELOPMENT
                 )
             )
@@ -146,7 +149,7 @@ class ChildSettingsViewModel @Inject constructor(
                         "content_movies"
                     )
                 ) {
-                    sendEffect(ChildSettingsEffect.ShowToast(FeatureToastType.COMING_SOON))
+                    sendEffect(ShowToast(FeatureToastType.COMING_SOON))
                     return
                 }
 
@@ -157,7 +160,7 @@ class ChildSettingsViewModel @Inject constructor(
 
                 if (missingPermissions.isEmpty()) {
                     Timber.d("OS permissions verified, launching feature: %s", event.route)
-                    sendEffect(ChildSettingsEffect.NavigateToFeature(event.route))
+                    sendEffect(NavigateToFeature(event.route))
                 } else {
                     Timber.w(
                         "Feature launch blocked due to missing OS permissions, missingCount: %d, feature: %s",
@@ -165,11 +168,13 @@ class ChildSettingsViewModel @Inject constructor(
                         event.route
                     )
                     sendEffect(
-                        ChildSettingsEffect.NavigateToPermissionSlider(
+                        NavigateToPermissionSlider(
                             event.route, missingPermissions.map { it.name })
                     )
                 }
             }
+
+            ChildSettingsEvent.AddChildClicked -> sendEffect(NavigateToFeature(Screen.AddChild.route))
         }
     }
 }

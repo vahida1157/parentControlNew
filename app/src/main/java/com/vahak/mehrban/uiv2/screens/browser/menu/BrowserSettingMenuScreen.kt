@@ -95,10 +95,12 @@ fun BrowserSettingMenuContent(
     val colors = LocalCustomColors.current
     val settings = state.settings
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .background(colors.background)
-        .systemBarsPadding()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.background)
+            .systemBarsPadding()
+    ) {
         MehrbanHeader(
             title = stringResource(R.string.browser_settings_title),
             subtitle = stringResource(R.string.browser_settings_subtitle),
@@ -112,18 +114,101 @@ fun BrowserSettingMenuContent(
                 .padding(horizontal = 20.dp, vertical = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // --- ACTIVITY SECTION ---
+            // --- EMPTY WHITELIST WARNING ---
+            if (settings?.filterMode == FilterMode.WHITELIST_ONLY && state.allowedCount == 0) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors.orange.copy(alpha = 0.1f)),
+                    border = BorderStroke(1.dp, colors.orange)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(AppIcons.Warning, contentDescription = null, tint = colors.orange)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            stringResource(R.string.browser_empty_whitelist_warning),
+                            color = colors.orange,
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+            }
+
+            // --- ACCESS MANAGEMENT ---
             Text(
-                stringResource(R.string.browser_history),
+                stringResource(R.string.browser_access_management),
                 fontWeight = FontWeight.Bold,
                 color = colors.textSecondary,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                CompactMenuCard(
+                    modifier = Modifier.weight(1f),
+                    title = stringResource(R.string.browser_filter_mode),
+                    subtitle = when (settings?.filterMode) {
+                        FilterMode.WHITELIST_ONLY -> stringResource(R.string.browser_whitelist)
+                        FilterMode.BLACKLIST_ONLY -> stringResource(R.string.browser_blacklist)
+                        else -> stringResource(R.string.browser_filter_disabled)
+                    },
+                    iconEmoji = "🛡️",
+                    iconBgColor = colors.green.copy(alpha = 0.1f),
+                    subtitleColor = colors.green,
+                    onClick = { onEvent(BrowserSettingMenuEvent.SetFilterMenuOpen(true)) }
+                )
+
+                when (settings?.filterMode) {
+                    FilterMode.WHITELIST_ONLY -> {
+                        CompactMenuCard(
+                            modifier = Modifier.weight(1f),
+                            title = stringResource(R.string.browser_allowed_sites),
+                            subtitle = stringResource(
+                                R.string.browser_sites_count,
+                                state.allowedCount
+                            ),
+                            iconEmoji = "✅",
+                            iconBgColor = colors.primary.copy(alpha = 0.1f),
+                            subtitleColor = colors.primary,
+                            onClick = onNavigateToAllowed
+                        )
+                    }
+
+                    FilterMode.BLACKLIST_ONLY -> {
+                        CompactMenuCard(
+                            modifier = Modifier.weight(1f),
+                            title = stringResource(R.string.browser_blocked_sites),
+                            subtitle = stringResource(
+                                R.string.browser_sites_count,
+                                state.blockedCount
+                            ),
+                            iconEmoji = "⛔",
+                            iconBgColor = colors.red.copy(alpha = 0.1f),
+                            subtitleColor = colors.red,
+                            onClick = onNavigateToBlocked
+                        )
+                    }
+
+                    else -> {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+
             SettingMenuRow(
-                emoji = "🕒",
-                title = stringResource(R.string.browser_history),
-                desc = stringResource(R.string.browser_view_activity),
-                onClick = onNavigateToHistory
+                emoji = "🚫",
+                title = stringResource(R.string.browser_blocked_keywords),
+                desc = stringResource(R.string.browser_keywords_count, state.keywordsCount),
+                onClick = onNavigateToKeywords
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -227,93 +312,18 @@ fun BrowserSettingMenuContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- EMPTY WHITELIST WARNING ---
-            if (settings?.filterMode == FilterMode.WHITELIST_ONLY && state.allowedCount == 0) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = colors.orange.copy(alpha = 0.1f)),
-                    border = BorderStroke(1.dp, colors.orange)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(AppIcons.Warning, contentDescription = null, tint = colors.orange)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            stringResource(R.string.browser_empty_whitelist_warning),
-                            color = colors.orange,
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp
-                        )
-                    }
-                }
-            }
-
-            // --- ACCESS MANAGEMENT ---
+            // --- ACTIVITY SECTION ---
             Text(
-                stringResource(R.string.browser_access_management),
+                stringResource(R.string.browser_history),
                 fontWeight = FontWeight.Bold,
                 color = colors.textSecondary,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                CompactMenuCard(
-                    modifier = Modifier.weight(1f),
-                    title = stringResource(R.string.browser_filter_mode),
-                    subtitle = when (settings?.filterMode) {
-                        FilterMode.WHITELIST_ONLY -> stringResource(R.string.browser_whitelist)
-                        FilterMode.BLACKLIST_ONLY -> stringResource(R.string.browser_blacklist)
-                        else -> stringResource(R.string.browser_filter_disabled)
-                    },
-                    iconEmoji = "🛡️",
-                    iconBgColor = colors.green.copy(alpha = 0.1f),
-                    subtitleColor = colors.green,
-                    onClick = { onEvent(BrowserSettingMenuEvent.SetFilterMenuOpen(true)) }
-                )
-
-                when (settings?.filterMode) {
-                    FilterMode.WHITELIST_ONLY -> {
-                        CompactMenuCard(
-                            modifier = Modifier.weight(1f),
-                            title = stringResource(R.string.browser_allowed_sites),
-                            subtitle = stringResource(R.string.browser_sites_count, state.allowedCount),
-                            iconEmoji = "✅",
-                            iconBgColor = colors.primary.copy(alpha = 0.1f),
-                            subtitleColor = colors.primary,
-                            onClick = onNavigateToAllowed
-                        )
-                    }
-                    FilterMode.BLACKLIST_ONLY -> {
-                        CompactMenuCard(
-                            modifier = Modifier.weight(1f),
-                            title = stringResource(R.string.browser_blocked_sites),
-                            subtitle = stringResource(R.string.browser_sites_count, state.blockedCount),
-                            iconEmoji = "⛔",
-                            iconBgColor = colors.red.copy(alpha = 0.1f),
-                            subtitleColor = colors.red,
-                            onClick = onNavigateToBlocked
-                        )
-                    }
-                    else -> {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-
             SettingMenuRow(
-                emoji = "🚫",
-                title = stringResource(R.string.browser_blocked_keywords),
-                desc = stringResource(R.string.browser_keywords_count, state.keywordsCount),
-                onClick = onNavigateToKeywords
+                emoji = "🕒",
+                title = stringResource(R.string.browser_history),
+                desc = stringResource(R.string.browser_view_activity),
+                onClick = onNavigateToHistory
             )
 
             Spacer(modifier = Modifier.height(80.dp))

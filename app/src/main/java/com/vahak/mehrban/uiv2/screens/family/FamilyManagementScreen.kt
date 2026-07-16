@@ -97,19 +97,23 @@ fun FamilyManagementContent(
     var childIdToDelete by remember { mutableStateOf<String?>(null) }
 
     if (childIdToDelete != null) {
+        val deleteChildTitleText = stringResource(R.string.delete_child_title)
+        val deleteChildMessageText = stringResource(R.string.delete_child_message)
+        val deleteText = stringResource(R.string.delete)
+        val cancelText = stringResource(R.string.cancel)
         AlertDialog(
             onDismissRequest = { childIdToDelete = null },
             containerColor = colors.surface,
             title = {
                 Text(
-                    stringResource(R.string.delete_child_title),
+                    deleteChildTitleText,
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary
                 )
             },
             text = {
                 Text(
-                    stringResource(R.string.delete_child_message), color = colors.textSecondary
+                    deleteChildMessageText, color = colors.textSecondary
                 )
             },
             confirmButton = {
@@ -119,7 +123,7 @@ fun FamilyManagementContent(
                         childIdToDelete = null
                     }) {
                     Text(
-                        stringResource(R.string.delete),
+                        deleteText,
                         color = colors.red,
                         fontWeight = FontWeight.Bold
                     )
@@ -127,7 +131,7 @@ fun FamilyManagementContent(
             },
             dismissButton = {
                 TextButton(onClick = { childIdToDelete = null }) {
-                    Text(stringResource(R.string.cancel), color = colors.textPrimary)
+                    Text(cancelText, color = colors.textPrimary)
                 }
             })
     }

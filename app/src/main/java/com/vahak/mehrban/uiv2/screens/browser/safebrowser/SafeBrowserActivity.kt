@@ -1,4 +1,3 @@
-// SafeBrowserActivity.kt
 package com.vahak.mehrban.uiv2.screens.browser.safebrowser
 
 import android.content.Context
@@ -19,7 +18,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.vahak.mehrban.MainViewModel
-import com.vahak.mehrban.uiv2.theme.AppTheme
 import com.vahak.mehrban.uiv2.theme.ParentControlTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
@@ -33,30 +31,31 @@ class SafeBrowserActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val currentTheme by mainViewModel.appTheme.collectAsState(initial = AppTheme.SYSTEM)
-            val appLanguage by mainViewModel.appLanguage.collectAsState()
+            // 🚀 THE FIX: Collect the single unified MVI state
+            val state by mainViewModel.state.collectAsState()
 
-            val locale = Locale.Builder().setLanguage(appLanguage).build()
+            val locale = Locale.Builder().setLanguage(state.language).build()
             val configuration = Configuration(LocalConfiguration.current).apply {
                 setLocale(locale)
                 setLayoutDirection(locale)
             }
 
-            val localizedContext = remember(appLanguage) {
+            val localizedContext = remember(state.language) {
                 object : ContextWrapper(this@SafeBrowserActivity) {
                     val configContext = createConfigurationContext(configuration)
                     override fun getResources() = configContext.resources
                 }
             }
 
-            val layoutDirection = if (appLanguage == "en") LayoutDirection.Ltr else LayoutDirection.Rtl
+            val layoutDirection =
+                if (state.language == "en") LayoutDirection.Ltr else LayoutDirection.Rtl
 
             CompositionLocalProvider(
                 LocalContext provides localizedContext,
                 LocalConfiguration provides configuration,
                 LocalLayoutDirection provides layoutDirection
             ) {
-                ParentControlTheme(themeMode = currentTheme) {
+                ParentControlTheme(themeMode = state.theme) {
                     SafeBrowserScreen(
                         onCloseClick = { finish() }
                     )

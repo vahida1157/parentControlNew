@@ -384,6 +384,51 @@
     <string name="notification_family_protection_text">The device is in safe child mode.</string>
     <string name="notification_empty_title">You have no new messages</string>
     <string name="notification_empty_description">All notifications and alerts about your children’s usage will appear here.</string>
+    <!-- Notification Permission Slider strings -->
+    <string name="permission_notifications_title">Enable Reminders &amp; Alerts</string>
+    <string name="permission_notifications_desc">Mehr-ban needs notification permissions to alert you if your child limits are unconfigured or if the parental oversight app goes unused.</string>
+    <string name="permission_notifications_step_1">Tap \'Grant Access\' and select \'Allow\' to stay updated on your child\'s physical activity and safety diagnostics.</string>
+
+    <string name="parent_alerts_channel_name">Mehrban Smart Alerts</string>
+
+    <!-- Feature: Safe Browser -->
+    <string name="notif_browser_title">Worried about what your child sees online? 🌐</string>
+    <string name="notif_browser_text">By enabling the Mehrban Safe Browser, rest assured that even with a VPN, no inappropriate sites will open. Set it up now!</string>
+
+    <!-- Feature: Time Limit -->
+    <string name="notif_time_title">Kids don\'t realize time passing… ⏳</string>
+    <string name="notif_time_text">Instead of constantly saying "put the phone down," set your first time limit and let Mehrban do it for you.</string>
+
+    <!-- Feature: Sleep Time -->
+    <string name="notif_sleep_title">A good night\'s sleep is essential for kids! 🌙</string>
+    <string name="notif_sleep_text">By setting a phone shutdown time, make sure your child goes to bed on time and isn\'t glued to the screen.</string>
+
+    <!-- Feature: App Lock -->
+    <string name="notif_app_title">Do you know what apps your child installed today? 📲</string>
+    <string name="notif_app_text">By activating the App Management section, take full control of the apps and games on the device.</string>
+
+    <!-- Feature: Login -->
+    <string name="notif_login_title">Action Required</string>
+    <string name="notif_login_text">You have been logged out. Tap here to log back in and manage your child\'s device.</string>
+
+    <!-- General Inactivity (If all features are active) -->
+    <string name="notif_gen_day1_title">Just take 5 minutes ⏱️</string>
+    <string name="notif_gen_day1_text">So you can have peace of mind about your child\'s digital safety for months. Let\'s check today\'s report.</string>
+
+    <string name="notif_gen_day3_title">Time is ticking… 👣</string>
+    <string name="notif_gen_day3_text">Your child is still online! To put your mind at ease, take a look at the settings.</string>
+
+    <string name="notif_gen_day7_title">An unsupervised device is like a city without police! 🛡️</string>
+    <string name="notif_gen_day7_text">Installing the app isn\'t enough! Don\'t put off protection until tomorrow. Log into Mehrban today and check the status.</string>
+
+    <!-- Feature: No Child Added Yet -->
+    <string name="notif_no_child_title">Haven\'t created your child\'s profile yet? 👶</string>
+    <string name="notif_no_child_text">To start smart management and protection, the first step is to add your child\'s profile to Mehrban. Get started now.</string>
+
+    <!-- Empty State UI -->
+    <string name="child_settings_no_child_title">No profile found</string>
+    <string name="child_settings_no_child_desc">You haven\'t added any children to your account yet. To access settings, create a profile first.</string>
+    <string name="child_settings_add_child_button">+ Add child</string>
 
     <string name="update_new_version_available">🚀 New version available</string>
     <string name="update_download_install">Download &amp; Install</string>
@@ -466,7 +511,7 @@
     <string name="error_download_connection_failed">Failed to connect to server</string>
     <string name="error_download_connection_lost">Connection lost. Please try again.</string>
     <string name="download_error_generic">File download error</string>
-    <string name="update_cancelled_already_latest">Update cancelled. You are already on the latest approved version.</string>
+    <string name="update_cancelled_already_latest">Update canceled. You are already on the latest approved version.</string>
     <string name="invalid_domain_format">Please enter a valid domain (e.g., example.com)</string>
     <string name="recovery_question_not_set">Recovery question not set</string>
 

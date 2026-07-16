@@ -129,4 +129,18 @@ class AppAnalytics @Inject constructor(
     fun logSecuritySetupCompleted() {
         firebaseAnalytics.logEvent("security_setup_completed", null)
     }
+
+    fun logInactivityNotificationClicked(route: String) {
+        firebaseAnalytics.logEvent("smart_notif_clicked") {
+            param("route_target", route)
+        }
+    }
+
+    fun logInactivityNotificationDelivered(route: String, titleRes: String) {
+        firebaseAnalytics.logEvent("smart_notif_delivered") {
+            param("route_target", route)
+            param("title_res", titleRes.toLong())
+        }
+    }
+
 }

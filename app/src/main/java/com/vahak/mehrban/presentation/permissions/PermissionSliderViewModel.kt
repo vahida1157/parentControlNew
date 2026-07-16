@@ -69,24 +69,30 @@ class PermissionSliderViewModel @Inject constructor(
                 )
             }
             is PermissionSliderEvent.CheckPermissions -> {
-                // 1. Find out which ones are STILL missing
-                val stillMissing = state.value.missingPermissions.filter {
+                // 1. Cache the old list BEFORE we do any math or state updates
+                val oldMissing = state.value.missingPermissions
+
+                // 2. Find out which ones are STILL missing
+                val stillMissing = oldMissing.filter {
                     !PermissionChecker.hasPermission(event.context, it)
                 }
 
-                // 2. Find out which ones were just granted (Old list MINUS New list)
-                val newlyGranted = state.value.missingPermissions - stillMissing.toSet()
+                // 3. Find out which ones were just granted
+                val newlyGranted = oldMissing - stillMissing.toSet()
 
-                // 3. Log success for each one they figured out!
+                // 4. Log success
                 newlyGranted.forEach { permission ->
                     Timber.d("Detected OS permission newly granted: %s", permission.name)
-
-                    // 🚀 FIRE EVENT: True success tracked!
                     analytics.logPermissionStepSuccess(permission.name)
                 }
 
-                // 4. Update the UI state so the slider moves forward
+                // 5. Update the UI state so the slider moves forward (or disappears)
                 updateState { copy(missingPermissions = stillMissing) }
+
+                // 🚀 THE FIX: Compare against the cached 'oldMissing' list!
+                if (stillMissing.isEmpty() && oldMissing.isNotEmpty()) {
+                    onEvent(PermissionSliderEvent.SetupFinished)
+                }
             }
 
             is PermissionSliderEvent.SetupFinished -> {

@@ -55,6 +55,7 @@ import com.vahak.mehrban.R
 import com.vahak.mehrban.UpdateState
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
 import com.vahak.mehrban.core.data.local.entity.Gender
+import com.vahak.mehrban.core.util.PermissionChecker
 import com.vahak.mehrban.core.util.PermissionType
 import com.vahak.mehrban.presentation.dashboard.DashboardEffect
 import com.vahak.mehrban.presentation.dashboard.DashboardEvent
@@ -81,7 +82,6 @@ import java.time.LocalDate
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onAddChildClick: () -> Unit,
-    onManageFamilyClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
     onReportClick: (String) -> Unit,
     onTimeLockClick: (String) -> Unit,
@@ -110,7 +110,6 @@ fun DashboardScreen(
         onEvent = viewModel::onEvent,
         onShowUpdateDialogAgain = viewModel::showUpdateDialogAgain,
         onAddChildClick = onAddChildClick,
-        onManageFamilyClick = onManageFamilyClick,
         onSettingsClick = onSettingsClick,
         onReportClick = onReportClick,
         onTimeLockClick = onTimeLockClick,
@@ -129,7 +128,6 @@ fun DashboardScreenContent(
     onEvent: (DashboardEvent) -> Unit,
     onShowUpdateDialogAgain: () -> Unit,
     onAddChildClick: () -> Unit,
-    onManageFamilyClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
     onReportClick: (String) -> Unit,
     onTimeLockClick: (String) -> Unit,
@@ -150,11 +148,19 @@ fun DashboardScreenContent(
                 if (isPreview) {
                     missingSecurityPermissions = emptyList()
                 } else {
+                    val requiredPermissions = mutableListOf<PermissionType>()
+
+                    // Add POST_NOTIFICATIONS tracking for Android 13+ devices
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        requiredPermissions.add(PermissionType.NOTIFICATIONS)
+                    }
+
                     // FIXME: Currently we commented out the permission for accessibility and device admin for publish issues,
-//                    val missing = listOf(
-//                        PermissionType.ACCESSIBILITY, PermissionType.DEVICE_ADMIN
-//                    ).filter { !PermissionChecker.hasPermission(context, it) }
-                    missingSecurityPermissions = listOf()
+                    // requiredPermissions.add(PermissionType.ACCESSIBILITY)
+                    // requiredPermissions.add(PermissionType.DEVICE_ADMIN)
+                    missingSecurityPermissions = requiredPermissions.filter { permission ->
+                        !PermissionChecker.hasPermission(context, permission)
+                    }
                 }
             }
         }
@@ -170,26 +176,20 @@ fun DashboardScreenContent(
     )
 
     Scaffold(
-        containerColor = colors.background,
-        floatingActionButton = {
+        containerColor = colors.background, floatingActionButton = {
             if (missingSecurityPermissions.isNotEmpty()) FloatingActionButton(
                 onClick = {
                     val permissionsString = missingSecurityPermissions.joinToString(",") { it.name }
                     onSecurityFabClick(permissionsString)
-                },
-                containerColor = colors.red,
-                contentColor = Color.White,
-                shape = CircleShape,
+                }, containerColor = colors.red, contentColor = Color.White, shape = CircleShape,
                 // 🚀 PRO FIX: graphicsLayer prevents complete UI recomposition during animation
-                modifier = Modifier.graphicsLayer { translationY = fabOffsetY.dp.toPx() }
-            ) {
+                modifier = Modifier.graphicsLayer { translationY = fabOffsetY.dp.toPx() }) {
                 Icon(
                     AppIcons.Settings,
                     contentDescription = stringResource(R.string.complete_security)
                 )
             }
-        }
-    ) { _ ->
+        }) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -220,15 +220,13 @@ fun DashboardScreenContent(
                     timeLimitMins = state.activeChildTimeLimitMins,
                     isTimeLimitActive = state.isTimeLimitActive,
                     usageSeconds = state.activeChildUsageSeconds,
-                    onSettingsClick = { onSettingsClick(state.activeChild.id) }
-                )
+                    onSettingsClick = { onSettingsClick(state.activeChild.id) })
 
                 Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
                     SwipeToActivateButton(
                         isActive = state.isProtectionActive,
                         onActivate = { showLauncherConfirmSheet = true },
-                        onDeactivate = { /* Handle deactivation */ }
-                    )
+                        onDeactivate = { /* Handle deactivation */ })
                 }
 
                 val comingSoonMessage = stringResource(R.string.coming_soon)
@@ -236,8 +234,11 @@ fun DashboardScreenContent(
                     onSettingsClick = { onSettingsClick(state.activeChild.id) },
                     onReportClick = { onReportClick(state.activeChild.id) },
                     onTimeLockClick = { onTimeLockClick(state.activeChild.id) },
-                    onLocationClick = { Toast.makeText(context, comingSoonMessage, Toast.LENGTH_SHORT).show() }
-                )
+                    onLocationClick = {
+                        Toast.makeText(
+                            context, comingSoonMessage, Toast.LENGTH_SHORT
+                        ).show()
+                    })
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -258,15 +259,13 @@ fun DashboardScreenContent(
             onActivateClick = {
                 showLauncherConfirmSheet = false
                 onEvent(DashboardEvent.ActivateProtection(state.activeChild.id))
-            }
-        )
+            })
     }
 
     if (state.showPinRequiredDialog) {
         PinRequiredDialog(
             onDismiss = { onEvent(DashboardEvent.ClosePinRequiredDialog) },
-            onSetupPassword = { onEvent(DashboardEvent.GoToPasswordSetupClicked) }
-        )
+            onSetupPassword = { onEvent(DashboardEvent.GoToPasswordSetupClicked) })
     }
 }
 
@@ -276,8 +275,7 @@ private fun UpdateBanner(onShowUpdateDialogAgain: () -> Unit) {
     val infiniteTransition = rememberInfiniteTransition(label = "sparkle_pulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f, targetValue = 1.3f, animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(600, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse
         ), label = "sparkle_scale"
     )
 
@@ -288,12 +286,12 @@ private fun UpdateBanner(onShowUpdateDialogAgain: () -> Unit) {
             .clickable { onShowUpdateDialogAgain() }
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
+        horizontalArrangement = Arrangement.Center) {
         // 🚀 PRO FIX: graphicsLayer limits animation redraw to just the emoji text
         Text(
-            "✨", fontSize = 16.sp, modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }
-        )
+            "✨",
+            fontSize = 16.sp,
+            modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale })
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = stringResource(R.string.update_available_banner),
@@ -314,7 +312,7 @@ private val mockChild1 =
 private val mockChild2 =
     ChildEntity(id = "2", name = "سارا", dob = LocalDate.now(), gender = Gender.GIRL)
 
-@Preview(showBackground = true, locale = "fa", name = "1. Dashboard V2 - Empty", apiLevel = 34)
+@Preview(showBackground = true, locale = "fa", name = "1. Dashboard V2 - Empty")
 @Composable
 fun DashboardScreenPreviewEmpty() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
@@ -322,7 +320,6 @@ fun DashboardScreenPreviewEmpty() {
             state = DashboardState(children = emptyList(), activeChild = null),
             onEvent = {},
             onAddChildClick = {},
-            onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
             onTimeLockClick = {},
@@ -340,14 +337,13 @@ fun DashboardScreenPreviewPopulatedLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         DashboardScreenContent(
             state = DashboardState(
-                children = listOf(mockChild1, mockChild2),
-                activeChild = mockChild1,
-                activeChildTimeLimitMins = 50,
-                activeChildUsageSeconds = 1700
-            ),
+            children = listOf(mockChild1, mockChild2),
+            activeChild = mockChild1,
+            activeChildTimeLimitMins = 50,
+            activeChildUsageSeconds = 1700
+        ),
             onEvent = {},
             onAddChildClick = {},
-            onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
             onTimeLockClick = {},
@@ -365,11 +361,10 @@ fun DashboardScreenPreviewPopulatedDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         DashboardScreenContent(
             state = DashboardState(
-                children = listOf(mockChild1, mockChild2), activeChild = mockChild1
-            ),
+            children = listOf(mockChild1, mockChild2), activeChild = mockChild1
+        ),
             onEvent = {},
             onAddChildClick = {},
-            onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
             onTimeLockClick = {},
@@ -387,13 +382,12 @@ fun DashboardScreenPreviewDialog() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         DashboardScreenContent(
             state = DashboardState(
-                children = listOf(mockChild1),
-                activeChild = mockChild1,
-                showPinRequiredDialog = true,
-            ),
+            children = listOf(mockChild1),
+            activeChild = mockChild1,
+            showPinRequiredDialog = true,
+        ),
             onEvent = {},
             onAddChildClick = {},
-            onManageFamilyClick = {},
             onSettingsClick = {},
             onReportClick = {},
             onTimeLockClick = {},

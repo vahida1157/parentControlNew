@@ -1,17 +1,16 @@
 package com.vahak.mehrban
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.util.AppUpdateManager
 import com.vahak.mehrban.data.remote.AppVersionDto
 import com.vahak.mehrban.data.remote.DownloadError
+import com.vahak.mehrban.presentation.BaseViewModel
 import com.vahak.mehrban.uiv2.navigation.Screen
 import com.vahak.mehrban.uiv2.theme.AppTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -29,46 +28,116 @@ sealed class AppDownloadState {
     data class Error(val error: DownloadError) : AppDownloadState()
 }
 
+data class MainState(
+    val isInitializing: Boolean = true, // Replaces startDestination == null check
+    val theme: AppTheme = AppTheme.SYSTEM,
+    val language: String = "fa",
+    val startDestination: String = "",
+    val activeChildId: String? = null,
+    val pendingRoute: String? = null,
+
+    // Update Manager States
+    val updateState: UpdateState = UpdateState.Checking,
+    val isUpdateIgnored: Boolean = false,
+    val downloadState: AppDownloadState = AppDownloadState.Idle,
+    val downloadedFilePath: String? = null
+)
+
+sealed class MainEvent {
+    object ClearActiveLauncherSession : MainEvent()
+    data class SetPendingRoute(val route: String) : MainEvent()
+    object ConsumePendingRoute : MainEvent()
+
+    object DismissOptionalUpdate : MainEvent()
+    object ShowUpdateDialogAgain : MainEvent()
+    data class StartDownload(val url: String, val versionName: String) : MainEvent()
+    object ClearDownloadedFilePath : MainEvent()
+}
+
+sealed class MainEffect {
+    // Left empty for now, as navigation is state-driven via pendingRoute
+}
+
+// --- 🚀 VIEW MODEL ---
+
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val sessionManager: SessionManager,
-    private val appUpdateManager: AppUpdateManager
-) : ViewModel() {
+    private val sessionManager: SessionManager, private val appUpdateManager: AppUpdateManager
+) : BaseViewModel<MainState, MainEvent, MainEffect>(MainState()) {
 
-    val appTheme = sessionManager.appThemeFlow.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        AppTheme.SYSTEM
-    )
-    val startDestination =
-        sessionManager.isLoggedIn.map { if (it) Screen.Dashboard.route else Screen.Login.route }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    val activeChildId = sessionManager.activeChildIdFlow.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        null
-    )
+    init {
+        // 1. Combine all Session preferences into a single state update
+        viewModelScope.launch {
+            combine(
+                sessionManager.appThemeFlow,
+                sessionManager.appLanguageFlow,
+                sessionManager.isLoggedIn,
+                sessionManager.activeChildIdFlow
+            ) { theme, language, isLoggedIn, childId ->
+                updateState {
+                    copy(
+                        isInitializing = false,
+                        theme = theme,
+                        language = language,
+                        startDestination = if (isLoggedIn) Screen.Dashboard.route else Screen.Login.route,
+                        activeChildId = childId
+                    )
+                }
+            }.collectLatest { }
+        }
 
-    // 🚀 NEW: Expose the Language State
-    val appLanguage = sessionManager.appLanguageFlow.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        "fa"
-    )
-
-    fun clearActiveLauncherSession() {
-        viewModelScope.launch { sessionManager.clearActiveChildId() }
+        // 2. Map AppUpdateManager states seamlessly into our unified MainState
+        viewModelScope.launch {
+            appUpdateManager.updateState.collect { s ->
+                updateState {
+                    copy(
+                        updateState = s
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            appUpdateManager.isUpdateIgnored.collect { s ->
+                updateState {
+                    copy(
+                        isUpdateIgnored = s
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            appUpdateManager.appDownloadState.collect { s ->
+                updateState {
+                    copy(
+                        downloadState = s
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            appUpdateManager.downloadedFilePath.collect { s ->
+                updateState {
+                    copy(
+                        downloadedFilePath = s
+                    )
+                }
+            }
+        }
     }
 
-    val updateState = appUpdateManager.updateState
-    val isUpdateIgnored = appUpdateManager.isUpdateIgnored
-    val appDownloadState = appUpdateManager.appDownloadState
-    val downloadedFilePath = appUpdateManager.downloadedFilePath
+    override fun onEvent(event: MainEvent) {
+        when (event) {
+            is MainEvent.ClearActiveLauncherSession -> viewModelScope.launch { sessionManager.clearActiveChildId() }
+            is MainEvent.SetPendingRoute -> updateState { copy(pendingRoute = event.route) }
+            is MainEvent.ConsumePendingRoute -> updateState { copy(pendingRoute = null) }
 
-    fun dismissOptionalUpdate() = appUpdateManager.dismissOptionalUpdate()
-    fun showUpdateDialogAgain() = appUpdateManager.unignoreUpdate()
-    fun startDownload(url: String, versionName: String) =
-        appUpdateManager.startDownload(url, versionName)
+            is MainEvent.DismissOptionalUpdate -> appUpdateManager.dismissOptionalUpdate()
+            is MainEvent.ShowUpdateDialogAgain -> appUpdateManager.unignoreUpdate()
+            is MainEvent.StartDownload -> appUpdateManager.startDownload(
+                event.url, event.versionName
+            )
 
-    fun clearDownloadedFilePath() = appUpdateManager.clearDownloadedFilePath()
+            is MainEvent.ClearDownloadedFilePath -> appUpdateManager.clearDownloadedFilePath()
+        }
+    }
 }
