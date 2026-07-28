@@ -331,8 +331,9 @@ fun BrowserSettingMenuContent(
 
         // --- DIALOGS ---
         if (state.isFilterMenuOpen) {
+            val title = stringResource(R.string.browser_filter_mode)
             SimpleSelectionDialog(
-                title = stringResource(R.string.browser_filter_mode),
+                title = title,
                 options = listOf(
                     FilterMode.WHITELIST_ONLY to stringResource(R.string.browser_whitelist),
                     FilterMode.BLACKLIST_ONLY to stringResource(R.string.browser_blacklist),
@@ -345,8 +346,9 @@ fun BrowserSettingMenuContent(
         }
 
         if (state.isEngineMenuOpen) {
+            val title = stringResource(R.string.browser_select_search_engine)
             SimpleSelectionDialog(
-                title = stringResource(R.string.browser_select_search_engine),
+                title = title,
                 options = listOf(
                     "shaadbin" to stringResource(R.string.browser_engine_shaadbin),
                     "kiddle" to stringResource(R.string.browser_engine_kiddle),

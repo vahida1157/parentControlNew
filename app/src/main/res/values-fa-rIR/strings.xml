@@ -17,6 +17,10 @@
     <string name="yesterday">دیروز</string>
     <string name="previous_day">روز قبل</string>
     <string name="next_day">روز بعد</string>
+    <string name="yes">بله</string>
+    <string name="no">خیر</string>
+    <string name="remind_me_later">یادآوری در آینده</string>
+    <string name="no_thanks">نه، ممنون</string>
 
     <string name="nav_profile">پروفایل</string>
     <string name="nav_stats">آمار</string>
@@ -528,4 +532,16 @@
     <string name="error_otp_wrong">کد وارد شده اشتباه است.</string>
     <string name="error_url_empty">آدرس وب وارد نشده است</string>
     <string name="error_invalid_url">آدرس وب نامعتبر (مثال: google.com)</string>
+
+    <!-- Smart Rating Dialog & Permissions -->
+    <string name="rating_step1_title">از مهربان راضی هستید؟</string>
+    <string name="rating_step1_desc">آیا این برنامه به شما در مدیریت دنیای دیجیتال فرزندتان کمک کرده است؟</string>
+
+    <string name="rating_step2_title">عالی! لطفا به ما امتیاز دهید.</string>
+    <string name="rating_step2_desc">ثبت امتیاز ۵ ستاره در فروشگاه به ما کمک می‌کند تا برنامه را توسعه داده و بروزرسانی کنیم.</string>
+    <string name="rate_5_stars">ثبت امتیاز ۵ ستاره</string>
+
+    <string name="rating_step3_title">چگونه می‌توانیم بهتر شویم؟</string>
+    <string name="rating_step3_desc">از شنیدن این موضوع متاسفیم. لطفا برای ما ایمیل بفرستید تا مشکل را برطرف کنیم.</string>
+    <string name="send_feedback">ارسال بازخورد</string>
 </resources>

@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.jaredrummler.android.device.DeviceName
@@ -36,6 +37,8 @@ class SessionManager @Inject constructor(
         private val DEVICE_ID = stringPreferencesKey("device_id")
         private val VIEWED_CHILD_ID = stringPreferencesKey("viewed_child_id")
         private val HAS_SHOWN_NOTIF = booleanPreferencesKey("has_shown_notif_permission")
+        private val CHILD_MODE_ACTIVATIONS = intPreferencesKey("child_mode_activations")
+        private val HAS_RATED_APP = booleanPreferencesKey("has_rated_app")
     }
 
     val appLanguageFlow: Flow<String> = context.dataStore.data.map { prefs ->
@@ -56,6 +59,9 @@ class SessionManager @Inject constructor(
 
     val hasShownInitialNotifPromptFlow: Flow<Boolean> =
         context.dataStore.data.map { it[HAS_SHOWN_NOTIF] ?: false }
+    val childModeActivationsFlow: Flow<Int> =
+        context.dataStore.data.map { it[CHILD_MODE_ACTIVATIONS] ?: 0 }
+    val hasRatedAppFlow: Flow<Boolean> = context.dataStore.data.map { it[HAS_RATED_APP] ?: false }
 
     suspend fun saveSession(
         token: String,
@@ -87,6 +93,7 @@ class SessionManager @Inject constructor(
             prefs.remove(SECURITY_QUESTION)
             prefs.remove(SECURITY_ANSWER)
             prefs.remove(VIEWED_CHILD_ID)
+            prefs.remove(HAS_RATED_APP)
         }
     }
 
@@ -167,5 +174,20 @@ class SessionManager @Inject constructor(
 
     suspend fun setHasShownInitialNotifPrompt(shown: Boolean) {
         context.dataStore.edit { it[HAS_SHOWN_NOTIF] = shown }
+    }
+
+    suspend fun incrementChildModeActivations() {
+        context.dataStore.edit { prefs ->
+            val current = prefs[CHILD_MODE_ACTIVATIONS] ?: 0
+            prefs[CHILD_MODE_ACTIVATIONS] = current + 1
+        }
+    }
+
+    suspend fun resetChildModeActivations() {
+        context.dataStore.edit { it[CHILD_MODE_ACTIVATIONS] = 0 }
+    }
+
+    suspend fun setHasRatedApp(rated: Boolean) {
+        context.dataStore.edit { it[HAS_RATED_APP] = rated }
     }
 }

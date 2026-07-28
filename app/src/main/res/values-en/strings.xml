@@ -17,6 +17,10 @@
     <string name="yesterday">Yesterday</string>
     <string name="previous_day">Previous Day</string>
     <string name="next_day">Next Day</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="remind_me_later">Remind me later</string>
+    <string name="no_thanks">No thanks</string>
 
     <string name="nav_profile">Profile</string>
     <string name="nav_stats">Stats</string>
@@ -528,5 +532,17 @@
     <string name="error_otp_wrong">The entered code is incorrect.</string>
     <string name="error_url_empty">Web address is empty</string>
     <string name="error_invalid_url">Invalid Web Address (e.g., google.com)</string>
+
+    <!-- Smart Rating Dialog & Permissions -->
+    <string name="rating_step1_title">Are you enjoying Mehrban?</string>
+    <string name="rating_step1_desc">Has the app helped you manage your child\'s digital world?</string>
+
+    <string name="rating_step2_title">Awesome! Please rate us.</string>
+    <string name="rating_step2_desc">A 5-star review on the store helps us grow and keep the app updated.</string>
+    <string name="rate_5_stars">Rate 5 Stars</string>
+
+    <string name="rating_step3_title">How can we improve?</string>
+    <string name="rating_step3_desc">We are sorry to hear that. Please send us an email so we can fix it.</string>
+    <string name="send_feedback">Send Feedback</string>
 
 </resources>

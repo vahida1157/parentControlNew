@@ -1,6 +1,7 @@
 package com.vahak.mehrban.uiv2.screens.dashboard
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -47,10 +48,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.vahak.mehrban.BuildConfig
 import com.vahak.mehrban.R
 import com.vahak.mehrban.UpdateState
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
@@ -62,6 +65,7 @@ import com.vahak.mehrban.presentation.dashboard.DashboardEvent
 import com.vahak.mehrban.presentation.dashboard.DashboardState
 import com.vahak.mehrban.presentation.dashboard.DashboardViewModel
 import com.vahak.mehrban.ui.component.SwipeToActivateButton
+import com.vahak.mehrban.uiv2.components.SmartRatingDialog
 import com.vahak.mehrban.uiv2.components.dashboard.ActionGridV2
 import com.vahak.mehrban.uiv2.components.dashboard.ActiveChildSummaryCardV2
 import com.vahak.mehrban.uiv2.components.dashboard.BannerSliderV2
@@ -69,7 +73,6 @@ import com.vahak.mehrban.uiv2.components.dashboard.EmptyDashboardStateV2
 import com.vahak.mehrban.uiv2.components.dashboard.HomeChildSelectorV2
 import com.vahak.mehrban.uiv2.components.dashboard.LauncherConfirmSheet
 import com.vahak.mehrban.uiv2.components.dashboard.PinRequiredDialog
-
 import com.vahak.mehrban.uiv2.components.header.HeaderAction
 import com.vahak.mehrban.uiv2.components.header.MehrbanHeader
 import com.vahak.mehrban.uiv2.theme.AppIcons
@@ -93,12 +96,67 @@ fun DashboardScreen(
     val state by viewModel.state.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
     val isUpdateIgnored by viewModel.isUpdateIgnored.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is DashboardEffect.NavigateToLogin -> onLogoutComplete()
                 is DashboardEffect.NavigateToPasswordSetup -> onNavigateToPasswordSetup()
+
+                // 🚀 NEW: Handle Rating Dialog App Store Navigation dynamically!
+                is DashboardEffect.OpenAppStoreRating -> {
+                    val installSource = BuildConfig.INSTALL_SOURCE
+                    try {
+                        when (installSource) {
+                            "bazaar" -> {
+                                val intent = Intent(Intent.ACTION_EDIT).apply {
+                                    data =
+                                        "bazaar://details?id=${context.packageName}".toUri()
+                                    setPackage("com.farsitel.bazaar")
+                                }
+                                context.startActivity(intent)
+                            }
+
+                            "myket" -> {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    data =
+                                        "myket://details?id=${context.packageName}".toUri()
+                                    setPackage("ir.mservices.market")
+                                }
+                                context.startActivity(intent)
+                            }
+
+                            "googleplay" -> {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    data =
+                                        "market://details?id=${context.packageName}".toUri()
+                                    setPackage("com.android.vending")
+                                }
+                                context.startActivity(intent)
+                            }
+
+                            else -> {} // Website build - do nothing
+                        }
+                    } catch (_: Exception) {
+                        // Fallback to web browser if store app is missing
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            "https://play.google.com/store/apps/details?id=${context.packageName}".toUri()
+                        )
+                        context.startActivity(intent)
+                    }
+                }
+
+                // 🚀 NEW: Handle Eitaa support intent
+                is DashboardEffect.OpenSupportAccount -> {
+                    try {
+                        val intent =
+                            Intent(Intent.ACTION_VIEW, "https://eitaa.com/mehrbansupport".toUri())
+                        context.startActivity(intent)
+                    } catch (_: Exception) {
+                    }
+                }
             }
         }
     }
@@ -149,15 +207,9 @@ fun DashboardScreenContent(
                     missingSecurityPermissions = emptyList()
                 } else {
                     val requiredPermissions = mutableListOf<PermissionType>()
-
-                    // Add POST_NOTIFICATIONS tracking for Android 13+ devices
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                         requiredPermissions.add(PermissionType.NOTIFICATIONS)
                     }
-
-                    // FIXME: Currently we commented out the permission for accessibility and device admin for publish issues,
-                    // requiredPermissions.add(PermissionType.ACCESSIBILITY)
-                    // requiredPermissions.add(PermissionType.DEVICE_ADMIN)
                     missingSecurityPermissions = requiredPermissions.filter { permission ->
                         !PermissionChecker.hasPermission(context, permission)
                     }
@@ -182,7 +234,6 @@ fun DashboardScreenContent(
                     val permissionsString = missingSecurityPermissions.joinToString(",") { it.name }
                     onSecurityFabClick(permissionsString)
                 }, containerColor = colors.red, contentColor = Color.White, shape = CircleShape,
-                // 🚀 PRO FIX: graphicsLayer prevents complete UI recomposition during animation
                 modifier = Modifier.graphicsLayer { translationY = fabOffsetY.dp.toPx() }) {
                 Icon(
                     AppIcons.Settings,
@@ -236,9 +287,12 @@ fun DashboardScreenContent(
                     onTimeLockClick = { onTimeLockClick(state.activeChild.id) },
                     onLocationClick = {
                         Toast.makeText(
-                            context, comingSoonMessage, Toast.LENGTH_SHORT
+                            context,
+                            comingSoonMessage,
+                            Toast.LENGTH_SHORT
                         ).show()
-                    })
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -266,6 +320,42 @@ fun DashboardScreenContent(
         PinRequiredDialog(
             onDismiss = { onEvent(DashboardEvent.ClosePinRequiredDialog) },
             onSetupPassword = { onEvent(DashboardEvent.GoToPasswordSetupClicked) })
+    }
+
+    // 🚀 NEW: Soft Rating Prompt Logic
+    if (state.showRatingPrompt && BuildConfig.INSTALL_SOURCE != "website") {
+        val title = when (state.ratingPromptStep) {
+            1 -> stringResource(R.string.rating_step1_title)
+            2 -> stringResource(R.string.rating_step2_title)
+            else -> stringResource(R.string.rating_step3_title)
+        }
+
+        val desc = when (state.ratingPromptStep) {
+            1 -> stringResource(R.string.rating_step1_desc)
+            2 -> stringResource(R.string.rating_step2_desc)
+            else -> stringResource(R.string.rating_step3_desc)
+        }
+
+        val dismissText = if (state.ratingPromptStep == 1) {
+            stringResource(R.string.remind_me_later)
+        } else {
+            stringResource(R.string.no_thanks)
+        }
+        SmartRatingDialog(
+            step = state.ratingPromptStep,
+            title = title,
+            description = desc,
+            dismissText = dismissText,
+            yesText = stringResource(R.string.yes),
+            noText = stringResource(R.string.no),
+            rateText = stringResource(R.string.rate_5_stars),
+            feedbackText = stringResource(R.string.send_feedback),
+            onSatisfied = { onEvent(DashboardEvent.RatingPromptSatisfied) },
+            onDissatisfied = { onEvent(DashboardEvent.RatingPromptDissatisfied) },
+            onRateClicked = { onEvent(DashboardEvent.RatingPromptRateClicked) },
+            onFeedbackClicked = { onEvent(DashboardEvent.RatingPromptFeedbackClicked) },
+            onDismiss = { onEvent(DashboardEvent.DismissRatingPrompt) }
+        )
     }
 }
 
@@ -337,11 +427,11 @@ fun DashboardScreenPreviewPopulatedLight() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         DashboardScreenContent(
             state = DashboardState(
-            children = listOf(mockChild1, mockChild2),
-            activeChild = mockChild1,
-            activeChildTimeLimitMins = 50,
-            activeChildUsageSeconds = 1700
-        ),
+                children = listOf(mockChild1, mockChild2),
+                activeChild = mockChild1,
+                activeChildTimeLimitMins = 50,
+                activeChildUsageSeconds = 1700
+            ),
             onEvent = {},
             onAddChildClick = {},
             onSettingsClick = {},
@@ -361,8 +451,8 @@ fun DashboardScreenPreviewPopulatedDark() {
     ParentControlTheme(themeMode = AppTheme.DARK) {
         DashboardScreenContent(
             state = DashboardState(
-            children = listOf(mockChild1, mockChild2), activeChild = mockChild1
-        ),
+                children = listOf(mockChild1, mockChild2), activeChild = mockChild1
+            ),
             onEvent = {},
             onAddChildClick = {},
             onSettingsClick = {},
@@ -382,10 +472,10 @@ fun DashboardScreenPreviewDialog() {
     ParentControlTheme(themeMode = AppTheme.LIGHT) {
         DashboardScreenContent(
             state = DashboardState(
-            children = listOf(mockChild1),
-            activeChild = mockChild1,
-            showPinRequiredDialog = true,
-        ),
+                children = listOf(mockChild1),
+                activeChild = mockChild1,
+                showPinRequiredDialog = true,
+            ),
             onEvent = {},
             onAddChildClick = {},
             onSettingsClick = {},

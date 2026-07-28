@@ -143,4 +143,13 @@ class AppAnalytics @Inject constructor(
         }
     }
 
+    /** Smart Rating: User agreed to go to the store */
+    fun logRatingAccepted() {
+        firebaseAnalytics.logEvent("rating_accepted", null)
+    }
+
+    /** Smart Rating: User decided to send an email instead */
+    fun logRatingFeedbackSent() {
+        firebaseAnalytics.logEvent("rating_feedback_sent", null)
+    }
 }

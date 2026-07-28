@@ -40,6 +40,8 @@ data class DashboardState(
     val activeChildUsageSeconds: Int = 0,
     val activeChildLocalSeconds: Int = 0,
     val activeChildGlobalSeconds: Int = 0,
+    val showRatingPrompt: Boolean = false,
+    val ratingPromptStep: Int = 1, // 1 = Soft Prompt, 2 = Bazaar Prompt, 3 = Feedback Prompt
 )
 
 sealed class DashboardEvent {
@@ -51,11 +53,18 @@ sealed class DashboardEvent {
     data class DeactivateProtection(val childId: String) : DashboardEvent()
     object ClosePinRequiredDialog : DashboardEvent()
     object GoToPasswordSetupClicked : DashboardEvent()
+    object DismissRatingPrompt : DashboardEvent()
+    object RatingPromptSatisfied : DashboardEvent()
+    object RatingPromptDissatisfied : DashboardEvent()
+    object RatingPromptRateClicked : DashboardEvent()
+    object RatingPromptFeedbackClicked : DashboardEvent()
 }
 
 sealed class DashboardEffect {
     object NavigateToLogin : DashboardEffect()
     object NavigateToPasswordSetup : DashboardEffect()
+    object OpenAppStoreRating : DashboardEffect()
+    object OpenSupportAccount : DashboardEffect()
 }
 
 @HiltViewModel
@@ -143,6 +152,17 @@ class DashboardViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(
+                sessionManager.childModeActivationsFlow,
+                sessionManager.hasRatedAppFlow
+            ) { activations, hasRated ->
+                // Show if they've used child mode at least 2 times and haven't rated
+                activations >= 2 && !hasRated
+            }.collectLatest { shouldShow ->
+                updateState { copy(showRatingPrompt = shouldShow) }
+            }
+        }
     }
 
     override fun onEvent(event: DashboardEvent) {
@@ -168,12 +188,38 @@ class DashboardViewModel @Inject constructor(
                 }
             }
 
-            is DashboardEvent.ActivateProtection -> startProtectionService(event.childId)
+            is DashboardEvent.ActivateProtection -> {
+                viewModelScope.launch { sessionManager.incrementChildModeActivations() }
+                startProtectionService(event.childId)
+            }
+
             is DashboardEvent.DeactivateProtection -> stopProtectionService()
             is DashboardEvent.ClosePinRequiredDialog -> updateState { copy(showPinRequiredDialog = false) }
             is DashboardEvent.GoToPasswordSetupClicked -> {
                 updateState { copy(showPinRequiredDialog = false) }
                 sendEffect(DashboardEffect.NavigateToPasswordSetup)
+            }
+
+            is DashboardEvent.DismissRatingPrompt -> {
+                updateState { copy(showRatingPrompt = false, ratingPromptStep = 1) }
+                viewModelScope.launch { sessionManager.resetChildModeActivations() }
+            }
+
+            is DashboardEvent.RatingPromptSatisfied -> updateState { copy(ratingPromptStep = 2) }
+            is DashboardEvent.RatingPromptDissatisfied -> updateState { copy(ratingPromptStep = 3) }
+
+            is DashboardEvent.RatingPromptRateClicked -> {
+                updateState { copy(showRatingPrompt = false) }
+                viewModelScope.launch { sessionManager.setHasRatedApp(true) } // Never ask again
+                analytics.logRatingAccepted()
+                sendEffect(DashboardEffect.OpenAppStoreRating)
+            }
+
+            is DashboardEvent.RatingPromptFeedbackClicked -> {
+                updateState { copy(showRatingPrompt = false) }
+                viewModelScope.launch { sessionManager.setHasRatedApp(true) } // Never ask again
+                analytics.logRatingFeedbackSent()
+                sendEffect(DashboardEffect.OpenSupportAccount)
             }
         }
     }

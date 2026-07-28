@@ -5,10 +5,23 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -35,8 +48,11 @@ fun <T> SimpleSelectionDialog(
     onSelect: (T) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val cancelLabel = stringResource(R.string.cancel)
     Dialog(onDismissRequest = onDismiss) {
-        SimpleSelectionDialogContent(title, options, selectedOption, onSelect, onDismiss)
+        SimpleSelectionDialogContent(
+            title, cancelLabel, options, selectedOption, onSelect, onDismiss
+        )
     }
 }
 
@@ -44,6 +60,7 @@ fun <T> SimpleSelectionDialog(
 @Composable
 fun <T> SimpleSelectionDialogContent(
     title: String,
+    cancelLabel: String,
     options: List<Pair<T, String>>,
     selectedOption: T?,
     onSelect: (T) -> Unit,
@@ -58,12 +75,12 @@ fun <T> SimpleSelectionDialogContent(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
-            
+
             // Header
             Text(
-                text = title, 
-                fontWeight = FontWeight.ExtraBold, 
-                fontSize = 20.sp, 
+                text = title,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp,
                 color = colors.textPrimary,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -71,19 +88,22 @@ fun <T> SimpleSelectionDialogContent(
             // Modern Selectable List
             options.forEach { (value, label) ->
                 val isSelected = selectedOption == value
-                
+
                 // Smooth Color Animations
                 val bgColor by animateColorAsState(
                     targetValue = if (isSelected) colors.primary.copy(alpha = 0.1f) else Color.Transparent,
-                    animationSpec = tween(300), label = "bg_color"
+                    animationSpec = tween(300),
+                    label = "bg_color"
                 )
                 val borderColor by animateColorAsState(
                     targetValue = if (isSelected) colors.primary else colors.divider.copy(alpha = 0.5f),
-                    animationSpec = tween(300), label = "border_color"
+                    animationSpec = tween(300),
+                    label = "border_color"
                 )
                 val textColor by animateColorAsState(
                     targetValue = if (isSelected) colors.primary else colors.textPrimary,
-                    animationSpec = tween(300), label = "text_color"
+                    animationSpec = tween(300),
+                    label = "text_color"
                 )
 
                 Card(
@@ -94,8 +114,7 @@ fun <T> SimpleSelectionDialogContent(
                         .fillMaxWidth()
                         .padding(vertical = 6.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .clickable { onSelect(value); onDismiss() }
-                ) {
+                        .clickable { onSelect(value); onDismiss() }) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -104,8 +123,8 @@ fun <T> SimpleSelectionDialogContent(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = label, 
-                            color = textColor, 
+                            text = label,
+                            color = textColor,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             fontSize = 16.sp
                         )
@@ -117,8 +136,7 @@ fun <T> SimpleSelectionDialogContent(
                                 .background(
                                     color = if (isSelected) colors.primary else Color.Transparent,
                                     shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
+                                ), contentAlignment = Alignment.Center
                         ) {
                             if (isSelected) {
                                 // Uses your custom icon, or standard check mark
@@ -135,15 +153,14 @@ fun <T> SimpleSelectionDialogContent(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Actions
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
                 TextButton(
-                    onClick = onDismiss,
-                    shape = RoundedCornerShape(12.dp)
+                    onClick = onDismiss, shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.cancel), 
+                        text = cancelLabel,
                         color = colors.textSecondary,
                         fontWeight = FontWeight.Bold
                     )
@@ -158,9 +175,14 @@ fun <T> SimpleSelectionDialogContent(
 @Composable
 fun PreviewSimpleSelectionDialog() {
     ParentControlTheme {
-        Box(modifier = Modifier.padding(16.dp).fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxSize(), contentAlignment = Alignment.Center
+        ) {
             SimpleSelectionDialogContent(
                 title = "انتخاب موتور جستجو",
+                cancelLabel = "انصراف",
                 options = listOf(
                     "shaadbin" to "شادبین (Shaadbin)",
                     "kiddle" to "کیدل (Kiddle)",
@@ -168,8 +190,7 @@ fun PreviewSimpleSelectionDialog() {
                 ),
                 selectedOption = "shaadbin",
                 onSelect = {},
-                onDismiss = {}
-            )
+                onDismiss = {})
         }
     }
 }

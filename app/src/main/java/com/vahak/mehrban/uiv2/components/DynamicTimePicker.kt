@@ -111,6 +111,11 @@ private fun TimePickerContentV2(
     var selectedHours by remember { mutableIntStateOf(initialHours) }
     var selectedMinutes by remember { mutableIntStateOf(initialMinutes) }
 
+    val timeMinuteLabelText = stringResource(R.string.time_minute_label)
+    val timeHourLabelText = stringResource(R.string.time_hour_label)
+    val cancelText = stringResource(R.string.cancel)
+    val confirmText = stringResource(R.string.confirm)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -129,10 +134,12 @@ private fun TimePickerContentV2(
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.time_minute_label), color = colors.textSecondary, fontWeight = FontWeight.Bold)
+                Text(
+                    timeMinuteLabelText, color = colors.textSecondary, fontWeight = FontWeight.Bold
+                )
             }
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.time_hour_label), color = colors.textSecondary, fontWeight = FontWeight.Bold)
+                Text(timeHourLabelText, color = colors.textSecondary, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -153,22 +160,19 @@ private fun TimePickerContentV2(
                 range = minutesRange,
                 initialValue = initialMinutes,
                 pickerStyle = WheelPickerStyle.THREE,
-                onValueChange = { selectedMinutes = it }
-            )
+                onValueChange = { selectedMinutes = it })
             NumberPickerColumn(
                 modifier = Modifier.weight(1f),
                 range = hoursRange,
                 initialValue = initialHours,
                 pickerStyle = WheelPickerStyle.THREE,
-                onValueChange = { selectedHours = it }
-            )
+                onValueChange = { selectedHours = it })
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
                 onClick = onDismiss,
@@ -179,7 +183,7 @@ private fun TimePickerContentV2(
                 shape = RoundedCornerShape(14.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, colors.divider)
             ) {
-                Text(stringResource(R.string.cancel), color = colors.textSecondary, fontWeight = FontWeight.Bold)
+                Text(cancelText, color = colors.textSecondary, fontWeight = FontWeight.Bold)
             }
 
             Button(
@@ -195,7 +199,7 @@ private fun TimePickerContentV2(
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(14.dp)
             ) {
-                Text(stringResource(R.string.confirm), color = colors.textOnPrimaryVariant, fontWeight = FontWeight.Bold)
+                Text(confirmText, color = colors.textOnPrimaryVariant, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -215,8 +219,7 @@ fun DynamicTimePickerSheetPreviewV2Light() {
             mode = PickerPresentationMode.BOTTOM_SHEET,
             title = stringResource(R.string.time_limit_title),
             onDismiss = {},
-            onConfirm = { _, _ -> }
-        )
+            onConfirm = { _, _ -> })
     }
 }
 
@@ -227,7 +230,6 @@ fun DynamicTimePickerDialogPreviewV2Dark() {
         DynamicTimePickerV2(
             mode = PickerPresentationMode.DIALOG,
             onDismiss = {},
-            onConfirm = { _, _ -> }
-        )
+            onConfirm = { _, _ -> })
     }
 }
