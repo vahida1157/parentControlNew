@@ -64,6 +64,7 @@ class ChildSettingsViewModel @Inject constructor(
     private val featurePermissionsMap = mapOf(
         "time_limit" to listOf(PermissionType.USAGE_STATS, PermissionType.OVERLAY),
         "app_lock" to listOf(PermissionType.USAGE_STATS, PermissionType.OVERLAY),
+        "sleep_time" to listOf(PermissionType.USAGE_STATS, PermissionType.OVERLAY),
         "site_management" to listOf(PermissionType.VPN),
         "location" to listOf(PermissionType.LOCATION),
     )

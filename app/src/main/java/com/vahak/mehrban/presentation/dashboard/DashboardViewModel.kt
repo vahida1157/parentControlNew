@@ -7,9 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.vahak.mehrban.core.analytics.AppAnalytics
 import com.vahak.mehrban.core.data.local.SessionManager
 import com.vahak.mehrban.core.data.local.entity.ChildEntity
+import com.vahak.mehrban.core.data.local.entity.GlobalSettingsEntity
 import com.vahak.mehrban.core.service.RestrictionEnforcerService
 import com.vahak.mehrban.core.util.AppUpdateManager
 import com.vahak.mehrban.core.util.LauncherManager
+import com.vahak.mehrban.domain.repository.AppRuleRepository
 import com.vahak.mehrban.domain.repository.AuthRepository
 import com.vahak.mehrban.domain.repository.ChildRepository
 import com.vahak.mehrban.domain.repository.SettingsRepository
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -42,6 +45,8 @@ data class DashboardState(
     val activeChildGlobalSeconds: Int = 0,
     val showRatingPrompt: Boolean = false,
     val ratingPromptStep: Int = 1, // 1 = Soft Prompt, 2 = Bazaar Prompt, 3 = Feedback Prompt
+    val activeChildSettings: GlobalSettingsEntity? = null,
+    val hasRestrictedApps: Boolean = false,
 )
 
 sealed class DashboardEvent {
@@ -77,6 +82,7 @@ class DashboardViewModel @Inject constructor(
     private val usageRepository: UsageRepository,
     private val appUpdateManager: AppUpdateManager,
     private val analytics: AppAnalytics,
+    private val appRuleRepository: AppRuleRepository,
 ) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState()) {
 
 
@@ -161,6 +167,32 @@ class DashboardViewModel @Inject constructor(
                 activations >= 2 && !hasRated
             }.collectLatest { shouldShow ->
                 updateState { copy(showRatingPrompt = shouldShow) }
+            }
+        }
+        viewModelScope.launch {
+            @OptIn(ExperimentalCoroutinesApi::class)
+            viewedChildIdFlow.flatMapLatest { childId ->
+                if (childId != null) settingsRepository.getGlobalSettings(childId)
+                else kotlinx.coroutines.flow.flowOf(null)
+            }.collectLatest { settings ->
+                updateState {
+                    copy(
+                        activeChildSettings = settings, // 🚀 NEW: Pass settings to UI
+                        activeChildTimeLimitMins = settings?.dailyTimeLimitMins ?: 0,
+                        isTimeLimitActive = settings?.isTimeLimitActive ?: false
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            @OptIn(ExperimentalCoroutinesApi::class)
+            viewedChildIdFlow.flatMapLatest { childId ->
+                if (childId != null) appRuleRepository.observeAllRules(childId)
+                else flowOf(emptyList())
+            }.collectLatest { rules ->
+                // If any rule has isAllowed == false, then App Lock is effectively active
+                val hasRestricted = rules.any { !it.isAllowed }
+                updateState { copy(hasRestrictedApps = hasRestricted) }
             }
         }
     }

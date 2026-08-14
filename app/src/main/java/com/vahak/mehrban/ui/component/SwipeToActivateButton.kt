@@ -1,5 +1,11 @@
 package com.vahak.mehrban.ui.component
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -63,6 +70,30 @@ fun SwipeToActivateButton(
     val density = LocalDensity.current
     val maxDragPx = with(density) { 250.dp.toPx() }
 
+    // 🚀 NEW: Infinite transition for attention-grabbing animations
+    val infiniteTransition = rememberInfiniteTransition(label = "swipe_attention")
+    val pulseMagnitude by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_magnitude"
+    )
+
+    // Calculate applied animations only when idle (not active and not currently being dragged)
+    val isIdle = !isActive && offsetX == 0f
+
+    // Scale the thumb up slightly by 6%
+    val appliedScale = if (isIdle) 1f + (0.06f * pulseMagnitude) else 1f
+
+    // Move the icon horizontally (handles LTR and RTL directions)
+    val iconTranslate = if (isIdle) {
+        val maxOffset = with(density) { 6.dp.toPx() }
+        (maxOffset * pulseMagnitude) * if (isRtl) -1f else 1f
+    } else 0f
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -85,10 +116,17 @@ fun SwipeToActivateButton(
             modifier = Modifier
                 .offset { IntOffset(if (isActive) 0 else offsetX.roundToInt(), 0) }
                 .then(if (isActive) Modifier.fillMaxSize() else Modifier.size(thumbSize))
+                // 🚀 NEW: Apply the breathing scale effect to the thumb
+                .graphicsLayer {
+                    scaleX = appliedScale
+                    scaleY = appliedScale
+                }
                 .shadow(
                     elevation = if (isActive) 8.dp else 2.dp,
                     shape = RoundedCornerShape(32.dp),
-                    spotColor = if (isActive) colors.green.copy(alpha = 0.5f) else colors.primary.copy(alpha = 0.3f)
+                    spotColor = if (isActive) colors.green.copy(alpha = 0.5f) else colors.primary.copy(
+                        alpha = 0.3f
+                    )
                 )
                 .clip(RoundedCornerShape(32.dp))
                 .background(
@@ -107,7 +145,6 @@ fun SwipeToActivateButton(
                         Modifier.draggable(
                             orientation = Orientation.Horizontal,
                             state = rememberDraggableState { delta ->
-                                // 🚀 THE FIX: Convert physical delta to logical drag distance
                                 val dragAmount = if (isRtl) -delta else delta
                                 offsetX = (offsetX + dragAmount).coerceIn(0f, maxDragPx)
                             },
@@ -135,11 +172,14 @@ fun SwipeToActivateButton(
                     Icon(AppIcons.Check, contentDescription = null, tint = Color.White)
                 }
             } else {
-                // 🚀 Ensures arrow points the right way to drag
                 Icon(
                     painter = AppIcons.ChevronRight,
                     contentDescription = null,
-                    tint = Color.White
+                    tint = Color.White,
+                    // 🚀 NEW: Apply the horizontal bounce to the chevron icon
+                    modifier = Modifier.graphicsLayer {
+                        translationX = iconTranslate
+                    }
                 )
             }
         }
@@ -151,7 +191,9 @@ fun SwipeToActivateButton(
 fun SwipeSliderDeactivatedPreview() {
     ParentControlTheme {
         val colors = LocalCustomColors.current
-        Box(modifier = Modifier.padding(16.dp).background(colors.background)) {
+        Box(modifier = Modifier
+            .padding(16.dp)
+            .background(colors.background)) {
             SwipeToActivateButton(isActive = false, onActivate = {}, onDeactivate = {})
         }
     }
@@ -162,7 +204,9 @@ fun SwipeSliderDeactivatedPreview() {
 fun SwipeSliderActivatedPreview() {
     ParentControlTheme {
         val colors = LocalCustomColors.current
-        Box(modifier = Modifier.padding(16.dp).background(colors.background)) {
+        Box(modifier = Modifier
+            .padding(16.dp)
+            .background(colors.background)) {
             SwipeToActivateButton(isActive = true, onActivate = {}, onDeactivate = {})
         }
     }

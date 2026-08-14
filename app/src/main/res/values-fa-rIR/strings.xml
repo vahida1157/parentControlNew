@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">مهر بان</string>
+    <string name="app_name">مهربان</string>
     <string name="cancel">انصراف</string>
     <string name="close">بستن</string>
     <string name="confirm">تأیید</string>
@@ -460,13 +460,13 @@
     <string name="permission_usage_stats_title">آمار کارکرد برنامه‌ها</string>
     <string name="permission_usage_stats_desc">برای مدیریت زمان استفاده از گوشی، این دسترسی حیاتی است.</string>
     <string name="permission_usage_stats_step1">۱. روی اعطای دسترسی کلیک کن</string>
-    <string name="permission_usage_stats_step2">۲. نام برنامه را پیدا و فعال کن</string>
+    <string name="permission_usage_stats_step2">۲. برنامه [ICON] %1$s را پیدا و فعال کن</string>
     <string name="permission_usage_stats_step3">۳. تنظیمات تکمیل شد</string>
 
     <string name="permission_overlay_title">نمایش روی سایر برنامه‌ها</string>
     <string name="permission_overlay_desc">برای مسدود کردن برنامه‌ها هنگام اتمام زمان، این دسترسی لازم است.</string>
     <string name="permission_overlay_step1">۱. روی اعطای دسترسی کلیک کن</string>
-    <string name="permission_overlay_step2">۲. گزینه Allow display over other apps را فعال کن</string>
+    <string name="permission_overlay_step2">۲. برنامه [ICON] %1$s را پیدا و گزینه Allow display over other apps را فعال کن</string>
     <string name="permission_overlay_step3">۳. به برنامه برگرد</string>
 
     <string name="permission_device_admin_title">محافظت از حذف برنامه</string>
@@ -479,7 +479,7 @@
     <string name="permission_accessibility_desc">برای مسدود کردن تنظیمات گوشی و جلوگیری از دور زدن قوانین توسط کودک.</string>
     <string name="permission_accessibility_step1">۱. روی اعطای دسترسی کلیک کن</string>
     <string name="permission_accessibility_step2">۲. وارد بخش برنامه‌های نصب شده (Installed apps) شو</string>
-    <string name="permission_accessibility_step3">۳. نام برنامه را پیدا کن و آن را روشن کن</string>
+    <string name="permission_accessibility_step3">۳. برنامه [ICON] %1$s را پیدا کن و آن را روشن کن</string>
 
     <string name="permission_vpn_title">فیلتر هوشمند وب (VPN)</string>
     <string name="permission_vpn_desc">برای مسدود کردن سایت‌های نامناسب، نیاز به ایجاد یک تونل امن (VPN محلی) داریم. هیچ داده‌ای به خارج از گوشی ارسال نمی‌شود.</string>
@@ -544,4 +544,8 @@
     <string name="rating_step3_title">چگونه می‌توانیم بهتر شویم؟</string>
     <string name="rating_step3_desc">از شنیدن این موضوع متاسفیم. لطفا برای ما ایمیل بفرستید تا مشکل را برطرف کنیم.</string>
     <string name="send_feedback">ارسال بازخورد</string>
+
+    <string name="permissions_required_title">دسترسی‌های لازم</string>
+    <string name="permissions_required_desc">برای فعال‌سازی حالت کودک با تنظیمات فعلی، باید دسترسی‌های لازم را به برنامه بدهید.</string>
+    <string name="grant_permissions">اعطای دسترسی</string>
 </resources>

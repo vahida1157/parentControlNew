@@ -24,11 +24,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -199,24 +201,56 @@ fun DashboardScreenContent(
 
     var showLauncherConfirmSheet by remember { mutableStateOf(false) }
     var missingSecurityPermissions by remember { mutableStateOf(emptyList<PermissionType>()) }
+    var showPermissionGateDialog by remember { mutableStateOf(false) }
 
-    DisposableEffect(lifecycleOwner) {
+    val settings = state.activeChildSettings
+
+    // 🚀 NEW: Dynamic permission evaluator
+    fun evaluatePermissions() {
+        if (isPreview) {
+            missingSecurityPermissions = emptyList()
+            return
+        }
+
+        val requiredPermissions = mutableSetOf<PermissionType>()
+
+        // 1. Base Permissions (Always required for the service to run on Android 13+)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            requiredPermissions.add(PermissionType.NOTIFICATIONS)
+        }
+
+        // 2. Dynamic Settings-based Permissions
+        if (settings != null) {
+            if (settings.isTimeLimitActive) {
+                requiredPermissions.add(PermissionType.USAGE_STATS)
+                requiredPermissions.add(PermissionType.OVERLAY)
+            }
+
+            if (settings.isSleepTimeActive) {
+                requiredPermissions.add(PermissionType.USAGE_STATS)
+                requiredPermissions.add(PermissionType.OVERLAY)
+            }
+        }
+
+        // 3. App Lock Permissions
+        if (state.hasRestrictedApps) {
+            requiredPermissions.add(PermissionType.USAGE_STATS)
+            requiredPermissions.add(PermissionType.OVERLAY)
+        }
+
+        missingSecurityPermissions = requiredPermissions.filter { permission ->
+            !PermissionChecker.hasPermission(context, permission)
+        }
+    }
+
+    DisposableEffect(lifecycleOwner, settings) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                if (isPreview) {
-                    missingSecurityPermissions = emptyList()
-                } else {
-                    val requiredPermissions = mutableListOf<PermissionType>()
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                        requiredPermissions.add(PermissionType.NOTIFICATIONS)
-                    }
-                    missingSecurityPermissions = requiredPermissions.filter { permission ->
-                        !PermissionChecker.hasPermission(context, permission)
-                    }
-                }
+                evaluatePermissions()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
+        evaluatePermissions()
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
@@ -276,7 +310,13 @@ fun DashboardScreenContent(
                 Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
                     SwipeToActivateButton(
                         isActive = state.isProtectionActive,
-                        onActivate = { showLauncherConfirmSheet = true },
+                        onActivate = {
+                            if (missingSecurityPermissions.isNotEmpty()) {
+                                showPermissionGateDialog = true
+                            } else {
+                                showLauncherConfirmSheet = true
+                            }
+                        },
                         onDeactivate = { /* Handle deactivation */ })
                 }
 
@@ -302,6 +342,45 @@ fun DashboardScreenContent(
     }
 
     // --- DIALOGS & SHEETS ---
+    if (showPermissionGateDialog) {
+        val permissionsRequiredTitleText = stringResource(R.string.permissions_required_title)
+        val permissionsRequiredDescText = stringResource(R.string.permissions_required_desc)
+        val grantPermissionsText = stringResource(R.string.grant_permissions)
+        val cancelText = stringResource(R.string.cancel)
+        AlertDialog(
+            onDismissRequest = { showPermissionGateDialog = false },
+            title = {
+                Text(
+                    text = permissionsRequiredTitleText,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(permissionsRequiredDescText)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPermissionGateDialog = false
+                        val permissionsString =
+                            missingSecurityPermissions.joinToString(",") { it.name }
+                        onSecurityFabClick(permissionsString)
+                    }
+                ) {
+                    Text(grantPermissionsText)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionGateDialog = false }) {
+                    Text(cancelText)
+                }
+            },
+            containerColor = colors.surface,
+            titleContentColor = colors.textPrimary,
+            textContentColor = colors.textSecondary
+        )
+    }
+
     if (showLauncherConfirmSheet && state.activeChild != null) {
         LauncherConfirmSheet(
             activeChild = state.activeChild,

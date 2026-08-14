@@ -460,13 +460,13 @@
     <string name="permission_usage_stats_title">App Usage Stats</string>
     <string name="permission_usage_stats_desc">Essential for managing screen time.</string>
     <string name="permission_usage_stats_step1">1. Click Grant Access</string>
-    <string name="permission_usage_stats_step2">2. Find and enable the app name</string>
+    <string name="permission_usage_stats_step2">2. Find and enable [ICON] %1$s</string>
     <string name="permission_usage_stats_step3">3. Setup complete</string>
 
     <string name="permission_overlay_title">Display Over Other Apps</string>
     <string name="permission_overlay_desc">Required to block apps when time runs out.</string>
     <string name="permission_overlay_step1">1. Click Grant Access</string>
-    <string name="permission_overlay_step2">2. Enable “Allow display over other apps”</string>
+    <string name="permission_overlay_step2">2. Find [ICON] %1$s and enable "Allow display over other apps"</string>
     <string name="permission_overlay_step3">3. Return to app</string>
 
     <string name="permission_device_admin_title">Protection Against Deletion</string>
@@ -479,7 +479,7 @@
     <string name="permission_accessibility_desc">To block phone settings and prevent the child from bypassing rules.</string>
     <string name="permission_accessibility_step1">1. Click Grant Access</string>
     <string name="permission_accessibility_step2">2. Go to Installed apps</string>
-    <string name="permission_accessibility_step3">3. Find the app name and turn it on</string>
+    <string name="permission_accessibility_step3">3. Find [ICON] %1$s and turn it on</string>
 
     <string name="permission_vpn_title">Smart Web Filter (VPN)</string>
     <string name="permission_vpn_desc">We need to create a secure tunnel (local VPN) to block inappropriate sites. No data leaves the phone.</string>
@@ -545,4 +545,7 @@
     <string name="rating_step3_desc">We are sorry to hear that. Please send us an email so we can fix it.</string>
     <string name="send_feedback">Send Feedback</string>
 
+    <string name="permissions_required_title">Permissions Required</string>
+    <string name="permissions_required_desc">To activate child mode with your current settings, you need to grant the required device permissions.</string>
+    <string name="grant_permissions">Grant Permissions</string>
 </resources>

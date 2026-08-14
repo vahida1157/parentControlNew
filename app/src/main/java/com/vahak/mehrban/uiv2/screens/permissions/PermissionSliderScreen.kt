@@ -11,6 +11,7 @@ import android.net.VpnService
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -48,11 +51,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -88,7 +96,7 @@ fun PermissionSliderScreen(
     val settingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { _ ->
-        checkTrigger++ // 🚀 Increments when returning from Settings
+        checkTrigger++
     }
 
     val runtimePermissionLauncher = rememberLauncherForActivityResult(
@@ -97,15 +105,15 @@ fun PermissionSliderScreen(
         Timber.d("Notification Permission Result -> isGranted: $isGranted")
 
         if (!isGranted) {
-            // 🚀 THE FIX: Use the unwrapper instead of 'context as? Activity'
             val activity = context.findActivity()
             Timber.d("Unwrapped Activity: ${activity?.localClassName ?: "NULL"}")
 
             if (activity != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                val shouldShowRationale = androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(
-                    activity,
-                    POST_NOTIFICATIONS
-                )
+                val shouldShowRationale =
+                    androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(
+                        activity,
+                        POST_NOTIFICATIONS
+                    )
                 Timber.d("shouldShowRationale flag: $shouldShowRationale")
 
                 if (!shouldShowRationale) {
@@ -123,7 +131,7 @@ fun PermissionSliderScreen(
             }
         }
 
-        checkTrigger++ // Triggers the viewmodel to re-check permissions
+        checkTrigger++
     }
 
     LaunchedEffect(checkTrigger) {
@@ -215,10 +223,13 @@ fun PermissionSliderContent(
 ) {
     val colors = LocalCustomColors.current
     val pagerState = rememberPagerState(pageCount = { permissions.size })
+    val context = LocalContext.current
+    val appName = remember {
+        context.applicationInfo.loadLabel(context.packageManager).toString()
+    }
 
     Scaffold(
         modifier = Modifier.systemBarsPadding(), containerColor = colors.background, bottomBar = {
-            // 🚀 Only allow skipping if the permission is Notifications
             val currentPerm = permissions.getOrNull(pagerState.currentPage)
             val canSkip = currentPerm == PermissionType.NOTIFICATIONS
 
@@ -242,7 +253,6 @@ fun PermissionSliderContent(
                 state = pagerState, modifier = Modifier.fillMaxSize(), userScrollEnabled = false
             ) { page ->
 
-                // 🚀 If the page goes out of bounds while animating the list size change, return early
                 if (page >= permissions.size) {
                     onFinishSetup()
                     return@HorizontalPager
@@ -258,7 +268,6 @@ fun PermissionSliderContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
-                    // Emoji/Icon representing the permission
                     Box(
                         modifier = Modifier
                             .padding(vertical = 16.dp)
@@ -297,7 +306,6 @@ fun PermissionSliderContent(
                         modifier = Modifier.padding(bottom = 24.dp)
                     )
 
-                    // Conditional Info/Warning Boxes
                     when (currentPermission) {
                         PermissionType.ACCESSIBILITY, PermissionType.USAGE_STATS -> {
                             InfoBoxV2(stringResource(R.string.permission_info_accessibility_usage))
@@ -318,8 +326,11 @@ fun PermissionSliderContent(
 
                     // Dynamic Guide steps mapped from resource IDs
                     currentPermission.instructionResIds.forEachIndexed { index, stepResId ->
-                        TutorialStepV2(
-                            stepNumber = index + 1, instruction = stringResource(stepResId)
+                        val rawInstruction = stringResource(id = stepResId, appName)
+
+                        TutorialStepWithIconV2(
+                            stepNumber = index + 1,
+                            instruction = rawInstruction
                         )
                     }
 
@@ -377,8 +388,38 @@ fun WarningBoxV2(text: String) {
 }
 
 @Composable
-fun TutorialStepV2(stepNumber: Int, instruction: String) {
+fun TutorialStepWithIconV2(stepNumber: Int, instruction: String) {
     val colors = LocalCustomColors.current
+
+    val inlineContentMap = mapOf(
+        "app_icon" to InlineTextContent(
+            Placeholder(
+                width = 32.sp,
+                height = 32.sp,
+                placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+            )
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher),
+                contentDescription = "App Icon",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(4.dp))
+            )
+        }
+    )
+
+    val annotatedInstruction = buildAnnotatedString {
+        val parts = instruction.split("[ICON]")
+        parts.forEachIndexed { index, part ->
+            append(part)
+            if (index < parts.size - 1) {
+                appendInlineContent("app_icon", "[icon]")
+                append(" ")
+            }
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -407,12 +448,14 @@ fun TutorialStepV2(stepNumber: Int, instruction: String) {
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
+
             Text(
-                text = instruction,
+                text = annotatedInstruction,
+                inlineContent = inlineContentMap,
                 color = colors.textPrimary,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                lineHeight = 20.sp
+                lineHeight = 24.sp
             )
         }
     }
@@ -456,11 +499,9 @@ fun PermissionFooterV2(
             )
         }
 
-        // 🚀 NEW: The Skip Button
         if (showSkip) {
             Spacer(modifier = Modifier.height(12.dp))
             TextButton(onClick = onSkipClick) {
-                // Make sure to add this string to your strings.xml ("Skip for now" / "فعلا نه")
                 Text(
                     text = stringResource(R.string.skip_for_now),
                     color = colors.textHint,
