@@ -278,7 +278,7 @@ fun ApplicationSettingsContent(
                     title = stringResource(R.string.settings_help_support),
                     onClick = {
                         val intent =
-                            Intent(Intent.ACTION_VIEW, "https://mehr-ban.com/support".toUri())
+                            Intent(Intent.ACTION_VIEW, "https://eitaa.com/mehrbansupport".toUri())
                         context.startActivity(intent)
                     })
 
@@ -311,12 +311,15 @@ fun ApplicationSettingsContent(
             LocalContext provides context,
             LocalConfiguration provides configuration
         ) {
+            val loginPrivacyDialogTitleText = stringResource(R.string.login_privacy_dialog_title)
+            val loginPrivacyDialogTextText = stringResource(R.string.login_privacy_dialog_text)
+            val closeText = stringResource(R.string.close)
             AlertDialog(
                 onDismissRequest = { onEvent(AppSettingsEvent.ShowPrivacyDialog(false)) },
                 containerColor = colors.surface,
                 title = {
                     Text(
-                        text = stringResource(R.string.login_privacy_dialog_title),
+                        text = loginPrivacyDialogTitleText,
                         style = MaterialTheme.typography.titleLarge,
                         color = colors.textPrimary,
                         fontWeight = FontWeight.Bold
@@ -325,7 +328,7 @@ fun ApplicationSettingsContent(
                 text = {
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         Text(
-                            text = stringResource(R.string.login_privacy_dialog_text),
+                            text = loginPrivacyDialogTextText,
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.textSecondary,
                             lineHeight = 24.sp
@@ -335,7 +338,7 @@ fun ApplicationSettingsContent(
                 confirmButton = {
                     TextButton(onClick = { onEvent(AppSettingsEvent.ShowPrivacyDialog(false)) }) {
                         Text(
-                            text = stringResource(R.string.close),
+                            text = closeText,
                             color = colors.primary,
                             fontWeight = FontWeight.Bold
                         )

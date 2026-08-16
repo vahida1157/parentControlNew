@@ -35,8 +35,8 @@ android {
         applicationId = "com.vahak.mehrban"
         minSdk = 26
         targetSdk = 37
-        versionCode = 19
-        versionName = "1.5.2"
+        versionCode = 20
+        versionName = "1.5.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
