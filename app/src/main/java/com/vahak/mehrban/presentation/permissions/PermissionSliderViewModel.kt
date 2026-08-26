@@ -21,7 +21,7 @@ data class PermissionSliderState(
 
 sealed class PermissionSliderEvent {
     data class GrantClicked(val permission: PermissionType) : PermissionSliderEvent()
-    object SkipClicked : PermissionSliderEvent()
+    data class SkipClicked(val permission: PermissionType) : PermissionSliderEvent()
     object SetupFinished : PermissionSliderEvent()
     data class CheckPermissions(val context: Context) : PermissionSliderEvent()
 }
@@ -113,13 +113,22 @@ class PermissionSliderViewModel @Inject constructor(
                 sendEffect(NavigateToFeature(state.value.targetFeatureRoute))
             }
 
-            PermissionSliderEvent.SkipClicked -> {
-                Timber.d("User skipped optional permission")
+            is PermissionSliderEvent.SkipClicked -> {
+                Timber.d("User skipped permission: %s", event.permission.name)
 
-                // 🚀 Mark as shown so they can proceed to Log in
-                viewModelScope.launch { sessionManager.setHasShownInitialNotifPrompt(true) }
+                // Keep your existing notification flag logic if they skip notifications specifically
+                if (event.permission == PermissionType.NOTIFICATIONS) {
+                    viewModelScope.launch { sessionManager.setHasShownInitialNotifPrompt(true) }
+                }
 
-                sendEffect(NavigateToFeature(state.value.targetFeatureRoute))
+                // Remove the skipped permission from the list
+                val stillMissing = state.value.missingPermissions.filter { it != event.permission }
+                updateState { copy(missingPermissions = stillMissing) }
+
+                // If there are no permissions left to ask for, route to the target feature
+                if (stillMissing.isEmpty()) {
+                    onEvent(PermissionSliderEvent.SetupFinished)
+                }
             }
         }
     }

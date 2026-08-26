@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Mehr Ban</string>
+    <string name="app_name">MehrBan</string>
     <string name="cancel">Cancel</string>
     <string name="close">Close</string>
     <string name="confirm">Confirm</string>
@@ -480,6 +480,16 @@
     <string name="permission_accessibility_step1">1. Click Grant Access</string>
     <string name="permission_accessibility_step2">2. Go to Installed apps</string>
     <string name="permission_accessibility_step3">3. Find [ICON] %1$s and turn it on</string>
+
+    <string name="xiaomi_accessibility_warning">Xiaomi devices require a strict 3-step process to enable this permission. Please follow them in order.</string>
+    <string name="xiaomi_step1_title">Trigger the Security Block</string>
+    <string name="xiaomi_step1_desc">Go to Accessibility, open "Downloaded apps" (or Installed apps), select the app, and try to turn it on. You will see a \'Restricted Setting\' warning. Click OK, then come back here.</string>
+    <string name="xiaomi_step2_title">Allow Restricted Settings</string>
+    <string name="xiaomi_step2_desc">Scroll down in the App Info page (or check the top right menu) and enable \'Allow restricted settings\'.</string>
+    <string name="xiaomi_step3_title">Enable the Service</string>
+    <string name="xiaomi_step3_desc">Return to the Accessibility menu, find the app again under "Downloaded apps", and successfully turn on the service. Once done, come back here.</string>
+    <string name="xiaomi_btn_accessibility">Open Accessibility</string>
+    <string name="xiaomi_btn_app_info">Open App Info</string>
 
     <string name="permission_vpn_title">Smart Web Filter (VPN)</string>
     <string name="permission_vpn_desc">We need to create a secure tunnel (local VPN) to block inappropriate sites. No data leaves the phone.</string>

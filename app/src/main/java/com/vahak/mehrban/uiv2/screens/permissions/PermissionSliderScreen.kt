@@ -7,10 +7,13 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.net.Uri
 import android.net.VpnService
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -108,7 +111,7 @@ fun PermissionSliderScreen(
             val activity = context.findActivity()
             Timber.d("Unwrapped Activity: ${activity?.localClassName ?: "NULL"}")
 
-            if (activity != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (activity != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val shouldShowRationale =
                     androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(
                         activity,
@@ -167,7 +170,7 @@ fun PermissionSliderScreen(
                     }
 
                     if (effect.permission == PermissionType.NOTIFICATIONS) {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             runtimePermissionLauncher.launch(POST_NOTIFICATIONS)
                         } else {
                             val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
@@ -209,8 +212,11 @@ fun PermissionSliderScreen(
             onGrantClick = { permission ->
                 viewModel.onEvent(PermissionSliderEvent.GrantClicked(permission))
             },
-            onSkipClick = { viewModel.onEvent(PermissionSliderEvent.SkipClicked) },
-            onFinishSetup = { viewModel.onEvent(PermissionSliderEvent.SetupFinished) })
+            onSkipClick = { permission ->
+                viewModel.onEvent(PermissionSliderEvent.SkipClicked(permission))
+            },
+            onFinishSetup = { viewModel.onEvent(PermissionSliderEvent.SetupFinished) }
+        )
     }
 }
 
@@ -218,7 +224,7 @@ fun PermissionSliderScreen(
 fun PermissionSliderContent(
     permissions: List<PermissionType>,
     onGrantClick: (PermissionType) -> Unit,
-    onSkipClick: () -> Unit,
+    onSkipClick: (PermissionType) -> Unit,
     onFinishSetup: () -> Unit,
 ) {
     val colors = LocalCustomColors.current
@@ -231,13 +237,11 @@ fun PermissionSliderContent(
     Scaffold(
         modifier = Modifier.systemBarsPadding(), containerColor = colors.background, bottomBar = {
             val currentPerm = permissions.getOrNull(pagerState.currentPage)
-            val canSkip = currentPerm == PermissionType.NOTIFICATIONS
 
             PermissionFooterV2(
                 buttonText = stringResource(R.string.permission_grant_access),
                 onGrantClick = { onGrantClick(permissions[pagerState.currentPage]) },
-                showSkip = canSkip,
-                onSkipClick = onSkipClick
+                onSkipClick = { currentPerm?.let { onSkipClick(it) } }
             )
         }) { paddingValues ->
         Column(
@@ -307,7 +311,7 @@ fun PermissionSliderContent(
                     )
 
                     when (currentPermission) {
-                        PermissionType.ACCESSIBILITY, PermissionType.USAGE_STATS -> {
+                        PermissionType.USAGE_STATS -> {
                             InfoBoxV2(stringResource(R.string.permission_info_accessibility_usage))
                         }
 
@@ -324,14 +328,21 @@ fun PermissionSliderContent(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Dynamic Guide steps mapped from resource IDs
-                    currentPermission.instructionResIds.forEachIndexed { index, stepResId ->
-                        val rawInstruction = stringResource(id = stepResId, appName)
+                    val isXiaomi13OrHigher =
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && isXiaomiDevice()
 
-                        TutorialStepWithIconV2(
-                            stepNumber = index + 1,
-                            instruction = rawInstruction
-                        )
+                    if (currentPermission == PermissionType.ACCESSIBILITY && isXiaomi13OrHigher) {
+                        // Show the custom 3-button manual flow
+                        XiaomiAccessibilityWorkaround()
+                    } else {
+                        currentPermission.instructionResIds.forEachIndexed { index, stepResId ->
+                            val rawInstruction = stringResource(id = stepResId, appName)
+
+                            TutorialStepWithIconV2(
+                                stepNumber = index + 1,
+                                instruction = rawInstruction
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -426,7 +437,7 @@ fun TutorialStepWithIconV2(stepNumber: Int, instruction: String) {
             .padding(bottom = 12.dp),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, colors.divider),
+        border = BorderStroke(1.dp, colors.divider),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
@@ -465,23 +476,36 @@ fun TutorialStepWithIconV2(stepNumber: Int, instruction: String) {
 fun PermissionFooterV2(
     buttonText: String,
     onGrantClick: () -> Unit,
-    showSkip: Boolean = false,
     onSkipClick: () -> Unit = {}
 ) {
     val colors = LocalCustomColors.current
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(16.dp)
             .background(colors.surface)
             .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        // Skip Button
+        TextButton(
+            onClick = onSkipClick
+        ) {
+            Text(
+                text = stringResource(R.string.skip_for_now),
+                color = colors.textHint,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Grant Button
         Button(
             onClick = onGrantClick,
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f) // Expands to fill remaining horizontal space
                 .height(56.dp)
                 .shadow(
                     elevation = 8.dp,
@@ -495,18 +519,107 @@ fun PermissionFooterV2(
                 text = buttonText,
                 color = colors.textOnPrimaryVariant,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
             )
         }
+    }
+}
 
-        if (showSkip) {
+@Composable
+fun XiaomiAccessibilityWorkaround() {
+    val context = LocalContext.current
+    var highestUnlockedStep by remember { mutableIntStateOf(1) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+
+        WarningBoxV2(stringResource(R.string.xiaomi_accessibility_warning))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // STEP 1
+        XiaomiActionStep(
+            stepNumber = 1,
+            title = stringResource(R.string.xiaomi_step1_title),
+            description = stringResource(R.string.xiaomi_step1_desc),
+            buttonText = stringResource(R.string.xiaomi_btn_accessibility),
+            isEnabled = true,
+            onClick = {
+                highestUnlockedStep = maxOf(highestUnlockedStep, 2)
+                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+        )
+
+        // STEP 2
+        XiaomiActionStep(
+            stepNumber = 2,
+            title = stringResource(R.string.xiaomi_step2_title),
+            description = stringResource(R.string.xiaomi_step2_desc),
+            buttonText = stringResource(R.string.xiaomi_btn_app_info),
+            isEnabled = highestUnlockedStep >= 2,
+            onClick = {
+                highestUnlockedStep = maxOf(highestUnlockedStep, 3)
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
+                context.startActivity(intent)
+            }
+        )
+
+        // STEP 3
+        XiaomiActionStep(
+            stepNumber = 3,
+            title = stringResource(R.string.xiaomi_step3_title),
+            description = stringResource(R.string.xiaomi_step3_desc),
+            buttonText = stringResource(R.string.xiaomi_btn_accessibility),
+            isEnabled = highestUnlockedStep >= 3,
+            onClick = {
+                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+        )
+    }
+}
+
+@Composable
+fun XiaomiActionStep(
+    stepNumber: Int,
+    title: String,
+    description: String,
+    buttonText: String,
+    isEnabled: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = LocalCustomColors.current
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isEnabled) colors.surface else colors.surface.copy(alpha = 0.5f)
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, colors.divider)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "$stepNumber. $title",
+                color = if (isEnabled) colors.textPrimary else colors.textHint,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = description,
+                color = if (isEnabled) colors.textSecondary else colors.textHint,
+                style = MaterialTheme.typography.bodyMedium
+            )
             Spacer(modifier = Modifier.height(12.dp))
-            TextButton(onClick = onSkipClick) {
-                Text(
-                    text = stringResource(R.string.skip_for_now),
-                    color = colors.textHint,
-                    fontWeight = FontWeight.Bold
-                )
+            Button(
+                onClick = onClick,
+                enabled = isEnabled,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+            ) {
+                Text(buttonText)
             }
         }
     }
@@ -516,6 +629,13 @@ fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
+}
+
+fun isXiaomiDevice(): Boolean {
+    val manufacturer = Build.MANUFACTURER.lowercase()
+    return manufacturer.contains("xiaomi") ||
+            manufacturer.contains("poco") ||
+            manufacturer.contains("redmi")
 }
 
 // ==========================================

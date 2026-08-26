@@ -478,8 +478,18 @@
     <string name="permission_accessibility_title">دسترسی پذیری (سپر امنیتی)</string>
     <string name="permission_accessibility_desc">برای مسدود کردن تنظیمات گوشی و جلوگیری از دور زدن قوانین توسط کودک.</string>
     <string name="permission_accessibility_step1">۱. روی اعطای دسترسی کلیک کن</string>
-    <string name="permission_accessibility_step2">۲. وارد بخش برنامه‌های نصب شده (Installed apps) شو</string>
+    <string name="permission_accessibility_step2">۲. وارد بخش برنامه‌های نصب شده شو</string>
     <string name="permission_accessibility_step3">۳. برنامه [ICON] %1$s را پیدا کن و آن را روشن کن</string>
+
+    <string name="xiaomi_accessibility_warning">گوشی‌های شیائومی برای فعال‌سازی این دسترسی به یک فرآیند ۳ مرحله‌ای نیاز دارند. لطفاً مراحل را به ترتیب انجام دهید.</string>
+    <string name="xiaomi_step1_title">ایجاد خطای امنیتی</string>
+    <string name="xiaomi_step1_desc">به بخش دسترسی‌پذیری (Accessibility) بروید، وارد قسمت «برنامه‌های بارگیری‌شده» یا «نصب‌شده» شوید و برنامه را انتخاب کنید. سعی کنید آن را روشن کنید تا پیام هشدار محدودیت را ببینید. روی تأیید کلیک کنید و سپس به همین صفحه برگردید.</string>
+    <string name="xiaomi_step2_title">اجازه تنظیمات محدود شده</string>
+    <string name="xiaomi_step2_desc">در صفحه اطلاعات برنامه به پایین اسکرول کنید (یا منوی بالا را بررسی کنید) و گزینه «مجاز کردن تنظیمات محدود شده» (Allow restricted settings) را فعال کنید.</string>
+    <string name="xiaomi_step3_title">فعال‌سازی نهایی</string>
+    <string name="xiaomi_step3_desc">دوباره به منوی دسترسی‌پذیری و بخش برنامه‌های نصب‌شده برگردید. اکنون می‌توانید سرویس را با موفقیت برای برنامه روشن کنید. پس از فعال‌سازی، به این صفحه بازگردید.</string>
+    <string name="xiaomi_btn_accessibility">باز کردن دسترسی‌پذیری</string>
+    <string name="xiaomi_btn_app_info">باز کردن اطلاعات برنامه</string>
 
     <string name="permission_vpn_title">فیلتر هوشمند وب (VPN)</string>
     <string name="permission_vpn_desc">برای مسدود کردن سایت‌های نامناسب، نیاز به ایجاد یک تونل امن (VPN محلی) داریم. هیچ داده‌ای به خارج از گوشی ارسال نمی‌شود.</string>

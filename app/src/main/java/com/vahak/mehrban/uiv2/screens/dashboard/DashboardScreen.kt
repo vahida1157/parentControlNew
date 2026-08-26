@@ -93,7 +93,7 @@ fun DashboardScreen(
     onNavigateToPasswordSetup: () -> Unit,
     onLogoutComplete: () -> Unit,
     onSecurityFabClick: (String) -> Unit,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
@@ -192,7 +192,7 @@ fun DashboardScreenContent(
     onReportClick: (String) -> Unit,
     onTimeLockClick: (String) -> Unit,
     onSecurityFabClick: (String) -> Unit,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
 ) {
     val colors = LocalCustomColors.current
     val context = LocalContext.current
@@ -214,7 +214,7 @@ fun DashboardScreenContent(
 
         val requiredPermissions = mutableSetOf<PermissionType>()
 
-        // 1. Base Permissions (Always required for the service to run on Android 13+)
+        // 1. Base Security Permissions (Always required to enter Child Mode)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             requiredPermissions.add(PermissionType.NOTIFICATIONS)
         }
@@ -237,6 +237,11 @@ fun DashboardScreenContent(
             requiredPermissions.add(PermissionType.USAGE_STATS)
             requiredPermissions.add(PermissionType.OVERLAY)
         }
+
+
+        // 🚀 RESTORED: Core security features are now strictly enforced
+        requiredPermissions.add(PermissionType.DEVICE_ADMIN)
+        requiredPermissions.add(PermissionType.ACCESSIBILITY)
 
         missingSecurityPermissions = requiredPermissions.filter { permission ->
             !PermissionChecker.hasPermission(context, permission)

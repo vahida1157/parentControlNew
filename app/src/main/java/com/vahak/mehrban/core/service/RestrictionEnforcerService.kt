@@ -234,11 +234,7 @@ class RestrictionEnforcerService : LifecycleService() {
                     }
 
                     // 2. APPLY RESTRICTIONS & OVERLAYS
-                    if (currentApp == "com.android.settings") {
-                        Timber.tag(TAG).w("🚨 BLOCKING PRIORITY 0: Settings")
-                        hideAllOverlaysExcept(appLockOverlay)
-                        appLockOverlay.show()
-                    } else if (isScreenOn && currentApp.isNotEmpty() && !isOurLauncher) {
+                    if (isScreenOn && currentApp.isNotEmpty() && !isOurLauncher) {
 
                         val isAppAllowed = allowedPackages.contains(currentApp)
 
