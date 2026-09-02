@@ -11,7 +11,16 @@ import javax.inject.Inject
 
 interface SettingsRepository {
     fun getGlobalSettings(childId: String): Flow<GlobalSettingsEntity?>
-    suspend fun updateTimeLimit(childId: String, isActive: Boolean, limitMins: Int)
+
+    // 🚀 Updated Signature
+    suspend fun updateTimeLimit(
+        childId: String,
+        isActive: Boolean,
+        limitMins: Int,
+        isRewardEnabled: Boolean,
+        maxRewardHours: Int
+    )
+
     suspend fun updateSleepTimeToggle(childId: String, isActive: Boolean)
     suspend fun updateSleepTimeSchedule(childId: String, startTime: LocalTime, endTime: LocalTime)
     suspend fun updateSiteManagementToggle(childId: String, isActive: Boolean)
@@ -19,21 +28,24 @@ interface SettingsRepository {
 }
 
 class SettingsRepositoryImpl @Inject constructor(
-    private val childSettingsDao: ChildSettingsDao,
-    private val settingsApi: SettingsApi
+    private val childSettingsDao: ChildSettingsDao, private val settingsApi: SettingsApi
 ) : SettingsRepository {
-
-    
 
     override fun getGlobalSettings(childId: String): Flow<GlobalSettingsEntity?> {
         return childSettingsDao.getGlobalSettings(childId)
     }
 
-    override suspend fun updateTimeLimit(childId: String, isActive: Boolean, limitMins: Int) {
-        Timber.d("Updating time limit settings locally, isActive: %b, limitMins: %d", isActive, limitMins)
-        childSettingsDao.updateTimeLimitToggle(childId, isActive)
-        childSettingsDao.updateDailyTimeLimit(childId, limitMins)
-        Timber.i("Time limit settings updated locally")
+    override suspend fun updateTimeLimit(
+        childId: String,
+        isActive: Boolean,
+        limitMins: Int,
+        isRewardEnabled: Boolean,
+        maxRewardHours: Int
+    ) {
+        Timber.d("Updating time limit locally, isActive: %b, limitMins: %d", isActive, limitMins)
+        childSettingsDao.updateTimeLimitSettings(
+            childId, isActive, limitMins, isRewardEnabled, maxRewardHours * 3600
+        )
         pushDirtySettings(childId)
     }
 
@@ -44,7 +56,9 @@ class SettingsRepositoryImpl @Inject constructor(
         pushDirtySettings(childId)
     }
 
-    override suspend fun updateSleepTimeSchedule(childId: String, startTime: LocalTime, endTime: LocalTime) {
+    override suspend fun updateSleepTimeSchedule(
+        childId: String, startTime: LocalTime, endTime: LocalTime
+    ) {
         Timber.d("Updating sleep time schedule locally")
         childSettingsDao.updateSleepTimeSchedule(childId, startTime, endTime)
         Timber.i("Sleep time schedule updated locally")
@@ -72,29 +86,27 @@ class SettingsRepositoryImpl @Inject constructor(
                 sleepTimeStart = dirtySettings.sleepTimeStart.toString(),
                 sleepTimeEnd = dirtySettings.sleepTimeEnd.toString(),
                 isSiteManagementActive = dirtySettings.isSiteManagementActive,
+                // 🚀 Send gamification config to backend
+                isExerciseRewardEnabled = dirtySettings.isExerciseRewardEnabled,
+                rewardSecondsPerPoint = dirtySettings.rewardSecondsPerPoint,
+                maxRewardSecondsPerDay = dirtySettings.maxRewardSecondsPerDay,
                 updatedAt = dirtySettings.updatedAt
             )
 
             val response = settingsApi.updateChildSettings(childId, request)
-
             if (response.isSuccessful) {
                 childSettingsDao.markAsSynced(childId)
-                Timber.i("Child settings pushed to server successfully")
-            } else {
-                Timber.w("Failed to push child settings, HTTP status: %d", response.code())
             }
         } catch (e: Exception) {
-            Timber.w(e,"Network error while pushing settings, maintaining local dirty state")
+            Timber.w(e, "Network error pushing settings")
         }
     }
 
     override suspend fun syncSettingsFromServer(childId: String): Result<Unit> {
         pushDirtySettings(childId)
-
         return try {
             Timber.d("Initiating child settings synchronization from server")
             val response = settingsApi.getChildSettings(childId)
-
             if (response.isSuccessful && response.body() != null) {
                 val dto = response.body()!!
                 val unsyncedList = childSettingsDao.getUnsyncedSettings()
@@ -113,6 +125,10 @@ class SettingsRepositoryImpl @Inject constructor(
                     sleepTimeStart = LocalTime.parse(dto.sleepTimeStart),
                     sleepTimeEnd = LocalTime.parse(dto.sleepTimeEnd),
                     isSiteManagementActive = dto.isSiteManagementActive,
+                    isExerciseRewardEnabled = dto.isExerciseRewardEnabled,
+                    rewardSecondsPerPoint = dto.rewardSecondsPerPoint,
+                    maxRewardSecondsPerDay = dto.maxRewardSecondsPerDay,
+                    earnedBonusSecondsToday = dto.earnedBonusSecondsToday,
                     isSynced = true
                 )
 

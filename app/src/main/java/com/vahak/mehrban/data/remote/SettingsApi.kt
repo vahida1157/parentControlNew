@@ -15,6 +15,9 @@ data class UpdateSettingsRequestDto(
     @SerializedName("sleepTimeStart") val sleepTimeStart: String,
     @SerializedName("sleepTimeEnd") val sleepTimeEnd: String,
     @SerializedName("isSiteManagementActive") val isSiteManagementActive: Boolean,
+    @SerializedName("isExerciseRewardEnabled") val isExerciseRewardEnabled: Boolean,
+    @SerializedName("rewardSecondsPerPoint") val rewardSecondsPerPoint: Int,
+    @SerializedName("maxRewardSecondsPerDay") val maxRewardSecondsPerDay: Int,
     @SerializedName("updatedAt") val updatedAt: Long
 )
 
@@ -26,9 +29,12 @@ data class GlobalSettingsResponseDto(
     @SerializedName("isSleepTimeActive") val isSleepTimeActive: Boolean,
     @SerializedName("sleepTimeStart") val sleepTimeStart: String,
     @SerializedName("sleepTimeEnd") val sleepTimeEnd: String,
-    @SerializedName("isSiteManagementActive") val isSiteManagementActive: Boolean
+    @SerializedName("isSiteManagementActive") val isSiteManagementActive: Boolean,
+    @SerializedName("isExerciseRewardEnabled") val isExerciseRewardEnabled: Boolean,
+    @SerializedName("rewardSecondsPerPoint") val rewardSecondsPerPoint: Int,
+    @SerializedName("maxRewardSecondsPerDay") val maxRewardSecondsPerDay: Int,
+    @SerializedName("earnedBonusSecondsToday") val earnedBonusSecondsToday: Int
 )
-
 
 interface SettingsApi {
     @GET("api/policy/v1/settings/{childId}")

@@ -207,6 +207,46 @@ fun TimeLimitContent(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
+                        ToggleRowV2(
+                            title = "پاداش زمان با ورزش",
+                            desc = "کودک می‌تواند با ورزش کردن، زمان اضافه دریافت کند",
+                            iconEmoji = "🏃",
+                            iconBg = colors.greenLight,
+                            isActive = state.isExerciseRewardEnabled,
+                            onToggle = { onEvent(TimeLimitEventV2.ToggleExerciseReward(it)) }
+                        )
+
+                        if (state.isExerciseRewardEnabled) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "حداکثر زمان پاداش در روز",
+                                fontSize = 12.sp,
+                                color = colors.textSecondary,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                TimePresetButton(
+                                    title = "۱ ساعت",
+                                    isSelected = state.maxRewardHours == 1,
+                                    modifier = Modifier.weight(1f)
+                                ) { onEvent(TimeLimitEventV2.MaxRewardSelected(1)) }
+                                TimePresetButton(
+                                    title = "۲ ساعت",
+                                    isSelected = state.maxRewardHours == 2,
+                                    modifier = Modifier.weight(1f)
+                                ) { onEvent(TimeLimitEventV2.MaxRewardSelected(2)) }
+                                TimePresetButton(
+                                    title = "۳ ساعت",
+                                    isSelected = state.maxRewardHours == 3,
+                                    modifier = Modifier.weight(1f)
+                                ) { onEvent(TimeLimitEventV2.MaxRewardSelected(3)) }
+                            }
+                        }
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

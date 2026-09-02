@@ -18,6 +18,8 @@ data class TimeLimitStateV2(
     val isTimeLimitActive: Boolean = true,
     val hours: Int = 3,
     val minutes: Int = 0,
+    val isExerciseRewardEnabled: Boolean = true,
+    val maxRewardHours: Int = 2,
     val isWarningEnabled: Boolean = true,
     val isWeekendSeparate: Boolean = false,
     val isSaving: Boolean = false,
@@ -38,6 +40,9 @@ sealed class TimeLimitEventV2 {
 
     object SaveClicked : TimeLimitEventV2()
     object BackClicked : TimeLimitEventV2()
+
+    data class ToggleExerciseReward(val isActive: Boolean) : TimeLimitEventV2()
+    data class MaxRewardSelected(val hours: Int) : TimeLimitEventV2()
 }
 
 sealed class TimeLimitEffectV2 {
@@ -70,7 +75,9 @@ class TimeLimitViewModelV2 @Inject constructor(
                             copy(
                                 isTimeLimitActive = settings.isTimeLimitActive,
                                 hours = h,
-                                minutes = m
+                                minutes = m,
+                                isExerciseRewardEnabled = settings.isExerciseRewardEnabled,
+                                maxRewardHours = settings.maxRewardSecondsPerDay / 3600,
                             )
                         }
                     }
@@ -84,12 +91,18 @@ class TimeLimitViewModelV2 @Inject constructor(
             is TimeLimitEventV2.ToggleActive -> updateState { copy(isTimeLimitActive = event.isActive) }
             is TimeLimitEventV2.ToggleWarning -> updateState { copy(isWarningEnabled = event.isActive) }
             is TimeLimitEventV2.ToggleWeekend -> updateState { copy(isWeekendSeparate = event.isActive) }
-            is TimeLimitEventV2.TimePresetSelected -> updateState { copy(hours = event.hours, minutes = event.minutes) }
+            is TimeLimitEventV2.TimePresetSelected -> updateState {
+                copy(hours = event.hours, minutes = event.minutes)
+            }
+
             is TimeLimitEventV2.OpenPicker -> updateState { copy(isPickerVisible = true) }
             is TimeLimitEventV2.ClosePicker -> updateState { copy(isPickerVisible = false) }
             is TimeLimitEventV2.ConfirmTime -> updateState {
                 copy(hours = event.hours, minutes = event.minutes, isPickerVisible = false)
             }
+
+            is TimeLimitEventV2.ToggleExerciseReward -> updateState { copy(isExerciseRewardEnabled = event.isActive) }
+            is TimeLimitEventV2.MaxRewardSelected -> updateState { copy(maxRewardHours = event.hours) }
             is TimeLimitEventV2.SaveClicked -> saveSettings()
             is TimeLimitEventV2.BackClicked -> sendEffect(TimeLimitEffectV2.NavigateBack)
         }
@@ -104,9 +117,10 @@ class TimeLimitViewModelV2 @Inject constructor(
             settingsRepository.updateTimeLimit(
                 childId = childId,
                 isActive = state.value.isTimeLimitActive,
-                limitMins = state.value.totalMinutes
+                limitMins = state.value.totalMinutes,
+                isRewardEnabled = state.value.isExerciseRewardEnabled,
+                maxRewardHours = state.value.maxRewardHours
             )
-
             if (state.value.isTimeLimitActive) {
                 analytics.logTimeLimitSet(
                     totalMinutes = state.value.totalMinutes,

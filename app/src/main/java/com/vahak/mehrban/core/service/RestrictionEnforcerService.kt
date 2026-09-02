@@ -182,13 +182,15 @@ class RestrictionEnforcerService : LifecycleService() {
                 }
 
                 val isTimeLimitEnabled = settings.isTimeLimitActive
-                val limitInSeconds = settings.dailyTimeLimitMins * 60
+                val baseLimitInSeconds = settings.dailyTimeLimitMins * 60
+                val appliedBonus = if (settings.isExerciseRewardEnabled) settings.earnedBonusSecondsToday else 0
+                val totalLimitInSeconds = baseLimitInSeconds + appliedBonus
                 val isSleepTimeEnabled = settings.isSleepTimeActive
                 val sleepTimeStart = settings.sleepTimeStart
                 val sleepTimeEnd = settings.sleepTimeEnd
 
                 Timber.tag(TAG)
-                    .i("📊 Settings Loaded | TimeLimit Active: $isTimeLimitEnabled ($limitInSeconds sec) | SleepTime Active: $isSleepTimeEnabled ($sleepTimeStart - $sleepTimeEnd) | Allowed Apps Count: ${allowedPackages.size}")
+                    .i("📊 Settings Loaded | TimeLimit Active: $isTimeLimitEnabled ($totalLimitInSeconds sec) | SleepTime Active: $isSleepTimeEnabled ($sleepTimeStart - $sleepTimeEnd) | Allowed Apps Count: ${allowedPackages.size}")
 
                 val homeIntent =
                     Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
@@ -230,7 +232,7 @@ class RestrictionEnforcerService : LifecycleService() {
                     val effectiveDailyTotal = usedSecondsTodayTracker + externalDailySecondsTracker
 
                     if (BuildConfig.DEBUG) {
-                        Timber.tag(TAG).d("⏱️ TICK | Screen: ${if (isScreenOn) "ON" else "OFF"} | App: $currentApp (Browser: $isBrowserForeground) | Effective Time: $effectiveDailyTotal/$limitInSeconds sec | SleepTimeNow: $isSleepTimeNow")
+                        Timber.tag(TAG).d("⏱️ TICK | Screen: ${if (isScreenOn) "ON" else "OFF"} | App: $currentApp (Browser: $isBrowserForeground) | Effective Time: $effectiveDailyTotal/$totalLimitInSeconds sec | SleepTimeNow: $isSleepTimeNow")
                     }
 
                     // 2. APPLY RESTRICTIONS & OVERLAYS
@@ -246,7 +248,7 @@ class RestrictionEnforcerService : LifecycleService() {
                             Timber.tag(TAG).w("🚫 BLOCKING PRIORITY 2: Not Allowed App")
                             hideAllOverlaysExcept(appLockOverlay)
                             appLockOverlay.show()
-                        } else if (isTimeLimitEnabled && effectiveDailyTotal >= limitInSeconds && !isCriticalSystem) {
+                        } else if (isTimeLimitEnabled && effectiveDailyTotal >= totalLimitInSeconds && !isCriticalSystem) {
                             Timber.tag(TAG).w("⏳ BLOCKING PRIORITY 3: Global Time Limit")
                             hideAllOverlaysExcept(timeLockOverlay)
                             timeLockOverlay.show()

@@ -27,6 +27,14 @@ data class GlobalSettingsEntity(
     @ColumnInfo(name = "sleep_time_end") val sleepTimeEnd: LocalTime = LocalTime.of(7, 0),
     @ColumnInfo(name = "is_site_management_active") val isSiteManagementActive: Boolean = false,
 
+    // 🚀 NEW: Parent Configurations
+    @ColumnInfo(name = "is_exercise_reward_enabled") val isExerciseRewardEnabled: Boolean = true,
+    @ColumnInfo(name = "reward_seconds_per_point") val rewardSecondsPerPoint: Int = 30,
+    @ColumnInfo(name = "max_reward_seconds_per_day") val maxRewardSecondsPerDay: Int = 7200,
+
+    // 🚀 NEW: Live Data
+    @ColumnInfo(name = "earned_bonus_seconds_today") val earnedBonusSecondsToday: Int = 0,
+
     // --- OFFLINE SYNC FLAGS ---
     @ColumnInfo(name = "is_synced") val isSynced: Boolean = true,
 
