@@ -30,214 +30,233 @@ import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
 data class LauncherStateV2(
-    val childName: String = "",
-    val gender: Gender = Gender.BOY,
-    val installedApps: List<AppInfo> = emptyList(),
-    val usageSeconds: Int = 0,
-    val timeLimitMins: Int = 0,
-    val isTimeLimitActive: Boolean = false,
+	val childName: String = "",
+	val gender: Gender = Gender.BOY,
+	val installedApps: List<AppInfo> = emptyList(),
+	val usageSeconds: Int = 0,
+	val timeLimitMins: Int = 0,
+	val isTimeLimitActive: Boolean = false,
 
-    val isLoading: Boolean = true,
+	// 🚀 Exact fields from GlobalSettingsEntity
+	val isExerciseRewardEnabled: Boolean = true,
+	val earnedBonusSecondsToday: Int = 0,
 
-    // PIN Dialog State
-    val showExitDialog: Boolean = false,
-    val enteredPin: String = "",
-    val pinError: Boolean = false,
-
-    // Recovery Dialog State
-    val showRecoveryDialog: Boolean = false,
-    val securityQuestion: String? = null, // 🚀 Changed to nullable. Null = "Not Set"
-    val recoveryAnswerInput: String = "",
-    val recoveryError: Boolean = false
+	val isLoading: Boolean = true,
+	val showExitDialog: Boolean = false,
+	val enteredPin: String = "",
+	val pinError: Boolean = false,
+	val showRecoveryDialog: Boolean = false,
+	val securityQuestion: String? = null,
+	val recoveryAnswerInput: String = "",
+	val recoveryError: Boolean = false
 )
 
 sealed class LauncherEventV2 {
-    data class AppClicked(val packageName: String) : LauncherEventV2()
+	data class AppClicked(val packageName: String) : LauncherEventV2()
 
-    // PIN Events
-    object ExitLauncherClicked : LauncherEventV2()
-    object DismissExitDialog : LauncherEventV2()
-    data class PinDigitEntered(val digit: String) : LauncherEventV2()
-    object PinBackspaceClicked : LauncherEventV2()
-    data class SubmitExitPin(val pin: String) : LauncherEventV2()
+	// PIN Events
+	object ExitLauncherClicked : LauncherEventV2()
+	object DismissExitDialog : LauncherEventV2()
+	data class PinDigitEntered(val digit: String) : LauncherEventV2()
+	object PinBackspaceClicked : LauncherEventV2()
+	data class SubmitExitPin(val pin: String) : LauncherEventV2()
 
-    // Recovery Events
-    object ForgotPinClicked : LauncherEventV2()
-    object DismissRecoveryDialog : LauncherEventV2()
-    data class RecoveryAnswerChanged(val answer: String) : LauncherEventV2()
-    object SubmitRecoveryAnswer : LauncherEventV2()
+	// Recovery Events
+	object ForgotPinClicked : LauncherEventV2()
+	object DismissRecoveryDialog : LauncherEventV2()
+	data class RecoveryAnswerChanged(val answer: String) : LauncherEventV2()
+	object SubmitRecoveryAnswer : LauncherEventV2()
 }
 
 sealed class LauncherEffectV2 {
-    object RequestExit : LauncherEffectV2()
-    object ShowTimeLimitExpiredToast : LauncherEffectV2() // 🚀 Clean UI Trigger
+	object RequestExit : LauncherEffectV2()
+	object ShowTimeLimitExpiredToast : LauncherEffectV2() // 🚀 Clean UI Trigger
 }
 
 @HiltViewModel
 class LauncherViewModelV2 @Inject constructor(
-    @ApplicationContext private val context: Context, // Kept ONLY for AppManager system calls
-    private val appRuleDao: AppRuleDao,
-    private val sessionManager: SessionManager,
-    private val childRepository: ChildRepository,
-    private val settingsDao: ChildSettingsDao,
-    private val usageDao: UsageDao,
-    private val analytics: AppAnalytics,
+	@ApplicationContext private val context: Context, // Kept ONLY for AppManager system calls
+	private val appRuleDao: AppRuleDao,
+	private val sessionManager: SessionManager,
+	private val childRepository: ChildRepository,
+	private val settingsDao: ChildSettingsDao,
+	private val usageDao: UsageDao,
+	private val analytics: AppAnalytics,
 ) : BaseViewModel<LauncherStateV2, LauncherEventV2, LauncherEffectV2>(LauncherStateV2()) {
 
-    init {
-        observeActiveSession()
-    }
+	init {
+		observeActiveSession()
+	}
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private fun observeActiveSession() {
-        val activeChildIdFlow = sessionManager.activeChildIdFlow.distinctUntilChanged()
+	@OptIn(ExperimentalCoroutinesApi::class)
+	private fun observeActiveSession() {
+		val activeChildIdFlow = sessionManager.activeChildIdFlow.distinctUntilChanged()
 
-        viewModelScope.launch(Dispatchers.IO) {
-            activeChildIdFlow.flatMapLatest { childId ->
-                if (childId != null) childRepository.observeChildById(childId) else flowOf(null)
-            }.collectLatest { child ->
-                if (child != null) {
-                    updateState { copy(childName = child.name, gender = child.gender) }
-                }
-            }
-        }
+		viewModelScope.launch(Dispatchers.IO) {
+			activeChildIdFlow.flatMapLatest { childId ->
+				if (childId != null) childRepository.observeChildById(childId) else flowOf(null)
+			}.collectLatest { child ->
+				if (child != null) {
+					updateState { copy(childName = child.name, gender = child.gender) }
+				}
+			}
+		}
 
-        viewModelScope.launch(Dispatchers.IO) {
-            activeChildIdFlow.flatMapLatest { childId ->
-                if (childId != null) appRuleDao.observeAllowedApps(childId) else flowOf(emptyList())
-            }.collectLatest { rules ->
-                val allowedPackages = rules.map { it.packageName }.toSet()
-                val specificApps = AppManager.getSpecificApps(context, allowedPackages)
-                updateState { copy(installedApps = specificApps, isLoading = false) }
-            }
-        }
+		viewModelScope.launch(Dispatchers.IO) {
+			activeChildIdFlow.flatMapLatest { childId ->
+				if (childId != null) appRuleDao.observeAllowedApps(childId) else flowOf(emptyList())
+			}.collectLatest { rules ->
+				val allowedPackages = rules.map { it.packageName }.toSet()
+				val specificApps = AppManager.getSpecificApps(context, allowedPackages)
+				updateState { copy(installedApps = specificApps, isLoading = false) }
+			}
+		}
 
-        viewModelScope.launch(Dispatchers.IO) {
-            activeChildIdFlow.flatMapLatest { childId ->
-                if (childId != null) settingsDao.getGlobalSettings(childId) else flowOf(null)
-            }.collectLatest { settings ->
-                updateState {
-                    copy(
-                        timeLimitMins = settings?.dailyTimeLimitMins ?: 0,
-                        isTimeLimitActive = settings?.isTimeLimitActive ?: false
-                    )
-                }
-            }
-        }
+		viewModelScope.launch(Dispatchers.IO) {
+			activeChildIdFlow.flatMapLatest { childId ->
+				if (childId != null) settingsDao.getGlobalSettings(childId) else flowOf(null)
+			}.collectLatest { settings ->
+				updateState {
+					copy(
+						timeLimitMins = settings?.dailyTimeLimitMins ?: 0,
+						isTimeLimitActive = settings?.isTimeLimitActive ?: false
+					)
+				}
+			}
+		}
 
-        viewModelScope.launch(Dispatchers.IO) {
-            activeChildIdFlow.flatMapLatest { childId ->
-                if (childId != null) usageDao.observeDailyUsage(
-                    childId, LocalDate.now()
-                ) else flowOf(null)
-            }.collectLatest { daily ->
-                val localSecs = daily?.usedSeconds ?: 0
-                val cachedGlobalSecs = daily?.globalUsedSeconds ?: 0
-                updateState { copy(usageSeconds = maxOf(localSecs, cachedGlobalSecs)) }
-            }
-        }
-    }
+		viewModelScope.launch(Dispatchers.IO) {
+			activeChildIdFlow.flatMapLatest { childId ->
+				if (childId != null) usageDao.observeDailyUsage(
+					childId, LocalDate.now()
+				) else flowOf(null)
+			}.collectLatest { daily ->
+				val localSecs = daily?.usedSeconds ?: 0
+				val cachedGlobalSecs = daily?.globalUsedSeconds ?: 0
+				updateState { copy(usageSeconds = maxOf(localSecs, cachedGlobalSecs)) }
+			}
+		}
+		viewModelScope.launch(Dispatchers.IO) {
+			activeChildIdFlow.flatMapLatest { childId ->
+				if (childId != null) settingsDao.getGlobalSettings(childId) else flowOf(null)
+			}.collectLatest { settings ->
+				updateState {
+					copy(
+						timeLimitMins = settings?.dailyTimeLimitMins ?: 0,
+						isTimeLimitActive = settings?.isTimeLimitActive ?: false,
+						isExerciseRewardEnabled = settings?.isExerciseRewardEnabled ?: true,
+						earnedBonusSecondsToday = settings?.earnedBonusSecondsToday ?: 0
+					)
+				}
+			}
+		}
+	}
 
-    override fun onEvent(event: LauncherEventV2) {
-        when (event) {
-            is LauncherEventV2.AppClicked -> {
-                if (state.value.isTimeLimitActive && state.value.timeLimitMins > 0) {
-                    val limitSecs = state.value.timeLimitMins * 60
-                    if (state.value.usageSeconds >= limitSecs) {
-                        Timber.w(
-                            "Application launch blocked, time limit expired, packageName: %s",
-                            event.packageName
-                        )
-                        sendEffect(LauncherEffectV2.ShowTimeLimitExpiredToast)
-                        return
-                    }
-                }
-                Timber.i("Application launch approved, packageName: %s", event.packageName)
-                AppManager.launchApp(context, event.packageName)
-            }
+	override fun onEvent(event: LauncherEventV2) {
+		when (event) {
+			is LauncherEventV2.AppClicked -> {
+				if (state.value.isTimeLimitActive && state.value.timeLimitMins > 0) {
+					val baseLimitSecs = state.value.timeLimitMins * 60
+					val bonusSecs = if (state.value.isExerciseRewardEnabled) {
+						state.value.earnedBonusSecondsToday
+					} else 0
+					val totalAllowedSecs = baseLimitSecs + bonusSecs
 
-            is LauncherEventV2.ExitLauncherClicked -> updateState {
-                copy(showExitDialog = true, enteredPin = "", pinError = false)
-            }
+					if (state.value.usageSeconds >= totalAllowedSecs) {
+						Timber.w(
+							"Application launch blocked, total time limit expired: %s",
+							event.packageName
+						)
+						sendEffect(LauncherEffectV2.ShowTimeLimitExpiredToast)
+						return
+					}
+				}
+				Timber.i("Application launch approved, packageName: %s", event.packageName)
+				AppManager.launchApp(context, event.packageName)
+			}
 
-            is LauncherEventV2.DismissExitDialog -> updateState {
-                copy(showExitDialog = false, enteredPin = "", pinError = false)
-            }
+			is LauncherEventV2.ExitLauncherClicked -> updateState {
+				copy(showExitDialog = true, enteredPin = "", pinError = false)
+			}
 
-            is LauncherEventV2.PinDigitEntered -> {
-                val currentPin = state.value.enteredPin
-                if (currentPin.length < 8) {
-                    updateState { copy(enteredPin = currentPin + event.digit, pinError = false) }
-                }
-            }
+			is LauncherEventV2.DismissExitDialog -> updateState {
+				copy(showExitDialog = false, enteredPin = "", pinError = false)
+			}
 
-            is LauncherEventV2.PinBackspaceClicked -> {
-                val currentPin = state.value.enteredPin
-                if (currentPin.isNotEmpty()) {
-                    updateState { copy(enteredPin = currentPin.dropLast(1), pinError = false) }
-                }
-            }
+			is LauncherEventV2.PinDigitEntered -> {
+				val currentPin = state.value.enteredPin
+				if (currentPin.length < 8) {
+					updateState { copy(enteredPin = currentPin + event.digit, pinError = false) }
+				}
+			}
 
-            is LauncherEventV2.SubmitExitPin -> verifyPin(event.pin)
+			is LauncherEventV2.PinBackspaceClicked -> {
+				val currentPin = state.value.enteredPin
+				if (currentPin.isNotEmpty()) {
+					updateState { copy(enteredPin = currentPin.dropLast(1), pinError = false) }
+				}
+			}
 
-            is LauncherEventV2.ForgotPinClicked -> {
-                viewModelScope.launch {
-                    val question = sessionManager.securityQuestionFlow.firstOrNull()
-                    updateState {
-                        copy(
-                            showExitDialog = false,
-                            showRecoveryDialog = true,
-                            securityQuestion = question, // Pass null if it doesn't exist
-                            recoveryAnswerInput = "",
-                            recoveryError = false
-                        )
-                    }
-                }
-            }
+			is LauncherEventV2.SubmitExitPin -> verifyPin(event.pin)
 
-            is LauncherEventV2.DismissRecoveryDialog -> updateState {
-                copy(showRecoveryDialog = false, recoveryAnswerInput = "", recoveryError = false)
-            }
+			is LauncherEventV2.ForgotPinClicked -> {
+				viewModelScope.launch {
+					val question = sessionManager.securityQuestionFlow.firstOrNull()
+					updateState {
+						copy(
+							showExitDialog = false,
+							showRecoveryDialog = true,
+							securityQuestion = question, // Pass null if it doesn't exist
+							recoveryAnswerInput = "",
+							recoveryError = false
+						)
+					}
+				}
+			}
 
-            is LauncherEventV2.RecoveryAnswerChanged -> updateState {
-                copy(recoveryAnswerInput = event.answer, recoveryError = false)
-            }
+			is LauncherEventV2.DismissRecoveryDialog -> updateState {
+				copy(showRecoveryDialog = false, recoveryAnswerInput = "", recoveryError = false)
+			}
 
-            is LauncherEventV2.SubmitRecoveryAnswer -> verifyRecoveryAnswer()
-        }
-    }
+			is LauncherEventV2.RecoveryAnswerChanged -> updateState {
+				copy(recoveryAnswerInput = event.answer, recoveryError = false)
+			}
 
-    private fun verifyPin(pin: String) {
-        viewModelScope.launch {
-            val savedPin = sessionManager.parentPinFlow.first()
-            if (savedPin.isNullOrEmpty() || pin == savedPin) {
-                Timber.i("Launcher exit authorized via PIN verification")
-                analytics.logLauncherExited("pin")
-                updateState { copy(showExitDialog = false, enteredPin = "") }
-                sendEffect(LauncherEffectV2.RequestExit)
-            } else {
-                Timber.w("Launcher exit denied, incorrect PIN provided")
-                updateState { copy(pinError = true) }
-                delay(600.milliseconds)
-                updateState { copy(enteredPin = "", pinError = false) }
-            }
-        }
-    }
+			is LauncherEventV2.SubmitRecoveryAnswer -> verifyRecoveryAnswer()
+		}
+	}
 
-    private fun verifyRecoveryAnswer() {
-        viewModelScope.launch {
-            val savedAnswer = sessionManager.securityAnswerFlow.firstOrNull()?.trim() ?: ""
-            val inputAnswer = state.value.recoveryAnswerInput.trim()
+	private fun verifyPin(pin: String) {
+		viewModelScope.launch {
+			val savedPin = sessionManager.parentPinFlow.first()
+			if (savedPin.isNullOrEmpty() || pin == savedPin) {
+				Timber.i("Launcher exit authorized via PIN verification")
+				analytics.logLauncherExited("pin")
+				updateState { copy(showExitDialog = false, enteredPin = "") }
+				sendEffect(LauncherEffectV2.RequestExit)
+			} else {
+				Timber.w("Launcher exit denied, incorrect PIN provided")
+				updateState { copy(pinError = true) }
+				delay(600.milliseconds)
+				updateState { copy(enteredPin = "", pinError = false) }
+			}
+		}
+	}
 
-            if (savedAnswer.isNotEmpty() && inputAnswer == savedAnswer) {
-                Timber.i("Launcher exit authorized via recovery answer verification")
-                analytics.logLauncherExited("recovery")
-                updateState { copy(showRecoveryDialog = false, recoveryAnswerInput = "") }
-                sendEffect(LauncherEffectV2.RequestExit)
-            } else {
-                Timber.w("Launcher exit denied, incorrect recovery answer provided")
-                updateState { copy(recoveryError = true) }
-            }
-        }
-    }
+	private fun verifyRecoveryAnswer() {
+		viewModelScope.launch {
+			val savedAnswer = sessionManager.securityAnswerFlow.firstOrNull()?.trim() ?: ""
+			val inputAnswer = state.value.recoveryAnswerInput.trim()
+
+			if (savedAnswer.isNotEmpty() && inputAnswer == savedAnswer) {
+				Timber.i("Launcher exit authorized via recovery answer verification")
+				analytics.logLauncherExited("recovery")
+				updateState { copy(showRecoveryDialog = false, recoveryAnswerInput = "") }
+				sendEffect(LauncherEffectV2.RequestExit)
+			} else {
+				Timber.w("Launcher exit denied, incorrect recovery answer provided")
+				updateState { copy(recoveryError = true) }
+			}
+		}
+	}
 }

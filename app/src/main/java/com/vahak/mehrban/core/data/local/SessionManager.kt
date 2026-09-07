@@ -20,174 +20,196 @@ private val Context.dataStore by preferencesDataStore(name = "user_session")
 
 @Singleton
 class SessionManager @Inject constructor(
-    @ApplicationContext private val context: Context
+	@ApplicationContext private val context: Context
 ) {
 
-    companion object {
-        private val APP_LANGUAGE = stringPreferencesKey("app_language")
-        private val THEME_KEY = stringPreferencesKey("app_theme")
-        private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
-        private val AUTH_TOKEN = stringPreferencesKey("auth_token")
-        private val USER_PHONE = stringPreferencesKey("user_phone")
-        private val PARENT_ID = stringPreferencesKey("parent_id")
-        private val ACTIVE_CHILD_ID = stringPreferencesKey("active_child_id")
-        private val PARENT_PIN = stringPreferencesKey("parent_pin")
-        private val SECURITY_QUESTION = stringPreferencesKey("security_question")
-        private val SECURITY_ANSWER = stringPreferencesKey("security_answer")
-        private val DEVICE_ID = stringPreferencesKey("device_id")
-        private val VIEWED_CHILD_ID = stringPreferencesKey("viewed_child_id")
-        private val HAS_SHOWN_NOTIF = booleanPreferencesKey("has_shown_notif_permission")
-        private val CHILD_MODE_ACTIVATIONS = intPreferencesKey("child_mode_activations")
-        private val HAS_RATED_APP = booleanPreferencesKey("has_rated_app")
-    }
+	companion object {
+		private val APP_LANGUAGE = stringPreferencesKey("app_language")
+		private val THEME_KEY = stringPreferencesKey("app_theme")
+		private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+		private val AUTH_TOKEN = stringPreferencesKey("auth_token")
+		private val USER_PHONE = stringPreferencesKey("user_phone")
+		private val PARENT_ID = stringPreferencesKey("parent_id")
+		private val ACTIVE_CHILD_ID = stringPreferencesKey("active_child_id")
+		private val PARENT_PIN = stringPreferencesKey("parent_pin")
+		private val SECURITY_QUESTION = stringPreferencesKey("security_question")
+		private val SECURITY_ANSWER = stringPreferencesKey("security_answer")
+		private val DEVICE_ID = stringPreferencesKey("device_id")
+		private val VIEWED_CHILD_ID = stringPreferencesKey("viewed_child_id")
+		private val HAS_SHOWN_NOTIF = booleanPreferencesKey("has_shown_notif_permission")
+		private val CHILD_MODE_ACTIVATIONS = intPreferencesKey("child_mode_activations")
+		private val HAS_RATED_APP = booleanPreferencesKey("has_rated_app")
+		private val KEY_HAS_INSTALLED_EXERCISE = booleanPreferencesKey("has_installed_exercise")
+		private val KEY_SEEN_EXERCISE_BADGE = booleanPreferencesKey("seen_exercise_badge")
+	}
 
-    val appLanguageFlow: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[APP_LANGUAGE] ?: "fa"
-    }
-    val appThemeFlow: Flow<AppTheme> = context.dataStore.data.map {
-        AppTheme.valueOf(it[THEME_KEY] ?: AppTheme.SYSTEM.name)
-    }
-    val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[IS_LOGGED_IN] ?: false }
-    val authToken: Flow<String?> = context.dataStore.data.map { it[AUTH_TOKEN] }
-    val userPhoneFlow: Flow<String?> = context.dataStore.data.map { it[USER_PHONE] }
-    val parentIdFlow: Flow<String?> = context.dataStore.data.map { it[PARENT_ID] }
-    val activeChildIdFlow: Flow<String?> = context.dataStore.data.map { it[ACTIVE_CHILD_ID] }
-    val parentPinFlow: Flow<String?> = context.dataStore.data.map { it[PARENT_PIN] }
-    val securityQuestionFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_QUESTION] }
-    val securityAnswerFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_ANSWER] }
-    val viewedChildIdFlow: Flow<String?> = context.dataStore.data.map { it[VIEWED_CHILD_ID] }
+	val appLanguageFlow: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[APP_LANGUAGE] ?: "fa"
+	}
+	val appThemeFlow: Flow<AppTheme> = context.dataStore.data.map {
+		AppTheme.valueOf(it[THEME_KEY] ?: AppTheme.SYSTEM.name)
+	}
+	val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[IS_LOGGED_IN] ?: false }
+	val authToken: Flow<String?> = context.dataStore.data.map { it[AUTH_TOKEN] }
+	val userPhoneFlow: Flow<String?> = context.dataStore.data.map { it[USER_PHONE] }
+	val parentIdFlow: Flow<String?> = context.dataStore.data.map { it[PARENT_ID] }
+	val activeChildIdFlow: Flow<String?> = context.dataStore.data.map { it[ACTIVE_CHILD_ID] }
+	val parentPinFlow: Flow<String?> = context.dataStore.data.map { it[PARENT_PIN] }
+	val securityQuestionFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_QUESTION] }
+	val securityAnswerFlow: Flow<String?> = context.dataStore.data.map { it[SECURITY_ANSWER] }
+	val viewedChildIdFlow: Flow<String?> = context.dataStore.data.map { it[VIEWED_CHILD_ID] }
 
-    val hasShownInitialNotifPromptFlow: Flow<Boolean> =
-        context.dataStore.data.map { it[HAS_SHOWN_NOTIF] ?: false }
-    val childModeActivationsFlow: Flow<Int> =
-        context.dataStore.data.map { it[CHILD_MODE_ACTIVATIONS] ?: 0 }
-    val hasRatedAppFlow: Flow<Boolean> = context.dataStore.data.map { it[HAS_RATED_APP] ?: false }
+	val hasShownInitialNotifPromptFlow: Flow<Boolean> =
+		context.dataStore.data.map { it[HAS_SHOWN_NOTIF] ?: false }
+	val childModeActivationsFlow: Flow<Int> =
+		context.dataStore.data.map { it[CHILD_MODE_ACTIVATIONS] ?: 0 }
+	val hasRatedAppFlow: Flow<Boolean> = context.dataStore.data.map { it[HAS_RATED_APP] ?: false }
+	val hasInstalledExerciseFlow: Flow<Boolean> = context.dataStore.data
+		.map { prefs -> prefs[KEY_HAS_INSTALLED_EXERCISE] ?: false }
 
-    suspend fun saveSession(
-        token: String,
-        phone: String,
-        parentId: String,
-        pin: String?,
-        securityQuestion: String?,
-        securityAnswer: String?
-    ) {
-        context.dataStore.edit { prefs ->
-            prefs[IS_LOGGED_IN] = true
-            prefs[AUTH_TOKEN] = token
-            prefs[USER_PHONE] = phone
-            prefs[PARENT_ID] = parentId
-            pin?.let { prefs[PARENT_PIN] = it }
-            securityQuestion?.let { prefs[SECURITY_QUESTION] = it }
-            securityAnswer?.let { prefs[SECURITY_ANSWER] = it }
-        }
-    }
+	val hasSeenExerciseBadgeFlow: Flow<Boolean> = context.dataStore.data
+		.map { prefs -> prefs[KEY_SEEN_EXERCISE_BADGE] ?: false }
 
-    suspend fun clearSession() {
-        context.dataStore.edit { prefs ->
-            prefs[IS_LOGGED_IN] = false
-            prefs.remove(AUTH_TOKEN)
-            prefs.remove(USER_PHONE)
-            prefs.remove(PARENT_ID)
-            prefs.remove(ACTIVE_CHILD_ID)
-            prefs.remove(PARENT_PIN)
-            prefs.remove(SECURITY_QUESTION)
-            prefs.remove(SECURITY_ANSWER)
-            prefs.remove(VIEWED_CHILD_ID)
-            prefs.remove(HAS_RATED_APP)
-        }
-    }
+	suspend fun saveSession(
+		token: String,
+		phone: String,
+		parentId: String,
+		pin: String?,
+		securityQuestion: String?,
+		securityAnswer: String?,
+		hasInstalledExercise: Boolean,
+	) {
+		context.dataStore.edit { prefs ->
+			prefs[IS_LOGGED_IN] = true
+			prefs[AUTH_TOKEN] = token
+			prefs[USER_PHONE] = phone
+			prefs[PARENT_ID] = parentId
+			pin?.let { prefs[PARENT_PIN] = it }
+			securityQuestion?.let { prefs[SECURITY_QUESTION] = it }
+			securityAnswer?.let { prefs[SECURITY_ANSWER] = it }
+			prefs[KEY_HAS_INSTALLED_EXERCISE] = hasInstalledExercise
+		}
+	}
 
-    suspend fun setAppLanguage(langCode: String) {
-        context.dataStore.edit { prefs ->
-            prefs[APP_LANGUAGE] = langCode
-        }
-    }
+	suspend fun clearSession() {
+		context.dataStore.edit { prefs ->
+			prefs[IS_LOGGED_IN] = false
+			prefs.remove(AUTH_TOKEN)
+			prefs.remove(USER_PHONE)
+			prefs.remove(PARENT_ID)
+			prefs.remove(ACTIVE_CHILD_ID)
+			prefs.remove(PARENT_PIN)
+			prefs.remove(SECURITY_QUESTION)
+			prefs.remove(SECURITY_ANSWER)
+			prefs.remove(VIEWED_CHILD_ID)
+			prefs.remove(HAS_RATED_APP)
+			prefs.remove(KEY_HAS_INSTALLED_EXERCISE)
+		}
+	}
 
-    suspend fun setAppTheme(theme: AppTheme) {
-        context.dataStore.edit { prefs ->
-            prefs[THEME_KEY] = theme.name
-        }
-    }
+	suspend fun setAppLanguage(langCode: String) {
+		context.dataStore.edit { prefs ->
+			prefs[APP_LANGUAGE] = langCode
+		}
+	}
 
-    suspend fun setActiveChildId(childId: String) {
-        context.dataStore.edit { prefs ->
-            prefs[ACTIVE_CHILD_ID] = childId
-        }
-    }
+	suspend fun setAppTheme(theme: AppTheme) {
+		context.dataStore.edit { prefs ->
+			prefs[THEME_KEY] = theme.name
+		}
+	}
 
-    suspend fun clearActiveChildId() {
-        context.dataStore.edit { prefs ->
-            prefs.remove(ACTIVE_CHILD_ID)
-        }
-    }
+	suspend fun setActiveChildId(childId: String) {
+		context.dataStore.edit { prefs ->
+			prefs[ACTIVE_CHILD_ID] = childId
+		}
+	}
 
-    suspend fun setParentPin(pin: String) {
-        context.dataStore.edit { prefs ->
-            prefs[PARENT_PIN] = pin
-        }
-    }
+	suspend fun clearActiveChildId() {
+		context.dataStore.edit { prefs ->
+			prefs.remove(ACTIVE_CHILD_ID)
+		}
+	}
 
-    suspend fun hasParentPin(): Boolean {
-        return !(parentPinFlow.first().isNullOrEmpty())
-    }
+	suspend fun setParentPin(pin: String) {
+		context.dataStore.edit { prefs ->
+			prefs[PARENT_PIN] = pin
+		}
+	}
 
-    suspend fun setSecurityData(question: String, answer: String) {
-        context.dataStore.edit { prefs ->
-            prefs[SECURITY_QUESTION] = question
-            prefs[SECURITY_ANSWER] = answer
-        }
-    }
+	suspend fun hasParentPin(): Boolean {
+		return !(parentPinFlow.first().isNullOrEmpty())
+	}
 
-    suspend fun getOrCreateDeviceId(): String {
-        val prefs = context.dataStore.data.first()
-        val currentId = prefs[DEVICE_ID]
+	suspend fun setSecurityData(question: String, answer: String) {
+		context.dataStore.edit { prefs ->
+			prefs[SECURITY_QUESTION] = question
+			prefs[SECURITY_ANSWER] = answer
+		}
+	}
 
-        if (!currentId.isNullOrEmpty()) {
-            return currentId
-        }
+	suspend fun getOrCreateDeviceId(): String {
+		val prefs = context.dataStore.data.first()
+		val currentId = prefs[DEVICE_ID]
 
-        // Generate a new UUID if one doesn't exist
-        val newId = java.util.UUID.randomUUID().toString()
-        context.dataStore.edit { it[DEVICE_ID] = newId }
-        return newId
-    }
+		if (!currentId.isNullOrEmpty()) {
+			return currentId
+		}
 
-    fun getDeviceName(): String {
-        return try {
-            DeviceName.getDeviceName()
-        } catch (_: Exception) {
-            val manufacturer = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
-            val model = Build.MODEL
-            if (model.lowercase().startsWith(manufacturer.lowercase())) {
-                model
-            } else {
-                "$manufacturer $model"
-            }
-        }
-    }
+		// Generate a new UUID if one doesn't exist
+		val newId = java.util.UUID.randomUUID().toString()
+		context.dataStore.edit { it[DEVICE_ID] = newId }
+		return newId
+	}
 
-    suspend fun setViewedChildId(childId: String) {
-        context.dataStore.edit { prefs ->
-            prefs[VIEWED_CHILD_ID] = childId
-        }
-    }
+	fun getDeviceName(): String {
+		return try {
+			DeviceName.getDeviceName()
+		} catch (_: Exception) {
+			val manufacturer = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
+			val model = Build.MODEL
+			if (model.lowercase().startsWith(manufacturer.lowercase())) {
+				model
+			} else {
+				"$manufacturer $model"
+			}
+		}
+	}
 
-    suspend fun setHasShownInitialNotifPrompt(shown: Boolean) {
-        context.dataStore.edit { it[HAS_SHOWN_NOTIF] = shown }
-    }
+	suspend fun setViewedChildId(childId: String) {
+		context.dataStore.edit { prefs ->
+			prefs[VIEWED_CHILD_ID] = childId
+		}
+	}
 
-    suspend fun incrementChildModeActivations() {
-        context.dataStore.edit { prefs ->
-            val current = prefs[CHILD_MODE_ACTIVATIONS] ?: 0
-            prefs[CHILD_MODE_ACTIVATIONS] = current + 1
-        }
-    }
+	suspend fun setHasShownInitialNotifPrompt(shown: Boolean) {
+		context.dataStore.edit { it[HAS_SHOWN_NOTIF] = shown }
+	}
 
-    suspend fun resetChildModeActivations() {
-        context.dataStore.edit { it[CHILD_MODE_ACTIVATIONS] = 0 }
-    }
+	suspend fun incrementChildModeActivations() {
+		context.dataStore.edit { prefs ->
+			val current = prefs[CHILD_MODE_ACTIVATIONS] ?: 0
+			prefs[CHILD_MODE_ACTIVATIONS] = current + 1
+		}
+	}
 
-    suspend fun setHasRatedApp(rated: Boolean) {
-        context.dataStore.edit { it[HAS_RATED_APP] = rated }
-    }
+	suspend fun resetChildModeActivations() {
+		context.dataStore.edit { it[CHILD_MODE_ACTIVATIONS] = 0 }
+	}
+
+	suspend fun setHasRatedApp(rated: Boolean) {
+		context.dataStore.edit { it[HAS_RATED_APP] = rated }
+	}
+
+	suspend fun setHasInstalledExercise(installed: Boolean) {
+		context.dataStore.edit { prefs ->
+			prefs[KEY_HAS_INSTALLED_EXERCISE] = installed
+		}
+	}
+
+	suspend fun markExerciseBadgeAsSeen() {
+		context.dataStore.edit { prefs ->
+			prefs[KEY_SEEN_EXERCISE_BADGE] = true
+		}
+	}
 }

@@ -14,7 +14,7 @@
 .cxx
 local.properties
 keystore.properties
-parental_control_release.jks
+*.jks
 /app/release
 signature-output
 bundlesigner-0.1.13.jar

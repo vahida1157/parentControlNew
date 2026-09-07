@@ -33,265 +33,306 @@ import javax.inject.Inject
 
 // Contract remains identical
 data class DashboardState(
-    val children: List<ChildEntity> = emptyList(),
-    val activeChild: ChildEntity? = null,
-    val isChildSheetOpen: Boolean = false,
-    val isProtectionActive: Boolean = false,
-    val showPinRequiredDialog: Boolean = false,
-    val activeChildTimeLimitMins: Int = 0,
-    val isTimeLimitActive: Boolean = false,
-    val activeChildUsageSeconds: Int = 0,
-    val activeChildLocalSeconds: Int = 0,
-    val activeChildGlobalSeconds: Int = 0,
-    val showRatingPrompt: Boolean = false,
-    val ratingPromptStep: Int = 1, // 1 = Soft Prompt, 2 = Bazaar Prompt, 3 = Feedback Prompt
-    val activeChildSettings: GlobalSettingsEntity? = null,
-    val hasRestrictedApps: Boolean = false,
+	val children: List<ChildEntity> = emptyList(),
+	val activeChild: ChildEntity? = null,
+	val isChildSheetOpen: Boolean = false,
+	val isProtectionActive: Boolean = false,
+	val showPinRequiredDialog: Boolean = false,
+	val activeChildTimeLimitMins: Int = 0,
+	val isTimeLimitActive: Boolean = false,
+	val activeChildUsageSeconds: Int = 0,
+	val activeChildLocalSeconds: Int = 0,
+	val activeChildGlobalSeconds: Int = 0,
+	val showRatingPrompt: Boolean = false,
+	val ratingPromptStep: Int = 1, // 1 = Soft Prompt, 2 = Bazaar Prompt, 3 = Feedback Prompt
+	val activeChildSettings: GlobalSettingsEntity? = null,
+	val hasRestrictedApps: Boolean = false,
+	val showExerciseBadge: Boolean = false,
+	val showExerciseInstallDialog: Boolean = false,
+	val hasInstalledExercise: Boolean = false,
 )
 
 sealed class DashboardEvent {
-    object LockClicked : DashboardEvent()
-    object OpenChildSheet : DashboardEvent()
-    object CloseChildSheet : DashboardEvent()
-    data class SelectChild(val child: ChildEntity) : DashboardEvent()
-    data class ActivateProtection(val childId: String) : DashboardEvent()
-    data class DeactivateProtection(val childId: String) : DashboardEvent()
-    object ClosePinRequiredDialog : DashboardEvent()
-    object GoToPasswordSetupClicked : DashboardEvent()
-    object DismissRatingPrompt : DashboardEvent()
-    object RatingPromptSatisfied : DashboardEvent()
-    object RatingPromptDissatisfied : DashboardEvent()
-    object RatingPromptRateClicked : DashboardEvent()
-    object RatingPromptFeedbackClicked : DashboardEvent()
+	object LockClicked : DashboardEvent()
+	object OpenChildSheet : DashboardEvent()
+	object CloseChildSheet : DashboardEvent()
+	data class SelectChild(val child: ChildEntity) : DashboardEvent()
+	data class ActivateProtection(val childId: String) : DashboardEvent()
+	data class DeactivateProtection(val childId: String) : DashboardEvent()
+	object ClosePinRequiredDialog : DashboardEvent()
+	object GoToPasswordSetupClicked : DashboardEvent()
+	object DismissRatingPrompt : DashboardEvent()
+	object RatingPromptSatisfied : DashboardEvent()
+	object RatingPromptDissatisfied : DashboardEvent()
+	object RatingPromptRateClicked : DashboardEvent()
+	object RatingPromptFeedbackClicked : DashboardEvent()
+	object ExerciseClicked : DashboardEvent()
+	object DismissExerciseDialog : DashboardEvent()
+	object RefreshAppInstalledStatus : DashboardEvent()
 }
 
 sealed class DashboardEffect {
-    object NavigateToLogin : DashboardEffect()
-    object NavigateToPasswordSetup : DashboardEffect()
-    object OpenAppStoreRating : DashboardEffect()
-    object OpenSupportAccount : DashboardEffect()
+	object NavigateToLogin : DashboardEffect()
+	object NavigateToPasswordSetup : DashboardEffect()
+	object OpenAppStoreRating : DashboardEffect()
+	object OpenSupportAccount : DashboardEffect()
 }
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val authRepository: AuthRepository,
-    private val childRepository: ChildRepository,
-    private val sessionManager: SessionManager,
-    private val settingsRepository: SettingsRepository,
-    private val usageRepository: UsageRepository,
-    private val appUpdateManager: AppUpdateManager,
-    private val analytics: AppAnalytics,
-    private val appRuleRepository: AppRuleRepository,
+	@ApplicationContext private val context: Context,
+	private val authRepository: AuthRepository,
+	private val childRepository: ChildRepository,
+	private val sessionManager: SessionManager,
+	private val settingsRepository: SettingsRepository,
+	private val usageRepository: UsageRepository,
+	private val appUpdateManager: AppUpdateManager,
+	private val analytics: AppAnalytics,
+	private val appRuleRepository: AppRuleRepository,
 ) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState()) {
 
 
-    val updateState = appUpdateManager.updateState
-    val isUpdateIgnored = appUpdateManager.isUpdateIgnored
+	val updateState = appUpdateManager.updateState
+	val isUpdateIgnored = appUpdateManager.isUpdateIgnored
 
-    fun showUpdateDialogAgain() {
-        appUpdateManager.unignoreUpdate()
-    }
+	fun showUpdateDialogAgain() {
+		appUpdateManager.unignoreUpdate()
+	}
 
-    init {
-        viewModelScope.launch {
-            val parentId = sessionManager.parentIdFlow.first()
-            if (!parentId.isNullOrEmpty()) {
-                analytics.setUserId(parentId)
-            }
-            if (!sessionManager.hasParentPin()) {
-                Timber.w("Parent PIN missing, redirecting to security setup")
-                sendEffect(DashboardEffect.NavigateToPasswordSetup)
-            }
-        }
+	init {
+		viewModelScope.launch {
+			val parentId = sessionManager.parentIdFlow.first()
+			if (!parentId.isNullOrEmpty()) {
+				analytics.setUserId(parentId)
+			}
+			if (!sessionManager.hasParentPin()) {
+				Timber.w("Parent PIN missing, redirecting to security setup")
+				sendEffect(DashboardEffect.NavigateToPasswordSetup)
+			}
+		}
 
-        viewModelScope.launch {
-            childRepository.getAllChildren().collectLatest { childList ->
-                val lastViewedId = sessionManager.viewedChildIdFlow.first()
-                val targetChild =
-                    childList.find { it.id == lastViewedId } ?: childList.firstOrNull()
+		viewModelScope.launch {
+			childRepository.getAllChildren().collectLatest { childList ->
+				val lastViewedId = sessionManager.viewedChildIdFlow.first()
+				val targetChild =
+					childList.find { it.id == lastViewedId } ?: childList.firstOrNull()
 
-                if (targetChild != null && targetChild.id != lastViewedId) {
-                    sessionManager.setViewedChildId(targetChild.id)
-                }
+				if (targetChild != null && targetChild.id != lastViewedId) {
+					sessionManager.setViewedChildId(targetChild.id)
+				}
 
-                updateState { copy(children = childList, activeChild = targetChild) }
-            }
-        }
+				updateState { copy(children = childList, activeChild = targetChild) }
+			}
+		}
 
-        viewModelScope.launch {
-            sessionManager.activeChildIdFlow.collectLatest { activeId ->
-                updateState { copy(isProtectionActive = activeId != null) }
-            }
-        }
+		viewModelScope.launch {
+			sessionManager.activeChildIdFlow.collectLatest { activeId ->
+				updateState { copy(isProtectionActive = activeId != null) }
+			}
+		}
 
-        val viewedChildIdFlow = state.map { it.activeChild?.id }.distinctUntilChanged()
+		val viewedChildIdFlow = state.map { it.activeChild?.id }.distinctUntilChanged()
 
-        viewModelScope.launch {
-            @OptIn(ExperimentalCoroutinesApi::class) viewedChildIdFlow.flatMapLatest { childId ->
-                if (childId != null) settingsRepository.getGlobalSettings(childId)
-                else kotlinx.coroutines.flow.flowOf(null)
-            }.collectLatest { settings ->
-                updateState {
-                    copy(
-                        activeChildTimeLimitMins = settings?.dailyTimeLimitMins ?: 0,
-                        isTimeLimitActive = settings?.isTimeLimitActive ?: false
-                    )
-                }
-            }
-        }
+		viewModelScope.launch {
+			@OptIn(ExperimentalCoroutinesApi::class) viewedChildIdFlow.flatMapLatest { childId ->
+				if (childId != null) settingsRepository.getGlobalSettings(childId)
+				else kotlinx.coroutines.flow.flowOf(null)
+			}.collectLatest { settings ->
+				updateState {
+					copy(
+						activeChildTimeLimitMins = settings?.dailyTimeLimitMins ?: 0,
+						isTimeLimitActive = settings?.isTimeLimitActive ?: false
+					)
+				}
+			}
+		}
 
-        viewModelScope.launch {
-            @OptIn(ExperimentalCoroutinesApi::class) viewedChildIdFlow.flatMapLatest { childId ->
-                if (childId != null) usageRepository.observeDailyUsage(childId, LocalDate.now())
-                else kotlinx.coroutines.flow.flowOf(null)
-            }.collectLatest { daily ->
-                val local = daily?.usedSeconds ?: 0
-                val cachedGlobal = daily?.globalUsedSeconds ?: 0
-                updateState {
-                    val newGlobal = maxOf(activeChildGlobalSeconds, cachedGlobal)
-                    copy(
-                        activeChildLocalSeconds = local,
-                        activeChildGlobalSeconds = newGlobal,
-                        activeChildUsageSeconds = maxOf(local, newGlobal)
-                    )
-                }
-            }
-        }
-        viewModelScope.launch {
-            kotlinx.coroutines.flow.combine(
-                sessionManager.childModeActivationsFlow,
-                sessionManager.hasRatedAppFlow
-            ) { activations, hasRated ->
-                // Show if they've used child mode at least 2 times and haven't rated
-                activations >= 2 && !hasRated
-            }.collectLatest { shouldShow ->
-                updateState { copy(showRatingPrompt = shouldShow) }
-            }
-        }
-        viewModelScope.launch {
-            @OptIn(ExperimentalCoroutinesApi::class)
-            viewedChildIdFlow.flatMapLatest { childId ->
-                if (childId != null) settingsRepository.getGlobalSettings(childId)
-                else kotlinx.coroutines.flow.flowOf(null)
-            }.collectLatest { settings ->
-                updateState {
-                    copy(
-                        activeChildSettings = settings, // 🚀 NEW: Pass settings to UI
-                        activeChildTimeLimitMins = settings?.dailyTimeLimitMins ?: 0,
-                        isTimeLimitActive = settings?.isTimeLimitActive ?: false
-                    )
-                }
-            }
-        }
-        viewModelScope.launch {
-            @OptIn(ExperimentalCoroutinesApi::class)
-            viewedChildIdFlow.flatMapLatest { childId ->
-                if (childId != null) appRuleRepository.observeAllRules(childId)
-                else flowOf(emptyList())
-            }.collectLatest { rules ->
-                // If any rule has isAllowed == false, then App Lock is effectively active
-                val hasRestricted = rules.any { !it.isAllowed }
-                updateState { copy(hasRestrictedApps = hasRestricted) }
-            }
-        }
-    }
+		viewModelScope.launch {
+			@OptIn(ExperimentalCoroutinesApi::class) viewedChildIdFlow.flatMapLatest { childId ->
+				if (childId != null) usageRepository.observeDailyUsage(childId, LocalDate.now())
+				else kotlinx.coroutines.flow.flowOf(null)
+			}.collectLatest { daily ->
+				val local = daily?.usedSeconds ?: 0
+				val cachedGlobal = daily?.globalUsedSeconds ?: 0
+				updateState {
+					val newGlobal = maxOf(activeChildGlobalSeconds, cachedGlobal)
+					copy(
+						activeChildLocalSeconds = local,
+						activeChildGlobalSeconds = newGlobal,
+						activeChildUsageSeconds = maxOf(local, newGlobal)
+					)
+				}
+			}
+		}
+		viewModelScope.launch {
+			kotlinx.coroutines.flow.combine(
+				sessionManager.childModeActivationsFlow,
+				sessionManager.hasRatedAppFlow
+			) { activations, hasRated ->
+				// Show if they've used child mode at least 2 times and haven't rated
+				activations >= 2 && !hasRated
+			}.collectLatest { shouldShow ->
+				updateState { copy(showRatingPrompt = shouldShow) }
+			}
+		}
+		viewModelScope.launch {
+			@OptIn(ExperimentalCoroutinesApi::class)
+			viewedChildIdFlow.flatMapLatest { childId ->
+				if (childId != null) settingsRepository.getGlobalSettings(childId)
+				else kotlinx.coroutines.flow.flowOf(null)
+			}.collectLatest { settings ->
+				updateState {
+					copy(
+						activeChildSettings = settings, // 🚀 NEW: Pass settings to UI
+						activeChildTimeLimitMins = settings?.dailyTimeLimitMins ?: 0,
+						isTimeLimitActive = settings?.isTimeLimitActive ?: false
+					)
+				}
+			}
+		}
+		viewModelScope.launch {
+			@OptIn(ExperimentalCoroutinesApi::class)
+			viewedChildIdFlow.flatMapLatest { childId ->
+				if (childId != null) appRuleRepository.observeAllRules(childId)
+				else flowOf(emptyList())
+			}.collectLatest { rules ->
+				// If any rule has isAllowed == false, then App Lock is effectively active
+				val hasRestricted = rules.any { !it.isAllowed }
+				updateState { copy(hasRestrictedApps = hasRestricted) }
+			}
+		}
+		viewModelScope.launch {
+			sessionManager.hasSeenExerciseBadgeFlow.collectLatest { hasSeen ->
+				updateState { copy(showExerciseBadge = !hasSeen) }
+			}
+		}
+		viewModelScope.launch {
+			sessionManager.hasInstalledExerciseFlow.collectLatest { installed ->
+				updateState { copy(hasInstalledExercise = installed) }
+			}
+		}
+		viewModelScope.launch {
+			val alreadyInstalled = sessionManager.hasInstalledExerciseFlow.first()
+			if (!alreadyInstalled) {
+				authRepository.syncAppInstalledStatus()
+			}
+		}
+	}
 
-    override fun onEvent(event: DashboardEvent) {
-        when (event) {
-            is DashboardEvent.LockClicked -> performLogout()
-            is DashboardEvent.OpenChildSheet -> updateState { copy(isChildSheetOpen = true) }
-            is DashboardEvent.CloseChildSheet -> updateState { copy(isChildSheetOpen = false) }
-            is DashboardEvent.SelectChild -> {
-                Timber.d("Dashboard context switched to new child profile")
-                viewModelScope.launch {
-                    sessionManager.setViewedChildId(event.child.id)
-                }
-                updateState {
-                    copy(
-                        activeChild = event.child,
-                        isChildSheetOpen = false,
-                        activeChildTimeLimitMins = 0,
-                        isTimeLimitActive = false,
-                        activeChildUsageSeconds = 0,
-                        activeChildLocalSeconds = 0,
-                        activeChildGlobalSeconds = 0
-                    )
-                }
-            }
+	override fun onEvent(event: DashboardEvent) {
+		when (event) {
+			is DashboardEvent.LockClicked -> performLogout()
+			is DashboardEvent.OpenChildSheet -> updateState { copy(isChildSheetOpen = true) }
+			is DashboardEvent.CloseChildSheet -> updateState { copy(isChildSheetOpen = false) }
+			is DashboardEvent.SelectChild -> {
+				Timber.d("Dashboard context switched to new child profile")
+				viewModelScope.launch {
+					sessionManager.setViewedChildId(event.child.id)
+				}
+				updateState {
+					copy(
+						activeChild = event.child,
+						isChildSheetOpen = false,
+						activeChildTimeLimitMins = 0,
+						isTimeLimitActive = false,
+						activeChildUsageSeconds = 0,
+						activeChildLocalSeconds = 0,
+						activeChildGlobalSeconds = 0
+					)
+				}
+			}
 
-            is DashboardEvent.ActivateProtection -> {
-                viewModelScope.launch { sessionManager.incrementChildModeActivations() }
-                startProtectionService(event.childId)
-            }
+			is DashboardEvent.ActivateProtection -> {
+				viewModelScope.launch { sessionManager.incrementChildModeActivations() }
+				startProtectionService(event.childId)
+			}
 
-            is DashboardEvent.DeactivateProtection -> stopProtectionService()
-            is DashboardEvent.ClosePinRequiredDialog -> updateState { copy(showPinRequiredDialog = false) }
-            is DashboardEvent.GoToPasswordSetupClicked -> {
-                updateState { copy(showPinRequiredDialog = false) }
-                sendEffect(DashboardEffect.NavigateToPasswordSetup)
-            }
+			is DashboardEvent.DeactivateProtection -> stopProtectionService()
+			is DashboardEvent.ClosePinRequiredDialog -> updateState { copy(showPinRequiredDialog = false) }
+			is DashboardEvent.GoToPasswordSetupClicked -> {
+				updateState { copy(showPinRequiredDialog = false) }
+				sendEffect(DashboardEffect.NavigateToPasswordSetup)
+			}
 
-            is DashboardEvent.DismissRatingPrompt -> {
-                updateState { copy(showRatingPrompt = false, ratingPromptStep = 1) }
-                viewModelScope.launch { sessionManager.resetChildModeActivations() }
-            }
+			is DashboardEvent.DismissRatingPrompt -> {
+				updateState { copy(showRatingPrompt = false, ratingPromptStep = 1) }
+				viewModelScope.launch { sessionManager.resetChildModeActivations() }
+			}
 
-            is DashboardEvent.RatingPromptSatisfied -> updateState { copy(ratingPromptStep = 2) }
-            is DashboardEvent.RatingPromptDissatisfied -> updateState { copy(ratingPromptStep = 3) }
+			is DashboardEvent.RatingPromptSatisfied -> updateState { copy(ratingPromptStep = 2) }
+			is DashboardEvent.RatingPromptDissatisfied -> updateState { copy(ratingPromptStep = 3) }
 
-            is DashboardEvent.RatingPromptRateClicked -> {
-                updateState { copy(showRatingPrompt = false) }
-                viewModelScope.launch { sessionManager.setHasRatedApp(true) } // Never ask again
-                analytics.logRatingAccepted()
-                sendEffect(DashboardEffect.OpenAppStoreRating)
-            }
+			is DashboardEvent.RatingPromptRateClicked -> {
+				updateState { copy(showRatingPrompt = false) }
+				viewModelScope.launch { sessionManager.setHasRatedApp(true) } // Never ask again
+				analytics.logRatingAccepted()
+				sendEffect(DashboardEffect.OpenAppStoreRating)
+			}
 
-            is DashboardEvent.RatingPromptFeedbackClicked -> {
-                updateState { copy(showRatingPrompt = false) }
-                viewModelScope.launch { sessionManager.setHasRatedApp(true) } // Never ask again
-                analytics.logRatingFeedbackSent()
-                sendEffect(DashboardEffect.OpenSupportAccount)
-            }
-        }
-    }
+			is DashboardEvent.RatingPromptFeedbackClicked -> {
+				updateState { copy(showRatingPrompt = false) }
+				viewModelScope.launch { sessionManager.setHasRatedApp(true) } // Never ask again
+				analytics.logRatingFeedbackSent()
+				sendEffect(DashboardEffect.OpenSupportAccount)
+			}
 
-    private fun startProtectionService(childId: String) {
-        viewModelScope.launch {
-            if (!sessionManager.hasParentPin()) {
-                Timber.w("Protection activation blocked: Parent PIN required")
-                updateState { copy(showPinRequiredDialog = true) }
-                return@launch
-            }
-            Timber.i("Activating device protection service for child profile")
-            analytics.logProtectionActivated()
-            sessionManager.setActiveChildId(childId)
-            val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
-                action = RestrictionEnforcerService.ACTION_START
-                putExtra(RestrictionEnforcerService.EXTRA_CHILD_ID, childId)
-            }
-            ContextCompat.startForegroundService(context, intent)
-            LauncherManager.enableLauncherMode(context)
-        }
-    }
+			is DashboardEvent.ExerciseClicked -> {
+				viewModelScope.launch {
+					sessionManager.markExerciseBadgeAsSeen()
+				}
+				updateState { copy(showExerciseBadge = false, showExerciseInstallDialog = true) }
+			}
 
-    private fun stopProtectionService() {
-        Timber.i("Deactivating device protection service")
-        viewModelScope.launch {
-            sessionManager.clearActiveChildId()
-            val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
-                action = RestrictionEnforcerService.ACTION_START
-            }
-            context.startService(intent)
-            LauncherManager.disableLauncherMode(context)
-        }
-    }
+			is DashboardEvent.DismissExerciseDialog -> {
+				updateState { copy(showExerciseInstallDialog = false) }
+			}
 
-    private fun performLogout() {
-        Timber.i("User initiated dashboard lock/logout")
-        viewModelScope.launch {
-            authRepository.logout()
-            sendEffect(DashboardEffect.NavigateToLogin)
-        }
-    }
+			is DashboardEvent.RefreshAppInstalledStatus -> {
+				if (!state.value.hasInstalledExercise) {
+					viewModelScope.launch {
+						authRepository.syncAppInstalledStatus()
+					}
+				}
+			}
+		}
+	}
+
+	private fun startProtectionService(childId: String) {
+		viewModelScope.launch {
+			if (!sessionManager.hasParentPin()) {
+				Timber.w("Protection activation blocked: Parent PIN required")
+				updateState { copy(showPinRequiredDialog = true) }
+				return@launch
+			}
+			Timber.i("Activating device protection service for child profile")
+			analytics.logProtectionActivated()
+			sessionManager.setActiveChildId(childId)
+			val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
+				action = RestrictionEnforcerService.ACTION_START
+				putExtra(RestrictionEnforcerService.EXTRA_CHILD_ID, childId)
+			}
+			ContextCompat.startForegroundService(context, intent)
+			LauncherManager.enableLauncherMode(context)
+		}
+	}
+
+	private fun stopProtectionService() {
+		Timber.i("Deactivating device protection service")
+		viewModelScope.launch {
+			sessionManager.clearActiveChildId()
+			val intent = Intent(context, RestrictionEnforcerService::class.java).apply {
+				action = RestrictionEnforcerService.ACTION_START
+			}
+			context.startService(intent)
+			LauncherManager.disableLauncherMode(context)
+		}
+	}
+
+	private fun performLogout() {
+		Timber.i("User initiated dashboard lock/logout")
+		viewModelScope.launch {
+			authRepository.logout()
+			sendEffect(DashboardEffect.NavigateToLogin)
+		}
+	}
 }

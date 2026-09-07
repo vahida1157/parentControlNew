@@ -221,8 +221,8 @@ fun PasswordManagementScreenContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = state.selectedQuestion,
-                                    color = colors.textPrimary,
+                                    text = state.selectedQuestion.ifEmpty { stringResource(R.string.password_security_question_hint) },
+                                    color = if (state.selectedQuestion.isEmpty()) colors.textHint else colors.textPrimary,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Icon(

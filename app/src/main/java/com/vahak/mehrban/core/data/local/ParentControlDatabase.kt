@@ -23,7 +23,7 @@ import com.vahak.mehrban.core.data.local.entity.*
         BrowserBlockedKeywordEntity::class,
         BrowserHistoryEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)

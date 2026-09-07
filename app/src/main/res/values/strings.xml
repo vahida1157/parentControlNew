@@ -21,6 +21,7 @@
     <string name="no">خیر</string>
     <string name="remind_me_later">یادآوری در آینده</string>
     <string name="no_thanks">نه، ممنون</string>
+    <string name="new_title">جدید</string>
 
     <string name="nav_profile">پروفایل</string>
     <string name="nav_stats">آمار</string>
@@ -73,6 +74,7 @@
     <string name="password_setup_title">ساخت رمز عبور</string>
     <string name="password_setup_subtitle">برای امنیت حساب، فرم زیر را کامل کنید</string>
     <string name="password_security_question_label">سوال بازیابی</string>
+    <string name="password_security_question_hint">انتخاب کنید</string>
     <string name="password_answer_placeholder">پاسخ شما</string>
     <string name="password_label">رمز عبور (۴ تا ۸ رقم)</string>
     <string name="password_strength_none">رمز را وارد کنید</string>
@@ -217,6 +219,25 @@
     <string name="timelimit_3hours">۳ ساعت</string>
     <string name="timelimit_custom_time">یا زمان دلخواه را وارد کنید</string>
     <string name="timelimit_daily_allowed">زمان مجاز روزانه:</string>
+    <string name="timelimit_exercise_reward_title">پاداش زمان با ورزش</string>
+    <string name="timelimit_exercise_reward_desc">کودک می‌تواند با ورزش کردن، زمان اضافه دریافت کند</string>
+    <string name="timelimit_max_reward_title">حداکثر زمان پاداش در روز</string>
+    <string name="timelimit_1_hour">۱ ساعت</string>
+    <string name="timelimit_2_hours">۲ ساعت</string>
+    <string name="timelimit_3_hours">۳ ساعت</string>
+    <string name="timelimit_reward_value_title">ارزش هر امتیاز ورزش (ثانیه)</string>
+    <string name="timelimit_strict">سخت‌گیرانه</string>
+    <string name="timelimit_seconds">%1$d ثانیه</string>
+    <string name="timelimit_lenient">دست‌ودلباز</string>
+    <string name="timelimit_bonus_included"> (شامل +%1$d دقیقه پاداش)</string>
+    <string name="timelimit_20_min">۲۰ دقیقه</string>
+    <string name="timelimit_40_min">۴۰ دقیقه</string>
+    <string name="timelimit_60_min">۶۰ دقیقه</string>
+    <string name="timelimit_custom_reward_time">زمان دلخواه…</string>
+    <string name="timelimit_custom_reward_time_selected">دلخواه: %1$d دقیقه</string>
+    <string name="timelimit_custom_prefix">دلخواه: </string>
+    <string name="timelimit_reward_value_hint">زمان پاداشِ امروزِ کودک کم نمی‌شود. این تغییرات فقط برای ورزش‌های بعدی است.</string>
+    <string name="timelimit_reward_helper_text">💡 با این تنظیم، یک ست کامل (۲۰ حرکت) حدود %1$d دقیقه پاداش دارد.</string>
 
     <string name="sleeptime_title">زمان خواب</string>
     <string name="sleeptime_subtitle">تنظیمات</string>
@@ -558,4 +579,15 @@
     <string name="permissions_required_title">دسترسی‌های لازم</string>
     <string name="permissions_required_desc">برای فعال‌سازی حالت کودک با تنظیمات فعلی، باید دسترسی‌های لازم را به برنامه بدهید.</string>
     <string name="grant_permissions">اعطای دسترسی</string>
+    <!-- Action Grid Strings -->
+    <string name="action_exercise_title">ورزش و تحرک</string>
+    <string name="action_exercise_desc_uninstalled">تمرین هوشمند کودک</string>
+    <string name="action_exercise_desc_installed">تنظیم زمان و پاداش</string>
+    <string name="action_exercise_badge_new">جدید</string>
+
+    <!-- Exercise App Installation Dialog -->
+    <string name="exercise_install_dialog_title">اپلیکیشن ورزشی مهربان</string>
+    <string name="exercise_install_dialog_desc">با نصب اپلیکیشن ورزشی مهربان، کودک شما می‌تواند با انجام تمرینات ورزشی امتیاز کسب کرده و پاداش زمان استفاده از گوشی دریافت کند!</string>
+    <string name="exercise_install_dialog_confirm">دریافت برنامه</string>
+    <string name="exercise_install_dialog_dismiss">بعداً</string>
 </resources>

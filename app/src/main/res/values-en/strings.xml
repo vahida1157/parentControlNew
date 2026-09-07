@@ -21,6 +21,7 @@
     <string name="no">No</string>
     <string name="remind_me_later">Remind me later</string>
     <string name="no_thanks">No thanks</string>
+    <string name="new_title">new</string>
 
     <string name="nav_profile">Profile</string>
     <string name="nav_stats">Stats</string>
@@ -73,6 +74,7 @@
     <string name="password_setup_title">Create Password</string>
     <string name="password_setup_subtitle">For account security, complete the form below</string>
     <string name="password_security_question_label">Recovery Question</string>
+    <string name="password_security_question_hint">Choose One</string>
     <string name="password_answer_placeholder">Your answer</string>
     <string name="password_label">Password (4 to 8 digits)</string>
     <string name="password_strength_none">Enter password</string>
@@ -217,6 +219,25 @@
     <string name="timelimit_3hours">3 hours</string>
     <string name="timelimit_custom_time">Or enter a custom time</string>
     <string name="timelimit_daily_allowed">Daily allowed time:</string>
+    <string name="timelimit_exercise_reward_title">Exercise Time Reward</string>
+    <string name="timelimit_exercise_reward_desc">Child can earn extra screen time by exercising</string>
+    <string name="timelimit_max_reward_title">Maximum daily reward time</string>
+    <string name="timelimit_1_hour">1 Hour</string>
+    <string name="timelimit_2_hours">2 Hours</string>
+    <string name="timelimit_3_hours">3 Hours</string>
+    <string name="timelimit_reward_value_title">Value per exercise point (seconds)</string>
+    <string name="timelimit_strict">Strict</string>
+    <string name="timelimit_seconds">%1$d seconds</string>
+    <string name="timelimit_lenient">Lenient</string>
+    <string name="timelimit_bonus_included"> (includes +%1$d min bonus)</string>
+    <string name="timelimit_20_min">20 Min</string>
+    <string name="timelimit_40_min">40 Min</string>
+    <string name="timelimit_60_min">60 Min</string>
+    <string name="timelimit_custom_reward_time">Custom Time…</string>
+    <string name="timelimit_custom_reward_time_selected">Custom: %1$d Min</string>
+    <string name="timelimit_custom_prefix">Custom: </string>
+    <string name="timelimit_reward_value_hint">Time already earned today will not decrease. These changes only apply to future exercises.</string>
+    <string name="timelimit_reward_helper_text">💡 With this setting, a full set (20 reps) rewards about %1$d minutes.</string>
 
     <string name="sleeptime_title">Sleep Time</string>
     <string name="sleeptime_subtitle">Settings</string>
@@ -558,4 +579,15 @@
     <string name="permissions_required_title">Permissions Required</string>
     <string name="permissions_required_desc">To activate child mode with your current settings, you need to grant the required device permissions.</string>
     <string name="grant_permissions">Grant Permissions</string>
+    <!-- Action Grid Items -->
+    <string name="action_exercise_title">Exercise &amp; Movement</string>
+    <string name="action_exercise_desc_uninstalled">Smart exercise for kids</string>
+    <string name="action_exercise_desc_installed">Set time and rewards</string>
+    <string name="action_exercise_badge_new">New</string>
+
+    <!-- Exercise App Installation Dialog -->
+    <string name="exercise_install_dialog_title">Mehrban Exercise App</string>
+    <string name="exercise_install_dialog_desc">By installing the Mehrban exercise app, your child can earn points by doing exercises and receive screen time rewards!</string>
+    <string name="exercise_install_dialog_confirm">Get the app</string>
+    <string name="exercise_install_dialog_dismiss">Later</string>
 </resources>
